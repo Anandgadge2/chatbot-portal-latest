@@ -352,7 +352,7 @@ export default function EmailConfigPage() {
                   SMTP Relay Matrix
                 </h1>
                 <div className="flex items-center gap-2 mt-1.5 min-w-0">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest truncate">
                     Mailing Node:{" "}
                     <span className="text-indigo-400">
                       {company?.name || "Loading..."}
@@ -369,7 +369,7 @@ export default function EmailConfigPage() {
                       onClick={handleTest}
                       disabled={testing}
                       variant="ghost"
-                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
                     >
                       <CheckCircle className="w-4 h-4 sm:mr-2" />
                       {testing ? "Verifying..." : "Test Connection"}
@@ -377,7 +377,7 @@ export default function EmailConfigPage() {
                     <Button
                       onClick={() => setShowTestInput((v) => !v)}
                       variant="ghost"
-                      className="h-9 sm:h-10 px-3 sm:px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-xl transition-all border border-emerald-600/30 font-bold text-[15px] uppercase tracking-wider"
                     >
                       <Send className="w-4 h-4 sm:mr-2" />
                       Send Test Email
@@ -389,7 +389,7 @@ export default function EmailConfigPage() {
                     <Button
                       onClick={handleSave}
                       disabled={saving}
-                      className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
+                      className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[15px] uppercase tracking-wider border-0"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {saving ? "Processing..." : "Deploy Changes"}
@@ -400,7 +400,7 @@ export default function EmailConfigPage() {
                         setIsEditing(false);
                         fetchData();
                       }}
-                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                      className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
                     >
                       Cancel
                     </Button>
@@ -408,7 +408,7 @@ export default function EmailConfigPage() {
                 ) : (
                   <Button
                     onClick={() => setIsEditing(true)}
-                    className="h-9 sm:h-10 px-4 sm:px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[11px] uppercase tracking-wider"
+                    className="h-9 sm:h-10 px-4 sm:px-6 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700 font-bold text-[15px] uppercase tracking-wider"
                   >
                     Modify Config
                   </Button>
@@ -467,7 +467,7 @@ export default function EmailConfigPage() {
                 <Shield className="w-4 h-4 text-blue-400" />
                 SMTP Relay Infrastructure Settings
               </CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                 Custom Outbound Mailing Services
               </p>
             </CardHeader>
@@ -569,7 +569,7 @@ export default function EmailConfigPage() {
                 <Mail className="w-4 h-4 text-emerald-400" />
                 Mailing Payload Templates
               </CardTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                 Customize email subject and HTML content for each notification
                 event
               </p>
@@ -694,7 +694,7 @@ export default function EmailConfigPage() {
                 <Button
                   onClick={handleSaveTemplates}
                   disabled={savingTemplates}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[15px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {savingTemplates ? "Saving..." : "Commit Templates"}

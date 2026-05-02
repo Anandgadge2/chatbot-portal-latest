@@ -72,7 +72,7 @@ function ResetPasswordForm() {
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label htmlFor="phone" className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               Phone number
             </Label>
             <Input
@@ -86,7 +86,7 @@ function ResetPasswordForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="otp" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label htmlFor="otp" className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               OTP
             </Label>
             <Input
@@ -100,7 +100,7 @@ function ResetPasswordForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label htmlFor="password" className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               New password
             </Label>
             <Input
@@ -114,7 +114,7 @@ function ResetPasswordForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label htmlFor="confirmPassword" className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               Confirm password
             </Label>
             <Input

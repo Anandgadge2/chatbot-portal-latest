@@ -93,14 +93,14 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
           <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">
             Operational Intelligence
           </h2>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
-            <Zap className="w-3 h-3 text-yellow-500" />
+          <p className="text-slate-500 font-bold text-[14px] uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-500" />
             Real-time Telemetry Processing Active
           </p>
         </div>
         <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
            {["24h", "7d", "30d", "1y"].map(range => (
-             <button key={range} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${range === "7d" ? "bg-white text-indigo-600 shadow-lg shadow-indigo-600/10 border border-indigo-100" : "text-slate-400 hover:text-slate-600"}`}>
+             <button key={range} className={`px-4 py-2 rounded-xl text-[14px] font-black uppercase tracking-widest transition-all ${range === "7d" ? "bg-white text-indigo-600 shadow-lg shadow-indigo-600/10 border border-indigo-100" : "text-slate-400 hover:text-slate-600"}`}>
                {range}
              </button>
            ))}
@@ -115,13 +115,13 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                 <div className={`p-3 rounded-2xl ${kpi.bg} shadow-inner transition-transform group-hover:rotate-12 duration-500`}>
                   <kpi.icon className={`w-5 h-5 ${kpi.color}`} />
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                <span className={`text-[14px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
                   {kpi.trend}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-3xl font-black text-slate-900 tracking-tighter mb-1">{kpi.value}</span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">{kpi.title}</span>
+                <span className="text-[14px] font-bold text-slate-500 uppercase tracking-widest leading-none">{kpi.title}</span>
               </div>
             </CardContent>
           </Card>
@@ -133,7 +133,7 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
           <CardHeader className="flex flex-row items-center justify-between pb-8">
             <div className="flex flex-col">
               <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Incident Propagation</CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">7-Day Transactional Volume Analytics</CardDescription>
+              <CardDescription className="text-[14px] font-bold uppercase tracking-widest mt-1">7-Day Transactional Volume Analytics</CardDescription>
             </div>
             <BarChart2 className="w-5 h-5 text-indigo-600 opacity-20" />
           </CardHeader>
@@ -152,10 +152,10 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                     dataKey="date" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{fill: '#94a3b8', fontWeight: 900, fontSize: 10}}
+                    tick={{fill: '#94a3b8', fontWeight: 900, fontSize: 14}}
                     tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
                   />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 900, fontSize: 10}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 900, fontSize: 14}} />
                   <Tooltip 
                     contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', color: '#fff', fontWeight: 900, fontSize: '10px'}}
                     itemStyle={{color: '#818cf8', textTransform: 'uppercase'}}
@@ -171,7 +171,7 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
           <CardHeader className="pb-8">
             <div className="flex flex-col">
               <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Distribution Network</CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">Status Classification Efficiency</CardDescription>
+              <CardDescription className="text-[14px] font-bold uppercase tracking-widest mt-1">Status Classification Efficiency</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
@@ -212,7 +212,7 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                 <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
                   {stats?.grievances?.registeredTotal ?? stats?.grievances?.total ?? 0}
                 </span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Packets Trace</span>
+                <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest mt-2">Packets Trace</span>
               </div>
             </div>
             
@@ -221,8 +221,8 @@ export default function AnalyticsTab({ companyId }: { companyId?: string | null 
                 <div key={label} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
                   <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[idx]}}></div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter leading-none">{label}</span>
-                    <span className="text-[11px] font-bold text-slate-400 mt-1">Classification</span>
+                    <span className="text-[14px] font-black text-slate-900 uppercase tracking-tighter leading-none">{label}</span>
+                    <span className="text-[15px] font-bold text-slate-400 mt-1">Classification</span>
                   </div>
                 </div>
               ))}

@@ -51,11 +51,11 @@ function AppointmentCard({
           >
             {icon}
           </div>
-          <div className={`text-[8px] sm:text-[9px] font-black px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight ${badgeClass}`}>
+          <div className={`text-[14px] sm:text-[15px] font-black px-1.5 sm:px-2 py-1 rounded-lg uppercase tracking-tight ${badgeClass}`}>
             {label}
           </div>
         </div>
-        <h4 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+        <h4 className="text-[15px] sm:text-[14px] font-black text-slate-400 uppercase tracking-widest mb-1">
           {title}
         </h4>
         <p className={`text-xl sm:text-2xl font-black tracking-tighter leading-none ${valueClass}`}>

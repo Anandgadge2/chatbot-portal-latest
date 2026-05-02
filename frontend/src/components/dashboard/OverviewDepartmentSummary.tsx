@@ -47,10 +47,10 @@ export function OverviewDepartmentSummary({
             {user?.lastName?.[0]}
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+            <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
               Identity
             </p>
-            <h2 className="text-[11px] font-black text-slate-900 uppercase truncate leading-none">
+            <h2 className="text-[15px] font-black text-slate-900 uppercase truncate leading-none">
               {user?.firstName} {user?.lastName}
             </h2>
           </div>
@@ -61,10 +61,10 @@ export function OverviewDepartmentSummary({
             <Mail className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+            <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
               Contact
             </p>
-            <h2 className="text-[10px] font-bold text-slate-600 truncate leading-none">
+            <h2 className="text-[14px] font-bold text-slate-600 truncate leading-none">
               {user?.email}
             </h2>
           </div>
@@ -75,17 +75,17 @@ export function OverviewDepartmentSummary({
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0 overflow-hidden">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+            <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
               Authorization
             </p>
             <div className="flex flex-wrap gap-1">
-              <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded uppercase leading-none">
+              <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[14px] font-black rounded uppercase leading-none">
                 {user.role?.replace(/_/g, " ")}
               </span>
               {normalizedDesignations.map((designation, index) => (
                 <span
                   key={index}
-                  className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black rounded uppercase border border-slate-200 leading-none"
+                  className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[14px] font-black rounded uppercase border border-slate-200 leading-none"
                 >
                   {designation}
                 </span>
@@ -97,12 +97,12 @@ export function OverviewDepartmentSummary({
 
       <div className="space-y-4 pt-3">
         <div className="flex items-center justify-between ml-1">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <h4 className="text-[14px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
             <Building2 className="w-3.5 h-3.5 text-slate-400/60" />
             Active Department Assignments
           </h4>
           {assignedDepartmentSummaries.length > 1 && (
-            <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tight">
+            <span className="text-[14px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tight">
               {assignedDepartmentSummaries.length} Units
             </span>
           )}
@@ -127,21 +127,21 @@ export function OverviewDepartmentSummary({
                   </div>
 
                   <div className="flex-1 min-w-0 relative z-10">
-                    <h5 className="text-[11px] font-black text-slate-900 uppercase leading-tight truncate group-hover:text-indigo-600 transition-colors mb-1">
+                    <h5 className="text-[15px] font-black text-slate-900 uppercase leading-tight truncate group-hover:text-indigo-600 transition-colors mb-1">
                       {dept.name}
                     </h5>
 
                     <div className="flex flex-wrap items-center gap-1.5">
                       <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
                         <Terminal className="w-2.5 h-2.5 text-slate-400" />
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-tight">
+                        <span className="text-[14px] font-black text-slate-500 uppercase tracking-tight">
                           {dept.code || "UNIT"}
                         </span>
                       </div>
 
                       {dept.isPrimary && (
                         <div className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md">
-                          <span className="text-[8px] font-black text-indigo-600 uppercase tracking-tight">
+                          <span className="text-[14px] font-black text-indigo-600 uppercase tracking-tight">
                             Primary
                           </span>
                         </div>
@@ -163,7 +163,7 @@ export function OverviewDepartmentSummary({
           ) : (
             <div className="col-span-full p-6 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400 bg-slate-50/30">
               <Building2 className="w-8 h-8 mb-2 opacity-20" />
-              <p className="text-[9px] font-black uppercase tracking-widest">
+              <p className="text-[15px] font-black uppercase tracking-widest">
                 No assigned units
               </p>
             </div>

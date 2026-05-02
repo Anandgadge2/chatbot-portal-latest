@@ -116,12 +116,12 @@ export default function AppointmentManagement() {
                     <span className="text-sm font-black text-slate-900 leading-none uppercase tracking-tight">
                       {a.citizenName}
                     </span>
-                    <span className="text-[10px] font-black text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-widest self-start">
+                    <span className="text-[14px] font-black text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-widest self-start">
                       ID: {a.appointmentId}
                     </span>
                   </div>
                 </div>
-                <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusColor(a.status)}`}>
+                <span className={`px-3 py-1.5 rounded-full text-[15px] font-black uppercase tracking-widest border ${getStatusColor(a.status)}`}>
                   {a.status}
                 </span>
               </div>
@@ -129,24 +129,24 @@ export default function AppointmentManagement() {
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <div className="flex items-center gap-3 text-slate-600 group-hover:text-indigo-600 transition-colors">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                  <span className="text-[15px] font-bold uppercase tracking-wider">
                     {new Date(a.appointmentDate).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-600">
                   <Clock3 className="w-4 h-4" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">{a.appointmentTime}</span>
+                  <span className="text-[15px] font-bold uppercase tracking-wider">{a.appointmentTime}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-600">
                   <MapPin className="w-4 h-4" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider truncate">
+                  <span className="text-[15px] font-bold uppercase tracking-wider truncate">
                     {typeof a.departmentId === 'object' ? (a.departmentId as any)?.name : 'Main Headquarters'}
                   </span>
                 </div>
               </div>
 
               <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose: <span className="text-slate-800 ml-1">{a.purpose}</span></span>
+                <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Purpose: <span className="text-slate-800 ml-1">{a.purpose}</span></span>
                 <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200">
                   <ChevronRight className="w-4 h-4 text-slate-500" />
                 </Button>
@@ -160,7 +160,7 @@ export default function AppointmentManagement() {
                <span className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">Intelligence Agenda Empty</span>
                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">No scheduled data transmissions or meetings detected in current sector</span>
              </div>
-             <Button onClick={fetchAppointments} variant="outline" className="mt-8 rounded-xl font-bold uppercase tracking-widest text-[10px]">
+             <Button onClick={fetchAppointments} variant="outline" className="mt-8 rounded-xl font-bold uppercase tracking-widest text-[14px]">
                <RefreshCw className="w-3 h-3 mr-2" />
                Re-Sync Schedule
              </Button>

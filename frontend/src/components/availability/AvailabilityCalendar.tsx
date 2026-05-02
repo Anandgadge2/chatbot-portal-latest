@@ -250,7 +250,7 @@ function ClockFacePicker({
       </div>
 
       <div className="text-center mt-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-700 mb-2 px-3 py-1 bg-sky-50 rounded-full inline-block">
+        <p className="text-[14px] font-bold uppercase tracking-[0.1em] text-slate-700 mb-2 px-3 py-1 bg-sky-50 rounded-full inline-block">
           Select Appointment Time
         </p>
       </div>
@@ -284,7 +284,7 @@ function ClockFacePicker({
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${period === p ? "bg-[#0284c7] text-white shadow-md" : "text-slate-700 hover:text-slate-900"}`}
+              className={`px-3 py-1.5 rounded-lg text-[14px] font-bold transition-all ${period === p ? "bg-[#0284c7] text-white shadow-md" : "text-slate-700 hover:text-slate-900"}`}
             >
               {p}
             </button>
@@ -354,7 +354,7 @@ function ClockFacePicker({
       <button
         type="button"
         onClick={() => onChange(to24HourTime(hour12, minute, period))}
-        className="w-full py-3 mt-1 rounded-[1rem] bg-[#0284c7] hover:bg-[#0369a1] text-white text-[11px] font-bold uppercase tracking-[0.1em] shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center gap-2 group"
+        className="w-full py-3 mt-1 rounded-[1rem] bg-[#0284c7] hover:bg-[#0369a1] text-white text-[15px] font-bold uppercase tracking-[0.1em] shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center gap-2 group"
       >
         <span>Apply: {to24HourTime(hour12, minute, period)}</span>
         <CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -641,7 +641,7 @@ export default function AvailabilityCalendar({
                   <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight leading-none mb-1">
                     Availability <span className="text-black">Settings</span>
                   </h1>
-                  <p className="text-cyan-50 text-[10px] sm:text-xs font-semibold leading-snug">
+                  <p className="text-cyan-50 text-[14px] sm:text-xs font-semibold leading-snug">
                     Manage your schedule, holidays, and appointment slots
                   </p>
                 </div>
@@ -689,7 +689,7 @@ x
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     title={tab.tooltip}
-                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative group ${
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-4 text-[15px] sm:text-[14px] font-black uppercase tracking-widest transition-all relative group ${
                       active
                         ? "text-slate-900 border-b-2 border-sky-600"
                         : "text-slate-500 hover:text-slate-700"
@@ -783,7 +783,7 @@ x
                                     {day.label}
                                   </span>
                                   {isWeekend && (
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-amber-100">
+                                    <span className="text-[14px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-amber-100">
                                       Weekend
                                     </span>
                                   )}
@@ -791,7 +791,7 @@ x
                               </div>
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                  className={`px-2.5 py-1 rounded-full text-[14px] font-black uppercase tracking-widest ${
                                     dayAvailability.isAvailable
                                       ? "bg-slate-900 text-white shadow-sm ring-1 ring-slate-800"
                                       : "bg-slate-100 text-slate-400"
@@ -885,7 +885,7 @@ x
                                         <div className="space-y-2">
                                           <div className="grid grid-cols-2 gap-2">
                                             <div className="flex flex-col gap-1 relative">
-                                              <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
+                                              <span className="text-[14px] font-black uppercase tracking-widest text-white/90">
                                                 Start
                                               </span>
                                               <button
@@ -932,7 +932,7 @@ x
                                               )}
                                             </div>
                                             <div className="flex flex-col gap-1 relative">
-                                              <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
+                                              <span className="text-[14px] font-black uppercase tracking-widest text-white/90">
                                                 End
                                               </span>
                                               <button
@@ -1022,7 +1022,7 @@ x
                           })}
                           <Sparkles className="w-5 h-5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </h3>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mt-1">
+                        <p className="text-[14px] font-black uppercase tracking-[0.2em] text-indigo-500 mt-1">
                           Calendar Overview
                         </p>
                       </div>
@@ -1048,7 +1048,7 @@ x
                         {DAYS_OF_WEEK.map((day) => (
                           <div
                             key={day.key}
-                            className={`py-3 text-center text-[10px] font-black uppercase tracking-[0.2em] ${
+                            className={`py-3 text-center text-[14px] font-black uppercase tracking-[0.2em] ${
                               day.key === "sunday" || day.key === "saturday"
                                 ? "text-rose-500"
                                 : "text-slate-400"
@@ -1208,7 +1208,7 @@ x
                                     <PartyPopper className="w-5 h-5" />
                                   </div>
                                   <div>
-                                    <p className="font-black text-[10px] uppercase tracking-widest text-slate-400">
+                                    <p className="font-black text-[14px] uppercase tracking-widest text-slate-400">
                                       Action
                                     </p>
                                     <p className="font-bold text-sm text-slate-800">
@@ -1265,7 +1265,7 @@ x
                                 <Sparkles className="w-5 h-5 text-amber-400" />
                                 Official Holidays {currentMonth.getFullYear()}
                               </span>
-                              <div className="flex items-center bg-white/10 rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-400">
+                              <div className="flex items-center bg-white/10 rounded-lg px-3 py-1 text-[14px] font-black uppercase tracking-widest text-amber-400">
                                 Regional India
                               </div>
                             </CardTitle>
@@ -1314,7 +1314,7 @@ x
                                       >
                                         {holiday.name}
                                       </p>
-                                      <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 mt-0.5">
+                                      <p className="text-[14px] font-black uppercase tracking-[0.1em] text-slate-400 mt-0.5">
                                         {new Date(
                                           holiday.date,
                                         ).toLocaleDateString("en-US", {
@@ -1386,7 +1386,7 @@ x
                                               className={`w-4 h-4 ${sd.type === "holiday" ? "text-rose-400" : "text-indigo-400"}`}
                                             />
                                           </div>
-                                          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300/60 line-clamp-1">
+                                          <span className="text-[14px] font-black uppercase tracking-widest text-indigo-300/60 line-clamp-1">
                                             {sd.name || "Custom Date"}
                                           </span>
                                         </div>
@@ -1412,7 +1412,7 @@ x
                                             },
                                           )}
                                         </span>
-                                        <span className="text-[10px] text-white/40 font-medium mt-1">
+                                        <span className="text-[14px] text-white/40 font-medium mt-1">
                                           {new Date(sd.date).toLocaleDateString(
                                             "en-US",
                                             { weekday: "long" },
@@ -1443,7 +1443,7 @@ x
                         </CardHeader>
                         <CardContent className="px-5 sm:px-6 pb-6 space-y-5">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
+                            <label className="text-[14px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                               Slot Duration (Minutes)
                               <span className="bg-sky-50 text-[#0298d1] px-2 rounded-lg font-bold">
                                 {availability.slotDuration || 30}m
@@ -1464,7 +1464,7 @@ x
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
+                            <label className="text-[14px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                               Advance Booking Lead (Days)
                               <span className="bg-sky-50 text-[#0298d1] px-2 rounded-lg font-bold">
                                 {availability.maxAdvanceDays || 30}d
@@ -1495,7 +1495,7 @@ x
                         </CardHeader>
                         <CardContent className="px-5 sm:px-6 pb-6 space-y-5">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
+                            <label className="text-[14px] font-semibold uppercase tracking-[0.1em] text-slate-600 flex items-center justify-between">
                               Simultaneous Bookings
                               <span className="bg-slate-100 text-slate-900 px-2 rounded-lg font-bold">
                                 {availability.maxConcurrentAppointments || 1}{" "}
@@ -1539,7 +1539,7 @@ x
                               <p className="font-bold text-slate-800 tracking-tight">
                                 Public Visibility
                               </p>
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">
+                              <p className="text-[15px] font-black uppercase tracking-widest text-slate-400 mt-1">
                                 Status:{" "}
                                 {availability.isActive ? "ONLINE" : "OFFLINE"}
                               </p>
@@ -1581,7 +1581,7 @@ x
               {hasChanges && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl border border-amber-100 animate-pulse">
                   <AlertCircle className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-[14px] font-black uppercase tracking-widest">
                     Unsaved changes detected
                   </span>
                 </div>
@@ -1600,7 +1600,7 @@ x
               <Button
                 onClick={handleSave}
                 disabled={!hasChanges || loading || saving}
-                className={`flex-1 sm:flex-none h-12 px-10 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-3 transition-all duration-300 shadow-xl ${
+                className={`flex-1 sm:flex-none h-12 px-10 rounded-2xl font-black text-[15px] uppercase tracking-widest flex items-center gap-3 transition-all duration-300 shadow-xl ${
                   hasChanges
                     ? "bg-indigo-600 text-white hover:bg-slate-900 hover:scale-[1.03] shadow-indigo-200"
                     : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"

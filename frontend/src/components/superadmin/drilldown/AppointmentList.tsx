@@ -79,7 +79,7 @@ export default function AppointmentList({
             variant="outline"
             size="sm"
             onClick={() => exportToCSV(appointments, "appointments")}
-            className="text-[10px] font-black uppercase tracking-wider"
+            className="text-[14px] font-black uppercase tracking-wider"
           >
             <Download className="w-3.5 h-3.5 mr-2" />
             Export
@@ -98,19 +98,19 @@ export default function AppointmentList({
                   className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                 />
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Sr. No.
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Token ID
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Citizen
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Slot Date/Time
               </th>
-              <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-right text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Actions
               </th>
             </tr>
@@ -133,7 +133,7 @@ export default function AppointmentList({
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-flex items-center justify-center w-7 h-7 font-black text-[10px] rounded-lg transition-colors ${
+                      className={`inline-flex items-center justify-center w-7 h-7 font-black text-[14px] rounded-lg transition-colors ${
                         isSelected
                           ? "bg-emerald-200 text-emerald-800"
                           : "bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700"
@@ -150,21 +150,21 @@ export default function AppointmentList({
                       <p className="font-bold text-slate-900 leading-none">
                         {a.citizenName}
                       </p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                      <p className="text-[14px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
                         {formatTo10Digits(a.citizenPhone)}
                       </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-600">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[14px] font-black text-slate-600">
                         {new Date(a.appointmentDate).getDate()}
                       </div>
                       <div className="flex flex-col">
-                        <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">
+                        <p className="text-[14px] font-black text-slate-900 uppercase tracking-tighter">
                           {a.appointmentTime}
                         </p>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                        <p className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">
                           {new Date(a.appointmentDate).toLocaleDateString(
                             "en-US",
                             { month: "short", year: "numeric" },
@@ -181,7 +181,7 @@ export default function AppointmentList({
                         setSelectedAppointment(a);
                         setShowAppointmentDetail(true);
                       }}
-                      className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                      className="text-[14px] font-black uppercase tracking-wider text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
                     >
                       View Schedule
                     </Button>

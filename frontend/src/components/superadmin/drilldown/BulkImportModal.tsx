@@ -129,7 +129,7 @@ export default function BulkImportModal({
               <h3 className="text-lg font-bold text-white uppercase tracking-tight">
                 Bulk Import Departments
               </h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest">
                 Onboarding System
               </p>
             </div>
@@ -223,7 +223,7 @@ export default function BulkImportModal({
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400">
+                <div className="flex items-center justify-between text-[14px] font-black uppercase text-slate-400">
                   <span>Progress</span>
                   <span>{progress}%</span>
                 </div>

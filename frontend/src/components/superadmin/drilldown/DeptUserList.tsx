@@ -163,24 +163,24 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="h-8 px-4 text-[10px] font-bold uppercase tracking-widest border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl transition-all"
+              className="h-8 px-4 text-[14px] font-bold uppercase tracking-widest border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl transition-all"
             >
               Clear
             </button>
             {showBulkConfirm ? (
               <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-1.5 shadow-sm">
                 <AlertTriangle className="w-4 h-4 text-red-600" />
-                <span className="text-[10px] text-red-700 font-black uppercase tracking-widest">Perform Mass Removal?</span>
+                <span className="text-[14px] text-red-700 font-black uppercase tracking-widest">Perform Mass Removal?</span>
                 <button
                   onClick={handleBulkDelete}
                   disabled={bulkDeleting}
-                  className="h-7 px-4 text-[10px] bg-red-600 hover:bg-red-700 text-white rounded-lg font-black uppercase tracking-widest shadow-lg shadow-red-200 disabled:opacity-50"
+                  className="h-7 px-4 text-[14px] bg-red-600 hover:bg-red-700 text-white rounded-lg font-black uppercase tracking-widest shadow-lg shadow-red-200 disabled:opacity-50"
                 >
                   {bulkDeleting ? "Executing..." : "Confirm"}
                 </button>
                 <button
                   onClick={() => setShowBulkConfirm(false)}
-                  className="h-7 px-3 text-[10px] text-slate-500 font-bold uppercase"
+                  className="h-7 px-3 text-[14px] text-slate-500 font-bold uppercase"
                 >
                   Cancel
                 </button>
@@ -188,7 +188,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
             ) : (
               <button
                 onClick={() => setShowBulkConfirm(true)}
-                className="h-8 px-4 text-[10px] font-black uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-red-200 transition-all"
+                className="h-8 px-4 text-[14px] font-black uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-red-200 transition-all"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Mass Delete
@@ -249,7 +249,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
 
                       return (
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          className={`px-2.5 py-1 rounded-full text-[14px] font-black uppercase tracking-wider border ${
                             isSuperAdmin(u)
                               ? "bg-red-50 text-red-700 border-red-100"
                               : "bg-emerald-50 text-emerald-700 border-emerald-100"
@@ -260,7 +260,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                       );
                     })()}
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${u.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+                      className={`px-2.5 py-1 rounded-full text-[14px] font-bold ${u.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
                     >
                       {u.isActive ? "Active" : "Inactive"}
                     </span>
@@ -290,24 +290,24 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                       )}
                     </button>
                   </th>
-                  <th className="px-3 py-4 text-center text-[11px] font-bold text-emerald-700 uppercase">
+                  <th className="px-3 py-4 text-center text-[15px] font-bold text-emerald-700 uppercase">
                     Sr. No.
                   </th>
                   <th className="px-6 py-4 text-left">
                     <button
                       onClick={() => handleSort("firstName")}
-                      className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 uppercase hover:text-emerald-800"
+                      className="flex items-center gap-1.5 text-[15px] font-bold text-emerald-700 uppercase hover:text-emerald-800"
                     >
                       User <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-emerald-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-emerald-700 uppercase">
                     Email
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-emerald-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-emerald-700 uppercase">
                     Role
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-emerald-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-emerald-700 uppercase">
                     Status
                   </th>
                 </tr>
@@ -361,7 +361,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
 
                         return (
                           <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                            className={`px-2.5 py-1 rounded-full text-[14px] font-black uppercase tracking-wider border ${
                               isSuperAdmin(u)
                                 ? "bg-red-50 text-red-700 border-red-100"
                                 : "bg-emerald-50 text-emerald-700 border-emerald-100"
@@ -374,7 +374,7 @@ const DeptUserList: React.FC<DeptUserListProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${u.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+                        className={`px-2.5 py-1 rounded-full text-[14px] font-bold ${u.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
                       >
                         {u.isActive ? "Active" : "Inactive"}
                       </span>

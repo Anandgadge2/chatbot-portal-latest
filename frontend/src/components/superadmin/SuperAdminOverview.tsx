@@ -691,7 +691,7 @@ function SuperAdminOverviewContent() {
                     <TabsTrigger
                       key={t.val}
                       value={t.val}
-                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[10px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
+                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[14px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
                     >
                       <t.icon className="w-3.5 h-3.5 mr-2" />
                       {t.label}
@@ -703,7 +703,7 @@ function SuperAdminOverviewContent() {
 
             <div className="flex items-center gap-5">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-5">
-                <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                <span className="text-[15px] font-black text-white uppercase tracking-wider">
                   {user.firstName} {user.lastName}
                 </span>
               </div>
@@ -726,7 +726,7 @@ function SuperAdminOverviewContent() {
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
               >
                 LOGOUT
               </Button>
@@ -799,14 +799,14 @@ function SuperAdminOverviewContent() {
                 {!showLogs && (
                   <Button 
                     onClick={() => setShowLogs(true)}
-                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-[14px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
                   >
                     <FileText className="w-3.5 h-3.5 mr-2" />
                     See Audit Logs
                   </Button>
                 )}
                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
-                  <div className="text-[9px] font-black text-slate-400 uppercase leading-none">
+                  <div className="text-[15px] font-black text-slate-400 uppercase leading-none">
                     Security
                     <br />
                     Status
@@ -814,7 +814,7 @@ function SuperAdminOverviewContent() {
                   <div className="h-6 w-px bg-slate-100"></div>
                   <div className="flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">
+                    <span className="text-[14px] font-black text-slate-800 uppercase tracking-wider">
                       Protected
                     </span>
                   </div>
@@ -843,7 +843,7 @@ function SuperAdminOverviewContent() {
                    <Button 
                     onClick={() => setShowLogs(true)}
                     variant="outline"
-                    className="mt-6 rounded-xl font-bold text-[10px] uppercase tracking-wider px-8"
+                    className="mt-6 rounded-xl font-bold text-[14px] uppercase tracking-wider px-8"
                   >
                     Load Recent Activity
                   </Button>

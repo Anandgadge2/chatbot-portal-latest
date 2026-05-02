@@ -303,7 +303,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 </div>
                 Edit User
               </DialogTitle>
-              <DialogDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+              <DialogDescription className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                 Update staff information and access settings
               </DialogDescription>
             </DialogHeader>
@@ -322,7 +322,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               <div className="space-y-1.5">
                 <Label
                   htmlFor="firstName"
-                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                  className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                 >
                   First Name *
                 </Label>
@@ -340,7 +340,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               <div className="space-y-1.5">
                 <Label
                   htmlFor="lastName"
-                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                  className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                 >
                   Last Name *
                 </Label>
@@ -360,7 +360,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             <div className="space-y-1.5">
               <Label
                 htmlFor="email"
-                className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
               >
                 Email
               </Label>
@@ -379,7 +379,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               <div className="space-y-1.5">
                 <Label
                   htmlFor="phone"
-                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                  className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                 >
                   Phone *
                 </Label>
@@ -401,7 +401,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
                   <Label
                     htmlFor="password"
-                    className="text-[10px] font-black text-indigo-500 uppercase tracking-widest"
+                    className="text-[14px] font-black text-indigo-500 uppercase tracking-widest"
                   >
                     Set Password
                   </Label>
@@ -416,14 +416,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     placeholder="Enter new password (min 5 characters)"
                     className="h-10 border-indigo-100 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-lg text-sm bg-indigo-50/30"
                   />
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Leave blank to keep existing</p>
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-tighter">Leave blank to keep existing</p>
                 </div>
               )}
 
             <div className="space-y-1.5">
               <Label
                 htmlFor="designation"
-                className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
               >
                 Primary Designation
               </Label>
@@ -439,7 +439,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
             </div>
 
             <div className="space-y-2 pb-2">
-              <Label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest leading-none">Additional Designations</Label>
+              <Label className="text-[14px] font-black uppercase text-indigo-500 tracking-widest leading-none">Additional Designations</Label>
               <div className="flex gap-2">
                 <Input 
                   id="edit-new-designation" 
@@ -473,7 +473,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {formData.designations.map((d, index) => (
-                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black rounded-lg uppercase tracking-tight">
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[15px] font-black rounded-lg uppercase tracking-tight">
                     {d}
                     <button 
                       type="button" 
@@ -490,7 +490,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
 
             <div className="flex items-center gap-2 pt-1">
               <div className="flex-1 h-px bg-slate-100"></div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                 Access & Assignment
               </span>
               <div className="flex-1 h-px bg-slate-100"></div>
@@ -500,7 +500,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               <div className="space-y-1.5">
                 <Label
                   htmlFor="role"
-                  className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                  className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                 >
                   Role & Permissions *
                 </Label>
@@ -520,8 +520,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     <UserIcon className="w-4 h-4 text-indigo-500" />
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Assign Multiple Departments</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Map to multiple organizational units</p>
+                    <p className="text-[14px] font-black text-slate-700 uppercase tracking-tight">Assign Multiple Departments</p>
+                    <p className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Map to multiple organizational units</p>
                   </div>
                 </div>
                 <Switch 
@@ -536,7 +536,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="mainDepartmentId"
-                      className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                      className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                     >
                       Main Department
                     </Label>
@@ -559,7 +559,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                       <Label
                         htmlFor="subDepartmentId"
-                        className="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+                        className="text-[14px] font-black text-slate-500 uppercase tracking-widest"
                       >
                         Sub Department (Optional)
                       </Label>
@@ -580,7 +580,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                     <div>
-                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                        <Label className="text-[14px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
                           <Building className="w-3 h-3" />
                           Category Filter
                         </Label>
@@ -596,7 +596,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                         />
                     </div>
                     <div>
-                        <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                        <Label className="text-[14px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
                           <Users className="w-3 h-3" />
                           Sub-Unit Filter
                         </Label>
@@ -614,14 +614,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between px-1">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Label className="text-[14px] font-black uppercase tracking-widest text-slate-500">
                       Mapped Organizational Units ({formData.departmentIds.length})
                     </Label>
                     {formData.departmentIds.length > 0 && (
                       <button 
                         type="button" 
                         onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
-                        className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
+                        className="text-[15px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
                       >
                         [ Unmap All Units ]
                       </button>
@@ -629,7 +629,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   </div>
 
                   <div className="border rounded-xl px-2 py-2 bg-slate-50/50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
-                    {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found</p>}
+                    {departments.length === 0 && <p className="text-[14px] text-slate-400 text-center py-4">No departments found</p>}
                     {departments
                       .filter(dept => {
                          if (formData.departmentIds.includes(dept._id)) return true;
@@ -662,11 +662,11 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                               {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                             </div>
                             <div className="flex flex-col">
-                              <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
+                              <span className={`text-[15px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
                                 {dept.name}
                               </span>
                               {isSub && (
-                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                                   Sub-Unit mapping
                                 </span>
                               )}
@@ -687,8 +687,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                       <Mail className="w-4 h-4 text-indigo-500" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Email</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                      <p className="text-[14px] font-black text-slate-700 uppercase tracking-tight">Email</p>
+                      <p className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
                     </div>
                   </div>
                   <Switch
@@ -708,8 +708,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                       <MessageSquare className="w-4 h-4 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">WhatsApp</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
+                      <p className="text-[14px] font-black text-slate-700 uppercase tracking-tight">WhatsApp</p>
+                      <p className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Alerts</p>
                     </div>
                   </div>
                   <Switch
@@ -733,14 +733,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               size="sm"
               onClick={onClose}
               disabled={loading}
-              className="h-9 px-5 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-bold uppercase tracking-widest"
+              className="h-9 px-5 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-100 text-[15px] font-bold uppercase tracking-widest"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-9 px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold uppercase tracking-widest shadow-md shadow-indigo-900/20 transition-all"
+              className="h-9 px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[15px] font-bold uppercase tracking-widest shadow-md shadow-indigo-900/20 transition-all"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

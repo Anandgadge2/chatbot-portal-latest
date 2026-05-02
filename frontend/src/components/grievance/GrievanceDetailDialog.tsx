@@ -304,12 +304,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   #{grievance.grievanceId}
                 </h2>
                 <span
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace("text-", "bg-")} ${statusConfig.text}`}
+                  className={`px-2.5 py-1 rounded-md text-[14px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace("text-", "bg-")} ${statusConfig.text}`}
                 >
                   {statusConfig.label}
                 </span>
                 {isOverdue && (
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border border-rose-500 bg-rose-500 bg-opacity-10 text-rose-500 flex items-center gap-1 animate-pulse shadow-sm shadow-rose-900/20">
+                  <span className="px-2.5 py-1 rounded-md text-[14px] font-black uppercase tracking-widest border border-rose-500 bg-rose-500 bg-opacity-10 text-rose-500 flex items-center gap-1 animate-pulse shadow-sm shadow-rose-900/20">
                     <AlertCircle className="w-3 h-3" />
                     Overdue
                   </span>
@@ -363,7 +363,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 text-[15px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                 activeTab === tab.id
                   ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/10 shadow-sm"
                   : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
@@ -373,7 +373,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               {tab.label}
               {tab.count !== undefined && (
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[8px] font-black ${activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"}`}
+                  className={`px-1.5 py-0.5 rounded-full text-[14px] font-black ${activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"}`}
                 >
                   {tab.count}
                 </span>
@@ -393,7 +393,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <CheckCircle2 className="w-20 h-20 text-white" />
                   </div>
                   <div className="relative z-10">
-                    <h3 className="text-white text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <h3 className="text-white text-[14px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> Final Resolution
                       Summary
                     </h3>
@@ -411,13 +411,13 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       <ArrowRight className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest text-sky-700">
+                      <h3 className="text-[14px] font-black uppercase tracking-widest text-sky-700">
                         Transfer Context
                       </h3>
                       <p className="mt-1 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700 break-words">
                         {latestTransferNote}
                       </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px] font-semibold text-slate-500">
                         {latestTransferActor && (
                           <span>Shared by {latestTransferActor}</span>
                         )}
@@ -443,7 +443,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <User className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-[14px] font-black uppercase tracking-widest">
                       Reporting Citizen
                     </span>
                     <div className="flex-1 h-px bg-slate-100"></div>
@@ -451,7 +451,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
                   <div className="grid grid-cols-1 gap-y-2">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                      <span className="text-[15px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Full Name
                       </span>
                       <span className="text-sm font-bold text-slate-900">
@@ -459,7 +459,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                      <span className="text-[15px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Contact Detail
                       </span>
                       <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Building className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-[14px] font-black uppercase tracking-widest">
                       Organizational Mapping
                     </span>
                     <div className="flex-1 h-px bg-slate-100"></div>
@@ -489,7 +489,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
                   <div className="grid grid-cols-1 gap-y-2">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                      <span className="text-[15px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Assigned Department
                       </span>
                       <span className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -510,7 +510,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                      <span className="text-[15px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         SLA Threshold (Hours)
                       </span>
                       {isEditingSla && isCompanyAdminOrHigher(user) ? (
@@ -522,11 +522,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             className="w-20 h-7 px-2 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 font-bold"
                             autoFocus
                           />
-                          <Button size="sm" className="h-7 px-2 text-[10px] font-black uppercase" onClick={handleUpdateSla} disabled={isSavingSla}>
+                          <Button size="sm" className="h-7 px-2 text-[14px] font-black uppercase" onClick={handleUpdateSla} disabled={isSavingSla}>
                             {isSavingSla ? '...' : 'Save'}
                           </Button>
                           <button 
-                            className="text-[10px] text-slate-400 font-bold hover:text-slate-600 px-1" 
+                            className="text-[14px] text-slate-400 font-bold hover:text-slate-600 px-1" 
                             onClick={() => setIsEditingSla(false)}
                           >
                             Cancel
@@ -543,7 +543,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 setNewSlaHours(grievance?.slaHours ?? 120);
                                 setIsEditingSla(true);
                               }}
-                              className="text-[10px] text-indigo-600 font-black uppercase tracking-widest hover:underline"
+                              className="text-[14px] text-indigo-600 font-black uppercase tracking-widest hover:underline"
                             >
                               Adjust
                             </button>
@@ -553,7 +553,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
+                      <span className="text-[15px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">
                         Monitoring Officer
                       </span>
                       <div className="flex items-center gap-2">
@@ -576,7 +576,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Tag className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-[14px] font-black uppercase tracking-widest">
                       Description
                     </span>
                   </div>
@@ -604,10 +604,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           <MapPin className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em] mb-1.5 flex items-center gap-2">
+                          <p className="text-[14px] font-black text-white/80 uppercase tracking-[0.2em] mb-1.5 flex items-center gap-2">
                             Geospatial context
                           </p>
-                          <p className="text-[13px] font-black text-white mb-3 tracking-tight leading-snug">
+                          <p className="text-[15px] font-black text-white mb-3 tracking-tight leading-snug">
                             {grievance.location.address ||
                               "Coordinate-only location provided by device"}
                           </p>
@@ -615,18 +615,18 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           {grievanceLatLng && (
                             <div className="flex flex-wrap items-center gap-4">
                               <div className="flex items-center gap-2 px-3 py-1.5 bg-black/20 rounded-lg border border-white/10 backdrop-blur-sm">
-                                <span className="text-[10px] font-bold text-white/90">
+                                <span className="text-[14px] font-bold text-white/90">
                                   Lat: {grievanceLatLng.lat.toFixed(7)}
                                 </span>
                                 <span className="w-px h-3 bg-white/20"></span>
-                                <span className="text-[10px] font-bold text-white/90">
+                                <span className="text-[14px] font-bold text-white/90">
                                   Long: {grievanceLatLng.lng.toFixed(7)}
                                 </span>
                               </div>
                               
                               <button
                                 onClick={() => setIsMapOpen(true)}
-                                className="text-[10px] font-black text-[#00AEEF] bg-white hover:bg-slate-50 px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg active:scale-95 uppercase tracking-widest"
+                                className="text-[14px] font-black text-[#00AEEF] bg-white hover:bg-slate-50 px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg active:scale-95 uppercase tracking-widest"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 View Map
@@ -660,11 +660,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 {citizenMedia.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                         <ImageIcon className="w-3.5 h-3.5" /> Citizen Evidence
                         Folder
                       </span>
-                      <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[15px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
                         {citizenMedia.length} Files
                       </span>
                     </div>
@@ -696,7 +696,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   unoptimized
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                  <span className="bg-white/90 backdrop-blur-sm text-[8px] font-black text-slate-900 px-2 py-1 rounded-lg uppercase tracking-tight shadow-lg">
+                                  <span className="bg-white/90 backdrop-blur-sm text-[14px] font-black text-slate-900 px-2 py-1 rounded-lg uppercase tracking-tight shadow-lg">
                                     Enlarge
                                   </span>
                                 </div>
@@ -714,7 +714,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-slate-100 transition-colors"
                               >
                                 <FileType className="w-5 h-5 text-indigo-500" />
-                                <span className="text-[9px] font-bold text-slate-700 px-2 text-center line-clamp-1">
+                                <span className="text-[15px] font-bold text-slate-700 px-2 text-center line-clamp-1">
                                   {getDocumentLabel(media)}
                                 </span>
                               </button>
@@ -729,11 +729,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 {officerMedia.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-1 border-b border-emerald-100">
-                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                      <span className="text-[14px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                         <UserCheck className="w-3.5 h-3.5" /> Officer
                         Documentation Proof
                       </span>
-                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[15px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                         {officerMedia.length} Files
                       </span>
                     </div>
@@ -787,7 +787,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
                               >
                                 <FileType className="w-5 h-5 text-emerald-600" />
-                                <span className="text-[9px] font-bold text-emerald-800 px-2 text-center line-clamp-1">
+                                <span className="text-[15px] font-bold text-emerald-800 px-2 text-center line-clamp-1">
                                   {getDocumentLabel(media)}
                                 </span>
                               </button>
@@ -802,7 +802,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 {(!grievance.media || grievance.media.length === 0) && (
                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                     <ImageIcon className="w-10 h-10 text-slate-300 mb-3" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest">
                       No Media Artifacts Found
                     </p>
                   </div>
@@ -824,10 +824,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   </div>
                   <div className="flex flex-col gap-1 pl-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                      <span className="text-[14px] font-black text-emerald-600 uppercase tracking-widest">
                         Grievance Registered
                       </span>
-                      <span className="text-[9px] font-bold text-slate-400 font-mono">
+                      <span className="text-[15px] font-bold text-slate-400 font-mono">
                         {createdDate && !isNaN(createdDate.getTime()) ? formatDateTime(createdDate) : "N/A"}
                       </span>
                     </div>
@@ -927,11 +927,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         <div className="flex flex-col gap-1 pl-4">
                           <div className="flex items-center justify-between">
                             <span
-                              className={`text-[10px] font-black ${c.text} uppercase tracking-widest`}
+                              className={`text-[14px] font-black ${c.text} uppercase tracking-widest`}
                             >
                               {title}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-400 font-mono">
+                            <span className="text-[15px] font-bold text-slate-400 font-mono">
                               {formatDateTime(event.timestamp)}
                             </span>
                           </div>
@@ -942,7 +942,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             </p>
                             <div className="mt-2 flex items-center gap-1.5 opacity-60">
                               <User className="w-2.5 h-2.5 text-slate-400" />
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">
                                 Actioned By {perf}
                               </span>
                             </div>
@@ -991,7 +991,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10"
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[14px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10"
             >
               Download Source
             </a>
@@ -1029,7 +1029,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 <div className="flex flex-col gap-3">
                   <Button
                     asChild
-                    className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20"
+                    className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20"
                   >
                     <a
                       href={fullScreenMedia.url}
@@ -1041,7 +1041,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   </Button>
                   <button
                     onClick={() => setFullScreenMedia(null)}
-                    className="h-11 w-full text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all"
+                    className="h-11 w-full text-[14px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all"
                   >
                     Go Back
                   </button>

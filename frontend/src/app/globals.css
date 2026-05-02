@@ -57,6 +57,7 @@
 
   html {
     scroll-behavior: smooth;
+    font-size: 115%;
   }
 
   body {
@@ -70,8 +71,8 @@
       "Segoe UI",
       sans-serif;
     zoom: 1;
-    font-size: 15px;
-    line-height: 1.52;
+    font-size: 18px;
+    line-height: 1.6;
     letter-spacing: 0.15px;
     overflow-x: hidden;
   }

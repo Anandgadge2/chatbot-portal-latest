@@ -40,7 +40,7 @@ export default function TemplateTable({ templates, onView, onUse }: TemplateTabl
             <div key={template._id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <h4 className="text-sm font-bold text-slate-800 break-all">{template.name}</h4>
-                <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusStyles[template.status]}`}>
+                <span className={`px-2 py-1 rounded-full text-[14px] font-bold ${statusStyles[template.status]}`}>
                   {template.status}
                 </span>
               </div>

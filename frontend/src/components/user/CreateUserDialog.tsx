@@ -412,7 +412,7 @@ export default function CreateUserDialog({
                 <CardTitle className="text-base font-bold text-white uppercase tracking-tight">
                   {editingUser ? "Modify Personnel Profile" : "Initialize New Personnel"}
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                   Global Authorization Registry
                 </p>
               </div>
@@ -462,7 +462,7 @@ export default function CreateUserDialog({
               </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-indigo-500">Personnel Designations</Label>
+              <Label className="text-[14px] font-black uppercase text-indigo-500">Personnel Designations</Label>
               <div className="flex gap-2">
                 <Input 
                   id="new-designation" 
@@ -495,7 +495,7 @@ export default function CreateUserDialog({
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {formData.designations.map((d, index) => (
-                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-tight">
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[14px] font-black rounded-lg uppercase tracking-tight">
                     {d}
                     <button 
                       type="button" 
@@ -522,7 +522,7 @@ export default function CreateUserDialog({
 
             <div className="flex items-center gap-2 py-1">
               <div className="flex-1 h-px bg-slate-100"></div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assignment & Notifications</span>
+              <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">Assignment & Notifications</span>
               <div className="flex-1 h-px bg-slate-100"></div>
             </div>
 
@@ -549,8 +549,8 @@ export default function CreateUserDialog({
                   <div className="flex items-center gap-3">
                     <Building className="w-4 h-4 text-indigo-500" />
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Assign Multiple Departments</span>
-                      <span className="text-[8px] font-medium text-slate-400">Map this user to multiple organizational units</span>
+                      <span className="text-[14px] font-black uppercase tracking-tight text-slate-700">Assign Multiple Departments</span>
+                      <span className="text-[14px] font-medium text-slate-400">Map this user to multiple organizational units</span>
                     </div>
                   </div>
                   <Switch 
@@ -599,7 +599,7 @@ export default function CreateUserDialog({
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div>
-                          <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Label className="text-[14px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
                             <Building className="w-3 h-3" />
                             Department Branch
                           </Label>
@@ -615,7 +615,7 @@ export default function CreateUserDialog({
                           />
                       </div>
                       <div>
-                          <Label className="text-[10px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
+                          <Label className="text-[14px] font-black uppercase text-indigo-500 mb-1.5 flex items-center gap-1.5 leading-none">
                             <Users className="w-3 h-3" />
                             Sub-Unit Filter
                           </Label>
@@ -633,14 +633,14 @@ export default function CreateUserDialog({
                     </div>
 
                     <div className="flex items-center justify-between px-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <Label className="text-[14px] font-black uppercase tracking-widest text-slate-500">
                         Organizational Multi-Mapping ({formData.departmentIds.length})
                       </Label>
                       {formData.departmentIds.length > 0 && (
                         <button 
                           type="button" 
                           onClick={() => setFormData(p => ({ ...p, departmentIds: [] }))}
-                          className="text-[9px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
+                          className="text-[15px] font-black uppercase text-red-500 hover:text-red-700 transition-colors"
                         >
                           [ Clear All Assignments ]
                         </button>
@@ -648,7 +648,7 @@ export default function CreateUserDialog({
                     </div>
 
                     <div className="border rounded-xl px-2 py-2 bg-slate-50 max-h-[160px] overflow-y-auto custom-scrollbar space-y-1">
-                      {departments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-4">No departments found for this company</p>}
+                      {departments.length === 0 && <p className="text-[14px] text-slate-400 text-center py-4">No departments found for this company</p>}
                       {departments
                         .filter(dept => {
                            if (formData.departmentIds.includes(dept._id)) return true;
@@ -681,11 +681,11 @@ export default function CreateUserDialog({
                                 {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                               </div>
                               <div className="flex flex-col">
-                                <span className={`text-[11px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
+                                <span className={`text-[15px] font-bold ${isSelected ? "text-indigo-700" : "text-slate-700"}`}>
                                   {dept.name}
                                 </span>
                                 {isSub && (
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                  <span className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                                     Sub-Unit mapping
                                   </span>
                                 )}
@@ -704,14 +704,14 @@ export default function CreateUserDialog({
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-indigo-500" />
-                  <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">Email</span>
+                  <span className="text-[14px] font-black uppercase tracking-tight text-slate-700">Email</span>
                 </div>
                 <Switch checked={formData.notificationSettings.email} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, email: checked, hasOverride: true} }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-tight text-slate-700">WhatsApp</span>
+                  <span className="text-[14px] font-black uppercase tracking-tight text-slate-700">WhatsApp</span>
                 </div>
                 <Switch checked={formData.notificationSettings.whatsapp} onCheckedChange={(checked) => setFormData(p => ({ ...p, notificationSettings: {...p.notificationSettings, whatsapp: checked, hasOverride: true} }))} />
               </div>
@@ -719,7 +719,7 @@ export default function CreateUserDialog({
 
             <div className="flex justify-end space-x-3 pt-6 border-t">
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" disabled={loading} className="bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95">
+              <Button type="submit" disabled={loading} className="bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[14px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95">
                 {loading ? "Processing..." : (editingUser ? "Update User" : "Create User")}
               </Button>
             </div>

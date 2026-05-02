@@ -34,7 +34,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
           <Building className="w-24 h-24 text-blue-600 -mr-8 -mt-8 rotate-12" />
         </div>
         <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+          <CardTitle className="text-slate-500 text-[14px] font-black uppercase tracking-widest flex items-center justify-between">
             <span className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600">
                 <Building className="w-4 h-4" />
@@ -49,7 +49,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
             <p className="text-3xl font-black text-slate-900 tracking-tighter">
               {stats.companies}
             </p>
-            <span className="text-[10px] font-bold text-slate-400">
+            <span className="text-[14px] font-bold text-slate-400">
               Entities
             </span>
           </div>
@@ -62,7 +62,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
                 }}
               />
             </div>
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
+            <span className="text-[14px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
               {stats.activeCompanies} Active
             </span>
           </div>
@@ -78,7 +78,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
           <Users className="w-24 h-24 text-emerald-600 -mr-8 -mt-8 -rotate-12" />
         </div>
         <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-slate-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
+          <CardTitle className="text-slate-500 text-[14px] font-black uppercase tracking-widest flex items-center justify-between">
             <span className="flex items-center gap-2">
               <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-600">
                 <Users className="w-4 h-4" />
@@ -93,7 +93,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
             <p className="text-3xl font-black text-slate-900 tracking-tighter">
               {stats.users}
             </p>
-            <span className="text-[10px] font-bold text-slate-400">Total</span>
+            <span className="text-[14px] font-bold text-slate-400">Total</span>
           </div>
           <div className="mt-3 flex items-center gap-2">
             <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
@@ -104,7 +104,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
                 }}
               />
             </div>
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
+            <span className="text-[14px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase">
               {stats.activeUsers} Live
             </span>
           </div>

@@ -2358,6 +2358,16 @@ function DashboardPageClientContent() {
             total: response.data.pagination.total,
             pages: response.data.pagination.pages,
           }));
+
+          // If a grievance is currently being viewed, update its state with the fresh data
+          if (selectedGrievance) {
+            const updated = response.data.grievances.find(
+              (g: Grievance) => g._id === selectedGrievance._id
+            );
+            if (updated) {
+              setSelectedGrievance(updated);
+            }
+          }
         }
       } catch (error: any) {
         if (error.response?.status !== 403) {
@@ -3460,7 +3470,8 @@ function DashboardPageClientContent() {
               onLogout={logout}
               onProfileClick={handleProfileToggle}
             />
-            <DashboardTabPanels
+            <div className="flex-1 min-w-0">
+              <DashboardTabPanels
               {...{
                 activeTab,
                 allDepartments,
@@ -3623,6 +3634,7 @@ function DashboardPageClientContent() {
                 users,
               }}
             />
+            </div>
           </div>
         </Tabs>
 

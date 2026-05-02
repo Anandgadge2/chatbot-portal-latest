@@ -623,7 +623,7 @@ function SuperAdminDashboardContent() {
                     <TabsTrigger
                       key={t.val}
                       value={t.val}
-                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[10px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
+                      className="px-5 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-400 font-black text-[14px] uppercase tracking-widest transition-all hover:text-white hover:bg-white/5"
                     >
                       <t.icon className="w-3.5 h-3.5 mr-2" />
                       {t.label}
@@ -635,7 +635,7 @@ function SuperAdminDashboardContent() {
 
             <div className="flex items-center gap-5">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-5">
-                <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                <span className="text-[15px] font-black text-white uppercase tracking-wider">
                   {user.firstName} {user.lastName}
                 </span>
               </div>
@@ -659,7 +659,7 @@ function SuperAdminDashboardContent() {
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
               >
                 LOGOUT
               </Button>
@@ -734,7 +734,7 @@ function SuperAdminDashboardContent() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
-                  <div className="text-[9px] font-black text-slate-400 uppercase leading-none">
+                  <div className="text-[15px] font-black text-slate-400 uppercase leading-none">
                     Security
                     <br />
                     Status
@@ -742,7 +742,7 @@ function SuperAdminDashboardContent() {
                   <div className="h-6 w-px bg-slate-100"></div>
                   <div className="flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">
+                    <span className="text-[14px] font-black text-slate-800 uppercase tracking-wider">
                       Protected
                     </span>
                   </div>
@@ -782,21 +782,21 @@ function SuperAdminDashboardContent() {
                           <p className="text-sm font-bold text-slate-900 leading-none">
                             {user.firstName} {user.lastName}
                           </p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                          <p className="text-[14px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                             {user.role}
                           </p>
                         </div>
                       </div>
                       <div className="pt-4 border-t border-slate-100 space-y-3">
-                        <div className="flex justify-between items-center text-[11px]">
+                        <div className="flex justify-between items-center text-[15px]">
                           <span className="font-bold text-slate-500 uppercase">User ID</span>
                           <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{user.userId}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[11px]">
+                        <div className="flex justify-between items-center text-[15px]">
                           <span className="font-bold text-slate-500 uppercase">Email</span>
                           <span className="text-slate-700 font-medium">{user.email}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[11px]">
+                        <div className="flex justify-between items-center text-[15px]">
                           <span className="font-bold text-slate-500 uppercase">Access</span>
                           <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">Unrestricted</span>
                         </div>
@@ -815,7 +815,7 @@ function SuperAdminDashboardContent() {
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-4 text-left">
                       <span className="text-xs font-bold text-slate-500 uppercase">API Status</span>
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[14px] font-bold">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                         Healthy
                       </span>
@@ -824,8 +824,8 @@ function SuperAdminDashboardContent() {
                       <div className="bg-indigo-600 h-1.5 rounded-full w-[98%] shadow-[0_0_8px_rgba(79,70,229,0.3)]" />
                     </div>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Uptime</span>
-                      <span className="text-[10px] font-bold text-slate-900 uppercase">99.9%</span>
+                      <span className="text-[14px] font-bold text-slate-400 uppercase">Uptime</span>
+                      <span className="text-[14px] font-bold text-slate-900 uppercase">99.9%</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -934,7 +934,7 @@ function SuperAdminDashboardContent() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                    <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none">
                       Select<br />Entity
                     </span>
                     <select

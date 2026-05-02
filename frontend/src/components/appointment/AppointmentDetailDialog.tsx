@@ -115,7 +115,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-white uppercase tracking-tight">#{appointment.appointmentId}</h2>
-                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace('text-', 'bg-')} ${statusConfig.text}`}>
+                <span className={`px-2.5 py-1 rounded-md text-[14px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace('text-', 'bg-')} ${statusConfig.text}`}>
                   {statusConfig.label}
                 </span>
               </div>
@@ -144,7 +144,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id)}
-               className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+               className={`flex items-center gap-2 px-4 py-3 text-[15px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                  activeTab === tab.id 
                    ? "border-sky-600 text-sky-700 bg-white shadow-[0_-4px_0_inset_rgba(2,175,241,0.08)]" 
                    : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
@@ -163,17 +163,17 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                 {/* Visual Status Highlight */}
                 <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-100 shadow-sm">
                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col items-center justify-center flex-shrink-0">
-                      <span className="text-[9px] font-black text-indigo-600 uppercase leading-none mb-0.5">{appointmentDate.toLocaleString('default', { month: 'short' })}</span>
+                      <span className="text-[15px] font-black text-indigo-600 uppercase leading-none mb-0.5">{appointmentDate.toLocaleString('default', { month: 'short' })}</span>
                       <span className="text-lg font-black text-slate-800 leading-none">{appointmentDate.getDate()}</span>
                    </div>
                    <div className="min-w-0">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Primary Schedule Instance</p>
+                      <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Primary Schedule Instance</p>
                       <h3 className="text-sm font-bold text-slate-800">
                          {formatDate(appointmentDate)} at {formatDateTime(appointmentDate).split('at')[1] || "Scheduled Time"}
                       </h3>
                    </div>
                    <div className="ml-auto hidden sm:block">
-                      <div className="px-3 py-1.5 bg-indigo-600 rounded-lg text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                      <div className="px-3 py-1.5 bg-indigo-600 rounded-lg text-white text-[14px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/20">
                          <Target className="w-3 h-3" /> {appointment.purpose}
                       </div>
                    </div>
@@ -185,16 +185,16 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                    <div className="space-y-4">
                       <div className="flex items-center gap-2 text-slate-400">
                         <User className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Reporting Entity</span>
+                        <span className="text-[14px] font-black uppercase tracking-widest">Reporting Entity</span>
                         <div className="flex-1 h-px bg-slate-100"></div>
                       </div>
                       <div className="space-y-3">
                          <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Citizen Identity</span>
+                            <span className="text-[15px] font-bold text-slate-400 uppercase mb-0.5">Citizen Identity</span>
                             <span className="text-sm font-bold text-slate-900">{appointment.citizenName}</span>
                          </div>
                          <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Contact Method</span>
+                            <span className="text-[15px] font-bold text-slate-400 uppercase mb-0.5">Contact Method</span>
                             <div className="flex items-center gap-2">
                                <span className="text-sm font-bold text-slate-900">{formatTo10Digits(appointment.citizenPhone)}</span>
                                <a href={`tel:${appointment.citizenPhone}`} className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors">
@@ -211,7 +211,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                    <div className="flex items-center gap-2 text-slate-400">
                       <Tag className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Appointment Objective / Purpose</span>
+                      <span className="text-[14px] font-black uppercase tracking-widest">Appointment Objective / Purpose</span>
                    </div>
                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
                       <p className="text-sm text-slate-600 leading-relaxed font-medium">
@@ -234,8 +234,8 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                       </div>
                       <div className="flex flex-col gap-1 pl-4">
                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Booking Origin</span>
-                            <span className="text-[9px] font-bold text-slate-400 font-mono">{formatDateTime(appointment.createdAt)}</span>
+                            <span className="text-[14px] font-black text-emerald-600 uppercase tracking-widest">Booking Origin</span>
+                            <span className="text-[15px] font-bold text-slate-400 font-mono">{formatDateTime(appointment.createdAt)}</span>
                          </div>
                          <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                             Appointment successfully initialized and persisted via automated workflow.
@@ -268,14 +268,14 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
                           </div>
                           <div className="flex flex-col gap-1 pl-4">
                              <div className="flex items-center justify-between">
-                                <span className={`text-[10px] font-black ${c.text} uppercase tracking-widest`}>{title}</span>
-                                <span className="text-[9px] font-bold text-slate-400 font-mono">{formatDateTime(event.timestamp)}</span>
+                                <span className={`text-[14px] font-black ${c.text} uppercase tracking-widest`}>{title}</span>
+                                <span className="text-[15px] font-bold text-slate-400 font-mono">{formatDateTime(event.timestamp)}</span>
                              </div>
                              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                                <p className="text-xs text-slate-600 font-medium leading-relaxed">{desc || "Audit trail snapshot recorded."}</p>
                                <div className="mt-2 flex items-center gap-1.5 opacity-60">
                                   <User className="w-2.5 h-2.5 text-slate-400" />
-                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Logged By {perf}</span>
+                                  <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Logged By {perf}</span>
                                </div>
                              </div>
                           </div>
@@ -291,7 +291,7 @@ const AppointmentDetailDialog: React.FC<AppointmentDetailDialogProps> = ({
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 flex-shrink-0">
           <Button
             onClick={onClose}
-            className="h-9 px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/10 transition-all active:scale-95"
+            className="h-9 px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[14px] font-black uppercase tracking-widest shadow-lg shadow-black/10 transition-all active:scale-95"
           >
             Acknowledge & Close
           </Button>

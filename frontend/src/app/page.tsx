@@ -139,7 +139,7 @@ export default function LoginPage() {
           <div className="mt-auto mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 mb-8 backdrop-blur-sm">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none">
+              <span className="text-[14px] font-black text-emerald-400 uppercase tracking-widest leading-none">
                 Active
               </span>
             </div>
@@ -184,7 +184,7 @@ export default function LoginPage() {
                   <p className="text-xs font-bold text-white uppercase tracking-tight">
                     {item.title}
                   </p>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1 uppercase tracking-tighter">
+                  <p className="text-[15px] text-slate-500 font-medium mt-1 uppercase tracking-tighter">
                     {item.sub}
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <div className="pt-8 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
+          <div className="pt-8 border-t border-white/[0.06] flex items-center justify-between text-[14px] font-black text-slate-600 uppercase tracking-[0.2em]">
               <span>Build Version 1.2.0</span>
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
@@ -219,7 +219,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
                 Citizen<span className="text-sky-600">Helpdesk</span>
               </h1>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+              <p className="text-[14px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
                 Admin Command Center
               </p>
             </div>
@@ -241,7 +241,7 @@ export default function LoginPage() {
             <div className="relative bg-white border border-slate-200 rounded-[32px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
               <div className="absolute top-0 left-0 bg-slate-900 px-6 py-2 rounded-br-2xl flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
-                <span className="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                <span className="text-[15px] font-black text-white uppercase tracking-widest whitespace-nowrap">
                   Secure Gateway
                 </span>
               </div>
@@ -258,11 +258,11 @@ export default function LoginPage() {
                   <div className="flex justify-between items-end px-1">
                     <Label
                       htmlFor="phone"
-                      className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none"
+                      className="text-slate-900 font-black text-[14px] uppercase tracking-widest leading-none"
                     >
                       Phone Number
                     </Label>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                    <span className="text-[15px] font-bold text-slate-400 uppercase tracking-tighter">
                       Required
                     </span>
                   </div>
@@ -291,13 +291,13 @@ export default function LoginPage() {
                   <div className="flex justify-between items-end px-1">
                     <Label
                       htmlFor="password"
-                      className="text-slate-900 font-black text-[10px] uppercase tracking-widest leading-none"
+                      className="text-slate-900 font-black text-[14px] uppercase tracking-widest leading-none"
                     >
                       Password Key
                     </Label>
                     <Link
                       href="/auth/forgot-password"
-                      className="text-[9px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors"
+                      className="text-[15px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors"
                     >
                       Forget Password?
                     </Link>
@@ -356,13 +356,13 @@ export default function LoginPage() {
                 <div className="flex items-center justify-center gap-6 pt-4 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
                   <div className="flex flex-col items-center gap-1">
                     <ShieldCheckIcon className="w-5 h-5 text-sky-600" />
-                    <span className="text-[8px] font-black uppercase tracking-tighter">
+                    <span className="text-[14px] font-black uppercase tracking-tighter">
                       Verified
                     </span>
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <ZapIcon className="w-5 h-5 text-sky-500" />
-                    <span className="text-[8px] font-black uppercase tracking-tighter">
+                    <span className="text-[14px] font-black uppercase tracking-tighter">
                       Fast v1.2
                     </span>
                   </div>
@@ -372,10 +372,10 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-10 w-full rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-center">
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.22em]">
+            <p className="text-slate-500 text-[14px] font-black uppercase tracking-[0.22em]">
               Authorized Personnel Only
             </p>
-            <p className="mt-1 text-[10px] text-slate-400 font-semibold">
+            <p className="mt-1 text-[14px] text-slate-400 font-semibold">
               Need help signing in? Contact your company administrator.
             </p>
           </div>

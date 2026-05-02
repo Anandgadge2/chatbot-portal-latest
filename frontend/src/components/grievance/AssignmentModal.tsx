@@ -99,7 +99,7 @@ export default function AssignmentModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">Assign {typeLabel}</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                 Select an officer to handle this {itemType}
               </p>
             </div>
@@ -128,7 +128,7 @@ export default function AssignmentModal({
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+              <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest mb-4">
                 {users.length} Officers Available
               </p>
               {users.map((user) => {
@@ -158,15 +158,15 @@ export default function AssignmentModal({
                       <div>
                         <p className="text-sm font-bold text-slate-900">
                           {user.firstName} {user.lastName}
-                          {isCurrent && <span className="ml-2 text-[9px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Current</span>}
+                          {isCurrent && <span className="ml-2 text-[15px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Current</span>}
                         </p>
                         <p className="text-xs text-slate-500">{user.email}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                          <span className="text-[15px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
                             {(user.role || "CUSTOM").replace('_', ' ')}
                           </span>
                           {user.departmentId && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                            <span className="text-[15px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                               {user.departmentId.name}
                             </span>
                           )}

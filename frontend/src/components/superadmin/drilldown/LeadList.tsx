@@ -41,7 +41,7 @@ export default function LeadList({
             variant="outline"
             size="sm"
             onClick={() => exportToCSV(leads, "leads")}
-            className="text-[10px] font-black uppercase tracking-wider"
+            className="text-[14px] font-black uppercase tracking-wider"
           >
             <Download className="w-3.5 h-3.5 mr-2" />
             Export
@@ -52,16 +52,16 @@ export default function LeadList({
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 whitespace-nowrap">
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Sr. No.
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Lead Profile
               </th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Project Type
               </th>
-              <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <th className="px-6 py-4 text-right text-[14px] font-black uppercase tracking-widest text-slate-500">
                 Lead Status
               </th>
             </tr>
@@ -73,7 +73,7 @@ export default function LeadList({
                 className="group hover:bg-slate-50 transition-colors"
               >
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[10px] rounded-lg group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors">
+                  <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[14px] rounded-lg group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors">
                     {idx + 1}
                   </span>
                 </td>
@@ -82,18 +82,18 @@ export default function LeadList({
                     <p className="font-bold text-slate-900 leading-none">
                       {lead.name}
                     </p>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                    <p className="text-[14px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
                       {lead.companyName || lead.contactInfo}
                     </p>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-black border border-blue-100 uppercase tracking-tighter">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[14px] font-black border border-blue-100 uppercase tracking-tighter">
                     {lead.projectType}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <span className="px-2 py-0.5 bg-slate-900 text-white rounded-md text-[9px] font-black uppercase tracking-widest shadow-md">
+                  <span className="px-2 py-0.5 bg-slate-900 text-white rounded-md text-[15px] font-black uppercase tracking-widest shadow-md">
                     {lead.status}
                   </span>
                 </td>

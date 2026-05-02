@@ -67,7 +67,7 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
               <CardTitle className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
                 Organization Hierarchy
               </CardTitle>
-              <p className="text-[10px] text-indigo-100/70 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] text-indigo-100/70 font-bold uppercase tracking-widest mt-0.5">
                 Departmental Relationship Map
               </p>
             </div>
@@ -92,23 +92,23 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
                   <div className="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-600 rounded-lg sm:rounded-xl mb-2 flex items-center justify-center shadow-lg shadow-indigo-200">
                     <Building className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-1">
+                  <span className="text-[15px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-1">
                     Main Department
                   </span>
                   <span className="text-xs sm:text-sm font-black text-center text-slate-800 leading-tight break-words">
                     {rootDept.name}
                   </span>
                   {(rootDept.headName || rootDept.head || rootDept.contactPerson) && (
-                    <span className="mt-1 text-center text-[10px] font-bold leading-snug text-slate-500 break-words">
+                    <span className="mt-1 text-center text-[14px] font-bold leading-snug text-slate-500 break-words">
                       {rootDept.headName || rootDept.head || rootDept.contactPerson}
                     </span>
                   )}
                   <div className="mt-2.5 pt-2.5 border-t border-slate-100 w-full flex justify-between items-center px-1.5">
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 uppercase">
+                    <div className="flex items-center gap-1.5 text-[15px] font-bold text-slate-500 uppercase">
                       <Users className="w-3 h-3 text-slate-400" />
                       {rootDept.userCount || 0} Staff
                     </div>
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase">
+                    <div className="flex items-center gap-1.5 text-[15px] font-bold text-emerald-600 uppercase">
                       <ShieldCheck className="w-3 h-3" />
                       Level 1
                     </div>
@@ -149,16 +149,16 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
                           }`}>
                             <GitBranch className={`w-4 h-4 ${child._id === department._id ? "text-white" : "text-emerald-600"}`} />
                           </div>
-                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mb-1">Sub Department</span>
-                          <span className="text-[11px] sm:text-xs font-black text-center text-slate-700 leading-tight mb-1.5 break-words">{child.name}</span>
+                          <span className="text-[14px] font-black uppercase tracking-widest text-emerald-500 mb-1">Sub Department</span>
+                          <span className="text-[15px] sm:text-xs font-black text-center text-slate-700 leading-tight mb-1.5 break-words">{child.name}</span>
                           {(child.headName || child.head || child.contactPerson) && (
-                            <span className="mb-1.5 text-center text-[9px] font-bold leading-snug text-slate-500 break-words">
+                            <span className="mb-1.5 text-center text-[15px] font-bold leading-snug text-slate-500 break-words">
                               {child.headName || child.head || child.contactPerson}
                             </span>
                           )}
                           
                           <div className="pt-1.5 border-t border-slate-50 w-full flex justify-center">
-                            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 group-hover/node:text-slate-600 transition-colors">
+                            <span className="text-[15px] font-bold text-slate-400 flex items-center gap-1 group-hover/node:text-slate-600 transition-colors">
                               <Users className="w-2.5 h-2.5" />
                               {child.userCount || 0} Members
                             </span>
@@ -190,7 +190,7 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
         </CardContent>
         
         <div className="bg-slate-900 px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between border-t border-slate-800">
-          <div className="flex items-center gap-3 sm:gap-4 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-500">
+          <div className="flex items-center gap-3 sm:gap-4 text-[14px] sm:text-[15px] font-black uppercase tracking-widest text-slate-500">
             <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                 <span>Primary Entity</span>
@@ -202,7 +202,7 @@ const DepartmentHierarchyDialog: React.FC<DepartmentHierarchyDialogProps> = ({
           </div>
           <button 
             onClick={onClose}
-            className="px-4 sm:px-7 py-2 sm:py-2.5 bg-white text-slate-900 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 shadow-lg shadow-black/20 cursor-pointer"
+            className="px-4 sm:px-7 py-2 sm:py-2.5 bg-white text-slate-900 rounded-xl sm:rounded-2xl text-[15px] sm:text-[14px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 shadow-lg shadow-black/20 cursor-pointer"
           >
             Acknowledge Map
           </button>

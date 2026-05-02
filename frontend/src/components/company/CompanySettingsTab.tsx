@@ -101,13 +101,13 @@ export function CompanySettingsTab({ company: propCompany, onUpdate }: CompanySe
               </div>
               <div>
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-900">SLA Governance</CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">Service Level Agreement Thresholds</CardDescription>
+                <CardDescription className="text-[14px] font-bold uppercase tracking-tighter text-slate-500">Service Level Agreement Thresholds</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Default Resolution Window (Hours)</label>
+              <label className="text-[15px] font-black uppercase tracking-widest text-slate-500">Default Resolution Window (Hours)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -116,9 +116,9 @@ export function CompanySettingsTab({ company: propCompany, onUpdate }: CompanySe
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                   placeholder="e.g. 120"
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Hours</div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-black text-slate-400 uppercase tracking-widest">Hours</div>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+              <p className="text-[14px] text-slate-400 font-medium leading-relaxed italic">
                 * This threshold defines when a grievance is flagged as &quot;OVERDUE&quot; in the system. Changing this will affect all future and existing grievances that don&apos;t have a custom override.
               </p>
             </div>
@@ -138,12 +138,12 @@ export function CompanySettingsTab({ company: propCompany, onUpdate }: CompanySe
             <div className="mt-8 pt-8 border-t border-white/10 flex items-center gap-4">
               <div className="flex -space-x-2">
                 {[1,2,3].map(i => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-white/10 border-2 border-indigo-600 flex items-center justify-center text-[10px] font-black">
+                  <div key={i} className="w-8 h-8 rounded-full bg-white/10 border-2 border-indigo-600 flex items-center justify-center text-[14px] font-black">
                     {i}
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">System Hardened & Validated</p>
+              <p className="text-[14px] font-black uppercase tracking-widest text-indigo-200">System Hardened & Validated</p>
             </div>
           </CardContent>
         </Card>

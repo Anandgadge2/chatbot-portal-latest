@@ -397,31 +397,31 @@ export default function AppointmentsPage() {
               <table className="w-full min-w-[1400px]">
                 <thead className="sticky top-0 z-10 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-purple-100">
                   <tr>
-                    <th className="px-4 py-4 text-center text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-4 py-4 text-center text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Sr. No.
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Appointment ID
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Citizen Information
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Department & Purpose
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Scheduled At
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Assigned To
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Created
                     </th>
-                    <th className="px-6 py-4 text-center text-[11px] font-bold text-purple-700 uppercase tracking-wide">
+                    <th className="px-6 py-4 text-center text-[15px] font-bold text-purple-700 uppercase tracking-wide">
                       Actions
                     </th>
                   </tr>
@@ -469,7 +469,7 @@ export default function AppointmentsPage() {
                               ? (appointment.departmentId as any).name
                               : "General Department"}
                           </span>
-                          <p className="text-[11px] text-gray-600 italic break-words whitespace-normal">
+                          <p className="text-[15px] text-gray-600 italic break-words whitespace-normal">
                             {appointment.purpose}
                           </p>
                         </div>
@@ -477,7 +477,7 @@ export default function AppointmentsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
                           <div className="flex flex-col items-center justify-center w-14 h-14 bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-xl border border-purple-200/50 shadow-sm">
-                            <span className="text-[10px] font-bold text-purple-600 uppercase">
+                            <span className="text-[14px] font-bold text-purple-600 uppercase">
                               {formatDate(appointment.appointmentDate, {
                                 month: "short",
                               })}
@@ -492,7 +492,7 @@ export default function AppointmentsPage() {
                                 weekday: "long",
                               })}
                             </span>
-                            <span className="text-[11px] text-gray-500">
+                            <span className="text-[15px] text-gray-500">
                               {formatDate(appointment.appointmentDate, {
                                 year: "numeric",
                               })}
@@ -516,7 +516,7 @@ export default function AppointmentsPage() {
                                     return `${displayHour}:${minute} ${period}`;
                                   })()}
                                 </span>
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[14px] text-gray-400">
                                   (
                                   {(() => {
                                     const time = appointment.appointmentTime;
@@ -557,13 +557,13 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider ${getStatusColor(appointment.status)}`}
+                          className={`px-3 py-1 rounded-full text-[15px] font-bold border uppercase tracking-wider ${getStatusColor(appointment.status)}`}
                         >
                           {appointment.status.replace("_", " ")}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        <div className="flex flex-col text-[11px]">
+                        <div className="flex flex-col text-[15px]">
                           <span className="font-semibold">
                             {formatDate(appointment.createdAt)}
                           </span>

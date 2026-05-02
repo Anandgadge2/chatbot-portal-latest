@@ -123,7 +123,7 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
           <div className="h-4 w-px bg-slate-700"></div>
           <div className="flex items-center gap-2 text-slate-400">
             <Terminal className="w-4 h-4" />
-            <span className="text-[11px] font-black uppercase tracking-widest font-mono">System Console — Platform Runtime</span>
+            <span className="text-[15px] font-black uppercase tracking-widest font-mono">System Console — Platform Runtime</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
               placeholder="Filter logs..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-slate-900/50 border border-slate-700 h-7 rounded-lg pl-8 pr-3 text-[10px] text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-40 transition-all font-mono"
+              className="bg-slate-900/50 border border-slate-700 h-7 rounded-lg pl-8 pr-3 text-[14px] text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-40 transition-all font-mono"
             />
           </div>
           <button className="text-slate-500 hover:text-white transition-colors">
@@ -149,7 +149,7 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
       {/* Terminal Content */}
       <div 
         ref={scrollRef}
-        className="flex-1 p-5 overflow-y-auto font-mono text-[11px] space-y-1 custom-scrollbar"
+        className="flex-1 p-5 overflow-y-auto font-mono text-[15px] space-y-1 custom-scrollbar"
       >
         {filteredLogs.map((log) => (
           <div key={log.id} className="flex gap-4 group transition-colors hover:bg-slate-800/10 py-0.5">
@@ -157,7 +157,7 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
               {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
             </div>
             <div className="flex items-center gap-2 min-w-[80px]">
-              <span className={`text-[9px] font-black underline decoration-2 underline-offset-2 uppercase tracking-tighter ${
+              <span className={`text-[15px] font-black underline decoration-2 underline-offset-2 uppercase tracking-tighter ${
                 log.type === 'info' ? 'text-indigo-400' :
                 log.type === 'success' ? 'text-emerald-400' :
                 log.type === 'error' ? 'text-rose-400' : 'text-amber-400'
@@ -179,14 +179,14 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
         {filteredLogs.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-3 opacity-50">
              <Play className="w-8 h-8 animate-pulse" />
-             <p className="tracking-widest uppercase text-[10px] font-black">Awaiting sequence...</p>
+             <p className="tracking-widest uppercase text-[14px] font-black">Awaiting sequence...</p>
           </div>
         )}
       </div>
 
       {/* Terminal Footer */}
       <div className="px-5 py-2 bg-[#1e293b] border-t border-slate-800 flex items-center justify-between">
-        <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest text-slate-500 font-mono">
+        <div className="flex items-center gap-4 text-[15px] font-bold uppercase tracking-widest text-slate-500 font-mono">
           <span className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
             Main Cluster: Online
@@ -196,7 +196,7 @@ export default function TerminalLogs({ companyId }: { companyId?: string }) {
             API Node: Balanced
           </span>
         </div>
-        <div className="text-[9px] text-slate-600 font-mono">
+        <div className="text-[15px] text-slate-600 font-mono">
            UTF-8 • PLATFORM_STABLE_V4.2
         </div>
       </div>

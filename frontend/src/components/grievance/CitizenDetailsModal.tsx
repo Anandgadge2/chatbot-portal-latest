@@ -150,7 +150,7 @@ export default function CitizenDetailsModal({
                     Citizen Details
                   </h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-[11px] font-bold text-white backdrop-blur-sm">
+                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-[15px] font-bold text-white backdrop-blur-sm">
                       {type} ID: {id}
                     </span>
                     <span className="text-white/80 text-xs">•</span>
@@ -410,7 +410,7 @@ export default function CitizenDetailsModal({
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black text-white/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                  <p className="text-[14px] font-black text-white/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
                     Geospatial context
                   </p>
                   <p className="text-sm font-bold text-white mb-4 tracking-tight leading-relaxed">
@@ -420,18 +420,18 @@ export default function CitizenDetailsModal({
                   {parsedLatLng && (
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-black/20 rounded-lg border border-white/10 backdrop-blur-sm">
-                        <span className="text-[10px] font-bold text-white/90">
+                        <span className="text-[14px] font-bold text-white/90">
                           Lat: {parsedLatLng.lat.toFixed(7)}
                         </span>
                         <span className="w-px h-3 bg-white/20"></span>
-                        <span className="text-[10px] font-bold text-white/90">
+                        <span className="text-[14px] font-bold text-white/90">
                           Long: {parsedLatLng.lng.toFixed(7)}
                         </span>
                       </div>
                       
                       <button
                         onClick={() => setIsMapOpen(true)}
-                        className="px-4 py-2 bg-white text-[#00AEEF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                        className="px-4 py-2 bg-white text-[#00AEEF] text-[14px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all shadow-lg active:scale-95 flex items-center gap-2"
                       >
                         <MapPin className="w-3.5 h-3.5" />
                         View Map
@@ -593,7 +593,7 @@ export default function CitizenDetailsModal({
                           <p className="text-xs text-slate-600 mt-1">
                             {history.remarks || "Status updated"}
                           </p>
-                          <p className="text-[10px] text-slate-400 mt-1">
+                          <p className="text-[14px] text-slate-400 mt-1">
                             {formatDateTime(history.changedAt)}
                           </p>
                         </div>
@@ -618,7 +618,7 @@ export default function CitizenDetailsModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {data?.departmentId && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                      <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wide mb-1">
                         Department
                       </p>
                       <p className="text-sm font-bold text-slate-800">
@@ -630,7 +630,7 @@ export default function CitizenDetailsModal({
                   )}
                   {data?.assignedTo && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                      <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wide mb-1">
                         Assigned To
                       </p>
                       <p className="text-sm font-bold text-slate-800">

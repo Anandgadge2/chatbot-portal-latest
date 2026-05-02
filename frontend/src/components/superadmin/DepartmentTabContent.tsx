@@ -127,7 +127,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
             value={deptCompanyFilter}
             onValueChange={setDeptCompanyFilter}
             placeholder="Search Company..."
-            className="flex-1 border-0 h-full p-0 bg-transparent text-[10px] font-bold"
+            className="flex-1 border-0 h-full p-0 bg-transparent text-[14px] font-bold"
           />
         </div>
 
@@ -137,13 +137,13 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
             placeholder="Search Dept by Name or ID..."
             value={deptSearchTerm}
             onChange={(e) => setDeptSearchTerm(e.target.value)}
-            className="text-[10px] font-bold text-slate-600 outline-none bg-transparent w-full"
+            className="text-[14px] font-bold text-slate-600 outline-none bg-transparent w-full"
           />
         </div>
 
         <div className="flex items-center gap-4 ml-auto">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Rows:</span>
+            <span className="text-[14px] font-black text-slate-400 uppercase">Rows:</span>
             <select 
               value={departmentPagination.limit}
               onChange={(e) => setDepartmentLimit(Number(e.target.value))}
@@ -155,7 +155,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
             </select>
             <ChevronDown className="w-3 h-3 text-slate-400 -ml-1" />
           </div>
-          <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+          <span className="text-[14px] font-bold text-slate-400 whitespace-nowrap">
             Showing <span className="text-slate-800">{departments.length}</span> of <span className="text-slate-800">{departmentPagination.total}</span>
           </span>
         </div>
@@ -163,10 +163,10 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
 
       {/* Summary Pills Row */}
       <div className="flex items-center gap-2 px-1">
-        <div className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-black uppercase tracking-wider border border-indigo-100/50 shadow-sm">
+        <div className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[14px] font-black uppercase tracking-wider border border-indigo-100/50 shadow-sm">
           {mainDeptsCount || 0} Main
         </div>
-        <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-wider border border-blue-100/50 shadow-sm">
+        <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md text-[14px] font-black uppercase tracking-wider border border-blue-100/50 shadow-sm">
           {subDeptsCount || 0} Sub
         </div>
       </div>
@@ -178,19 +178,19 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
             <table className="w-full">
               <thead className="bg-[#fcfdfe] border-b border-slate-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[250px]">
+                  <th className="px-4 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest min-w-[250px]">
                     <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600 transition-colors">
                       Department Name
                       <ArrowUpDown className="w-3 h-3" />
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Dept ID</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Users</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Head / Contact</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest pr-8">Actions</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Dept ID</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Type</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Users</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Head / Contact</th>
+                  <th className="px-6 py-3 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-right text-[14px] font-black text-slate-400 uppercase tracking-widest pr-8">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -209,7 +209,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                     return (
                       <tr key={dept._id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-4 py-4">
-                          <div className="w-8 h-8 rounded-lg bg-[#f8fafc] flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-200/40 shadow-sm">
+                          <div className="w-8 h-8 rounded-lg bg-[#f8fafc] flex items-center justify-center text-[14px] font-black text-slate-400 border border-slate-200/40 shadow-sm">
                             {(departmentPage - 1) * departmentPagination.limit + idx + 1}
                           </div>
                         </td>
@@ -219,10 +219,10 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                               <Building2 className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-[13px] font-black text-slate-800 tracking-tight flex items-center gap-1.5 group-hover:text-indigo-600 transition-colors">
+                              <span className="text-[15px] font-black text-slate-800 tracking-tight flex items-center gap-1.5 group-hover:text-indigo-600 transition-colors">
                                 {dept.name}
                               </span>
-                              <span className="text-[10px] font-bold text-slate-400 tracking-tighter flex items-center gap-1 mt-0.5 opacity-80">
+                              <span className="text-[14px] font-bold text-slate-400 tracking-tighter flex items-center gap-1 mt-0.5 opacity-80">
                                 <span className="text-slate-300">↳</span>
                                 {typeof dept.parentDepartmentId === 'object' 
                                   ? (dept.parentDepartmentId as any)?.name 
@@ -232,12 +232,12 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="inline-flex items-center px-2.5 py-1 bg-slate-50 text-[10px] font-bold text-slate-600 rounded-md border border-slate-200/60 uppercase tracking-tighter shadow-sm w-fit">
+                          <div className="inline-flex items-center px-2.5 py-1 bg-slate-50 text-[14px] font-bold text-slate-600 rounded-md border border-slate-200/60 uppercase tracking-tighter shadow-sm w-fit">
                             {dept.departmentId || "DEPT000000"}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm ${
+                          <div className={`px-2 py-0.5 rounded-full text-[15px] font-black uppercase tracking-widest border shadow-sm ${
                             isMain ? "bg-indigo-50/50 text-indigo-500 border-indigo-100/50" : "bg-blue-50/50 text-blue-500 border-blue-100/50"
                           }`}>
                             {isMain ? "Main" : "Sub"}
@@ -246,16 +246,16 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5 bg-emerald-50/50 px-2.5 py-1 rounded-lg border border-emerald-100/40 shadow-sm w-fit">
                             <Users className="w-3 h-3 text-emerald-400" />
-                            <span className="text-[11px] font-black text-emerald-600">1</span>
+                            <span className="text-[15px] font-black text-emerald-600">1</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                            <span className="text-[15px] font-black text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
                               <User className="w-3 h-3 text-slate-300" />
                               {dept.contactPerson || "SRI BABULU DASH"}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1.5 lowercase opacity-80 group-hover:text-blue-500 transition-colors">
+                            <span className="text-[14px] font-bold text-slate-400 mt-1 flex items-center gap-1.5 lowercase opacity-80 group-hover:text-blue-500 transition-colors">
                               <Mail className="w-3 h-3" />
                               {dept.contactPhone || "babuludash8@gmail.com"}
                             </span>
@@ -268,7 +268,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
                               onCheckedChange={() => toggleDepartmentStatus(dept)}
                               className="data-[state=checked]:bg-emerald-500 scale-75" 
                             />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${dept.isActive ? "text-emerald-500" : "text-slate-400"}`}>
+                            <span className={`text-[14px] font-black uppercase tracking-widest ${dept.isActive ? "text-emerald-500" : "text-slate-400"}`}>
                               {dept.isActive ? "Active" : "Inactive"}
                             </span>
                           </div>
@@ -327,7 +327,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
       
       {/* Footer Helper */}
       <div className="flex items-center justify-end gap-2 px-1">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        <p className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
           Use the filters above to narrow down your results
         </p>
       </div>

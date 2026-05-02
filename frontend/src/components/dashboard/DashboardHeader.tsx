@@ -90,7 +90,7 @@ export const DashboardHeader = memo(function DashboardHeader({
                 />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="text-[12px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
+                <h1 className="text-[14px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
                   {isSuperAdminUser && companyIdParam ? (
                     `Viewing: ${companyName || "..."}`
                   ) : (
@@ -114,7 +114,7 @@ export const DashboardHeader = memo(function DashboardHeader({
                   )}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
+                  <p className="text-[15px] sm:text-[14px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
                     {isJharsugudaCompany
                       ? dashboardBrandSubtitle
                       : "Control Panel"}
@@ -129,15 +129,15 @@ export const DashboardHeader = memo(function DashboardHeader({
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="hidden sm:flex flex-col items-end mr-2 sm:mr-3 lg:mr-0">
-              <span className="hidden sm:block text-[10px] font-black text-white leading-none uppercase tracking-tight">
+              <span className="hidden sm:block text-[14px] font-black text-white leading-none uppercase tracking-tight">
                 {user.firstName} {user.lastName}
               </span>
               {isJharsugudaCompany ? (
-                <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide mt-0.5 max-w-[220px] break-words text-right">
+                <span className="text-[14px] sm:text-[15px] font-black text-white uppercase tracking-wide mt-0.5 max-w-[220px] break-words text-right">
                   {(user.role || "CUSTOM").replace(/_/g, " ")}
                 </span>
               ) : (
-                <span className="text-[9px] font-black text-white/90 uppercase mt-0.5 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
+                <span className="text-[15px] font-black text-white/90 uppercase mt-0.5 bg-white/10 px-1.5 py-0.5 rounded border border-white/20 shadow-sm">
                   {(user.role || "CUSTOM").replace("_", " ")}
                   {user?.companyId?.name && ` (${user.companyId.name})`}
                 </span>
@@ -150,11 +150,11 @@ export const DashboardHeader = memo(function DashboardHeader({
               <Link
                 href="/dashboard"
                 onClick={() => sessionStorage.removeItem("drilldownCompanyId")}
-                className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center shrink-0 max-w-[70px] sm:max-w-none"
+                className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 text-[15px] sm:text-[15px] font-black uppercase tracking-widest flex items-center shrink-0 max-w-[70px] sm:max-w-none"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
                 <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden text-[8px]">Back</span>
+                <span className="sm:hidden text-[14px]">Back</span>
               </Link>
             )}
 

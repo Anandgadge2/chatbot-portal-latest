@@ -179,7 +179,7 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
           <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase flex items-center gap-3">
             Personnel Directory
           </h2>
-          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1 flex items-center gap-2">
+          <p className="text-slate-500 font-bold text-[14px] uppercase tracking-widest mt-1 flex items-center gap-2">
             <Database className="w-3 h-3 text-indigo-500" />
             Managing System Agents & Operational Roles
           </p>
@@ -227,7 +227,7 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                   placeholder="Filter by Role"
                   className="min-w-[180px]"
                 />
-                <Button variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm bg-white border-slate-200 hover:bg-slate-50">
+                <Button variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[15px] shadow-sm bg-white border-slate-200 hover:bg-slate-50">
                   <Key className="w-3.5 h-3.5 mr-2" />
                   Security Protocols
                 </Button>
@@ -239,11 +239,11 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100">
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Agent Identity</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Clearance Level</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Engagement</th>
+                      <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Agent Identity</th>
+                      <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Clearance Level</th>
+                      <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Department</th>
+                      <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                      <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest text-right">Engagement</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -271,26 +271,26 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                                     ]));
                                     
                                     return allDesigs.map((d, i) => (
-                                      <span key={i} className="text-[9px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
+                                      <span key={i} className="text-[15px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100/50 uppercase tracking-wider w-fit shadow-sm">
                                         {d}
                                       </span>
                                     ));
                                   })()}
-                                  <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
+                                  <span className="text-[14px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-widest w-fit">
                                     ID: {u.userId}
                                   </span>
-                                  <span className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded whitespace-nowrap"><Mail className="w-2 h-2" /> {u.email}</span>
+                                  <span className="flex items-center gap-1 text-[14px] font-black text-slate-400 uppercase tracking-widest border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded whitespace-nowrap"><Mail className="w-2 h-2" /> {u.email}</span>
                                 </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-shadow group-hover:shadow-md ${getRoleBadge(u.role || '')}`}>
+                          <span className={`px-4 py-1.5 rounded-xl text-[15px] font-black uppercase tracking-widest border transition-shadow group-hover:shadow-md ${getRoleBadge(u.role || '')}`}>
                             {u.customRoleId && typeof u.customRoleId === 'object' ? (u.customRoleId as any).name : (u.role || 'GUEST')}
                           </span>
                         </td>
                         <td className="px-6 py-5">
-                          <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                          <span className="text-[15px] font-black text-slate-700 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                             {u.departmentId ? (typeof u.departmentId === 'object' ? (u.departmentId as any).name : 'Restricted Sector') : 'Global Sector'}
                           </span>
                         </td>
@@ -298,12 +298,12 @@ export default function UserManagementTab({ companyId: propCompanyId }: UserMana
                           {u.isActive ? (
                             <div className="flex items-center gap-2 text-emerald-600">
                               <CheckCircle2 className="w-4 h-4" />
-                              <span className="text-[10px] font-black uppercase tracking-widest">Authenticated</span>
+                              <span className="text-[14px] font-black uppercase tracking-widest">Authenticated</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-red-500">
                               <XCircle className="w-4 h-4" />
-                              <span className="text-[10px] font-black uppercase tracking-widest">Revoked</span>
+                              <span className="text-[14px] font-black uppercase tracking-widest">Revoked</span>
                             </div>
                           )}
                         </td>

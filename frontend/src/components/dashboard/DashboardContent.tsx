@@ -183,7 +183,7 @@ export default function DashboardContent() {
                   <h1 className="text-lg font-black text-white uppercase tracking-tighter leading-none">
                     Stitch Portal
                   </h1>
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
+                  <span className="text-[14px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
                     System Intelligence
                   </span>
                 </div>
@@ -272,7 +272,7 @@ export default function DashboardContent() {
                   <span className="text-xs font-bold text-white uppercase tracking-tight">
                     {user.firstName} {user.lastName}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <span className="text-[14px] font-bold text-slate-500 uppercase tracking-widest">
                     {user.role}
                   </span>
                 </div>
@@ -300,7 +300,7 @@ export default function DashboardContent() {
                    <Card className="border-slate-200 shadow-xl bg-white/50 backdrop-blur-xl border-t-4 border-t-indigo-500">
                      <CardHeader>
                        <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Company Identification</CardTitle>
-                       <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">Institutional Profile Data</CardDescription>
+                       <CardDescription className="text-[14px] font-bold uppercase tracking-widest mt-1">Institutional Profile Data</CardDescription>
                      </CardHeader>
                      <CardContent className="space-y-4">
                         <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -309,16 +309,16 @@ export default function DashboardContent() {
                            </div>
                            <div className="flex flex-col">
                              <span className="text-lg font-black text-slate-900 leading-none">{company?.name || 'System Portal'}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {company?.companyId || 'N/A'}</span>
+                             <span className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {company?.companyId || 'N/A'}</span>
                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="p-3 bg-white rounded-xl border border-slate-100">
-                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</span>
+                             <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</span>
                              <span className="text-xs font-black text-emerald-600 uppercase">Operational</span>
                            </div>
                            <div className="p-3 bg-white rounded-xl border border-slate-100">
-                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Type</span>
+                             <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest block mb-1">Type</span>
                              <span className="text-xs font-black text-indigo-600 uppercase">{company?.companyType || 'Standard'}</span>
                            </div>
                         </div>
@@ -328,12 +328,12 @@ export default function DashboardContent() {
                    <Card className="border-slate-200 shadow-xl bg-white/50 backdrop-blur-xl border-t-4 border-t-blue-500">
                      <CardHeader>
                        <CardTitle className="text-sm font-black text-slate-900 uppercase tracking-widest">Network Access</CardTitle>
-                       <CardDescription className="text-[10px] font-bold uppercase tracking-widest mt-1">Provisioned Modules & Protocols</CardDescription>
+                       <CardDescription className="text-[14px] font-bold uppercase tracking-widest mt-1">Provisioned Modules & Protocols</CardDescription>
                      </CardHeader>
                      <CardContent>
                         <div className="flex flex-wrap gap-2">
                            {(company?.enabledModules || []).map((mod: string) => (
-                             <span key={mod} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                             <span key={mod} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[14px] font-black uppercase tracking-widest border border-blue-100">
                                {mod}
                              </span>
                            ))}

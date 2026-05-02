@@ -338,7 +338,7 @@ export default function GrievancesPage() {
                 Back
               </button>
               <div className="text-right bg-white/10 px-3 sm:px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm min-w-[88px] sm:min-w-[96px]">
-                <p className="text-[11px] sm:text-sm text-white/70">Active</p>
+                <p className="text-[15px] sm:text-sm text-white/70">Active</p>
                 <p className="text-xl sm:text-2xl font-bold text-white">
                   {grievances.length}
                 </p>
@@ -370,7 +370,7 @@ export default function GrievancesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             {/* Search */}
             <div className="relative sm:col-span-2 lg:col-span-2">
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <label className="mb-1.5 block text-[15px] font-semibold uppercase tracking-wide text-slate-500">
                 Search
               </label>
               <Search className="absolute left-3 top-[calc(50%+0.8rem)] transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -386,7 +386,7 @@ export default function GrievancesPage() {
             </div>
 
             {/* Status */}
-            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <label className="sm:hidden -mb-1 text-[15px] font-semibold uppercase tracking-wide text-slate-500">
               Status
             </label>
             <select
@@ -402,7 +402,7 @@ export default function GrievancesPage() {
             </select>
 
             {/* Department */}
-            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <label className="sm:hidden -mb-1 text-[15px] font-semibold uppercase tracking-wide text-slate-500">
               Department
             </label>
             <select
@@ -421,7 +421,7 @@ export default function GrievancesPage() {
             </select>
 
             {/* Assignment */}
-            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <label className="sm:hidden -mb-1 text-[15px] font-semibold uppercase tracking-wide text-slate-500">
               Assignment
             </label>
             <select
@@ -437,7 +437,7 @@ export default function GrievancesPage() {
             </select>
 
             {/* Date Range */}
-            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <label className="sm:hidden -mb-1 text-[15px] font-semibold uppercase tracking-wide text-slate-500">
               Date Range
             </label>
             <select
@@ -454,7 +454,7 @@ export default function GrievancesPage() {
             </select>
 
             {/* Overdue Filter */}
-            <label className="sm:hidden -mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <label className="sm:hidden -mb-1 text-[15px] font-semibold uppercase tracking-wide text-slate-500">
               SLA Status
             </label>
             <select
@@ -531,7 +531,7 @@ export default function GrievancesPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`max-w-full px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide text-center break-words ${getStatusColor(grievance.status)}`}
+                          className={`max-w-full px-2.5 py-1 rounded-full text-[14px] font-bold border uppercase tracking-wide text-center break-words ${getStatusColor(grievance.status)}`}
                         >
                           {grievance.status === "PENDING" ||
                           grievance.status === "ASSIGNED"
@@ -540,7 +540,7 @@ export default function GrievancesPage() {
                         </span>
                         {grievance.status === "RESOLVED" ||
                         grievance.status === "CLOSED" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-green-200 text-green-700 bg-green-50">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[14px] font-bold border border-green-200 text-green-700 bg-green-50">
                             <CheckCircle className="w-3 h-3" />
                             Completed
                           </span>
@@ -549,19 +549,19 @@ export default function GrievancesPage() {
                             <button
                               onClick={() => openReminderDialog(grievance)}
                               title="Open overdue reminder dialog"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 max-w-full"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[14px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 max-w-full"
                             >
                               <BellRing className="w-3 h-3" />
                               Overdue
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-red-200 text-red-700 bg-red-50">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[14px] font-bold border border-red-200 text-red-700 bg-red-50">
                               <BellRing className="w-3 h-3" />
                               Overdue
                             </span>
                           )
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-green-200 text-green-700 bg-green-50">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[14px] font-bold border border-green-200 text-green-700 bg-green-50">
                             <CheckCircle className="w-3 h-3" />
                             On track
                           </span>
@@ -571,7 +571,7 @@ export default function GrievancesPage() {
 
                     <div className="grid grid-cols-1 gap-3">
                       <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                        <p className="text-[14px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
                           Department
                         </p>
                         <p className="text-sm font-semibold text-slate-900 break-words">
@@ -579,13 +579,13 @@ export default function GrievancesPage() {
                             ? (grievance.departmentId as any).name
                             : "General Department"}
                         </p>
-                        <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
+                        <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-[15px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
                           {getDeptCategoryLabel(grievance)}
                         </span>
                       </div>
 
                       <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                        <p className="text-[14px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
                           Issue Description
                         </p>
                         <p className="text-sm text-slate-700 leading-relaxed break-words">
@@ -594,7 +594,7 @@ export default function GrievancesPage() {
                       </div>
 
                       <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                        <p className="text-[14px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
                           Assignment
                         </p>
                         {grievance.assignedTo ? (
@@ -608,7 +608,7 @@ export default function GrievancesPage() {
                               </span>
                             </div>
                             {grievance.assignedAt && (
-                              <span className="text-[10px] text-gray-500">
+                              <span className="text-[14px] text-gray-500">
                                 Assigned on{" "}
                                 {new Date(grievance.assignedAt).toLocaleDateString()}
                               </span>
@@ -623,14 +623,14 @@ export default function GrievancesPage() {
 
                       <div className="flex flex-col gap-3 rounded-xl bg-slate-50 border border-slate-200 p-3">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                          <p className="text-[14px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
                             Raised On
                           </p>
                           <div className="flex items-center text-sm font-medium text-gray-900">
                             <Calendar className="w-3.5 h-3.5 mr-1.5 text-blue-600 shrink-0" />
                             {formatDate(grievance.createdAt)}
                           </div>
-                          <span className="text-[10px] text-gray-500 mt-1 block">
+                          <span className="text-[14px] text-gray-500 mt-1 block">
                             {formatISTTime(grievance.createdAt)}
                           </span>
                         </div>
@@ -733,7 +733,7 @@ export default function GrievancesPage() {
                               ? (grievance.departmentId as any).name
                               : "General Department"}
                           </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[15px] font-medium bg-blue-50 text-blue-600 border border-blue-100 w-fit">
                             {getDeptCategoryLabel(grievance)}
                           </span>
                         </div>
@@ -755,7 +755,7 @@ export default function GrievancesPage() {
                               </span>
                             </div>
                             {grievance.assignedAt && (
-                              <span className="text-[10px] text-gray-400 mt-1">
+                              <span className="text-[14px] text-gray-400 mt-1">
                                 Assigned on:{" "}
                                 {new Date(
                                   grievance.assignedAt,
@@ -772,14 +772,14 @@ export default function GrievancesPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-2">
                           <span
-                            className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
+                            className={`px-3 py-1 rounded-full text-[15px] font-bold border uppercase tracking-wider w-fit ${getStatusColor(grievance.status)}`}
                           >
                             {grievance.status === "PENDING" || grievance.status === "ASSIGNED" 
                               ? "Pending" 
                               : grievance.status.replace("_", " ")}
                           </span>
                           {grievance.status === "RESOLVED" || grievance.status === "CLOSED" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[15px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
                               <CheckCircle className="w-3.5 h-3.5" />
                               Completed
                             </span>
@@ -788,20 +788,20 @@ export default function GrievancesPage() {
                               <button
                                 onClick={() => openReminderDialog(grievance)}
                                 title="Open overdue reminder dialog"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 hover:border-red-400 w-fit cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[15px] font-bold border border-red-300 text-red-800 bg-red-50 hover:bg-red-100 hover:border-red-400 w-fit cursor-pointer"
                               >
                                 <BellRing className="w-3.5 h-3.5" />
                                 Overdue • Click here
                                 <MousePointerClick className="w-3.5 h-3.5" />
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-red-200 text-red-700 bg-red-50 w-fit">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[15px] font-bold border border-red-200 text-red-700 bg-red-50 w-fit">
                                 <BellRing className="w-3.5 h-3.5" />
                                 Overdue
                               </span>
                             )
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[15px] font-bold border border-green-200 text-green-700 bg-green-50 w-fit">
                               <CheckCircle className="w-3.5 h-3.5" />
                               On track
                             </span>
@@ -814,7 +814,7 @@ export default function GrievancesPage() {
                             <Calendar className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
                             {formatDate(grievance.createdAt)}
                           </div>
-                          <span className="text-[10px] text-gray-400 mt-1">
+                          <span className="text-[14px] text-gray-400 mt-1">
                             {formatISTTime(grievance.createdAt)}
                           </span>
                         </div>

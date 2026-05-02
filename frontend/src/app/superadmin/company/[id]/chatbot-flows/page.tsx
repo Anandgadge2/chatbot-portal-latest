@@ -332,7 +332,7 @@ export default function ChatbotFlowsPage() {
                   Response Pipelines
                 </h1>
                 <div className="flex items-center gap-2 mt-1.5 min-w-0">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest truncate">
                     Intelligence Node:{" "}
                     <span className="text-indigo-400">{company?.name}</span>
                   </p>
@@ -351,7 +351,7 @@ export default function ChatbotFlowsPage() {
               </Button>
               <Button
                 onClick={handleCreateFlow}
-                className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[11px] uppercase tracking-wider border-0"
+                className="h-9 sm:h-10 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20 font-bold text-[15px] uppercase tracking-wider border-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Flow
@@ -371,14 +371,14 @@ export default function ChatbotFlowsPage() {
                   <MessageSquare className="w-4 h-4 text-green-400" />
                   Active Operational Matrix
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                   Live WhatsApp Deployment Status
                 </p>
               </CardHeader>
               <CardContent className="p-6 bg-slate-50/50">
                 <div className="flex flex-wrap items-center gap-6">
                   <div>
-                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                    <p className="text-[15px] text-slate-400 font-black uppercase tracking-widest">
                       Phone Endpoint
                     </p>
                     <p className="text-sm font-bold text-slate-700 mt-1">
@@ -388,7 +388,7 @@ export default function ChatbotFlowsPage() {
                   </div>
                   {activeFlow && (
                     <div className="pl-6 border-l border-slate-200">
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                      <p className="text-[15px] text-slate-400 font-black uppercase tracking-widest">
                         Active Logic Node
                       </p>
                       <p className="text-sm font-bold text-slate-700 mt-1">
@@ -413,7 +413,7 @@ export default function ChatbotFlowsPage() {
                   <MessageSquare className="w-4 h-4 text-amber-400" />
                   Incomplete Infrastructure
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                   WhatsApp Configuration Required
                 </p>
               </CardHeader>
@@ -440,7 +440,7 @@ export default function ChatbotFlowsPage() {
                   <Workflow className="w-4 h-4 text-indigo-400" />
                   Standard Pipeline Templates Available
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                   Initialize core organization workflows
                 </p>
               </CardHeader>
@@ -448,7 +448,7 @@ export default function ChatbotFlowsPage() {
                 <Button
                   onClick={handleGenerateDefaultFlows}
                   disabled={checkingDefaults}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[11px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-9 text-[15px] font-bold uppercase tracking-wider px-6 border-0 shadow-lg shadow-indigo-900/20"
                 >
                   {checkingDefaults ? (
                     <>
@@ -475,14 +475,14 @@ export default function ChatbotFlowsPage() {
             <TabsList className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-100 p-1 border border-slate-200 gap-1">
               <TabsTrigger
                 value="your-flows"
-                className="px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
+                className="px-6 py-2 rounded-lg text-[14px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
               >
                 Operational Pipelines (
                 {flows.filter((f) => !f.isTemplate).length})
               </TabsTrigger>
               <TabsTrigger
                 value="templates"
-                className="px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
+                className="px-6 py-2 rounded-lg text-[14px] font-black uppercase tracking-widest transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-800"
               >
                 Workflow Library ({flows.filter((f) => f.isTemplate).length})
               </TabsTrigger>
@@ -558,16 +558,16 @@ export default function ChatbotFlowsPage() {
                                       "Unnamed Flow"}
                                   </CardTitle>
                                   {isDefaultFlow && (
-                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded border border-orange-100">
+                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 text-[12px] font-black uppercase tracking-widest rounded border border-orange-100">
                                       Standard
                                     </span>
                                   )}
                                   {flow.isActive && (
-                                    <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[8px] font-black uppercase tracking-widest rounded border border-green-100">
+                                    <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[12px] font-black uppercase tracking-widest rounded border border-green-100">
                                       Deployed
                                     </span>
                                   )}
-                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest rounded border border-slate-200">
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[12px] font-black uppercase tracking-widest rounded border border-slate-200">
                                     v{flow.version || 1}
                                   </span>
                                 </div>
@@ -578,26 +578,26 @@ export default function ChatbotFlowsPage() {
                                 </p>
                                 <div className="mt-3 flex items-center gap-4">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                    <span className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">
                                       Type:
                                     </span>
-                                    <span className="text-[10px] font-bold text-indigo-600 uppercase">
+                                    <span className="text-[14px] font-bold text-indigo-600 uppercase">
                                       {flow.flowType || "custom"}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5 pl-4 border-l border-slate-200">
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                    <span className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">
                                       Complexity:
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-700 uppercase">
+                                    <span className="text-[14px] font-bold text-slate-700 uppercase">
                                       {flow.steps?.length || 0} Nodes
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5 pl-4 border-l border-slate-200">
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                    <span className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">
                                       Updated:
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-700 uppercase">
+                                    <span className="text-[14px] font-bold text-slate-700 uppercase">
                                       {flow.updatedAt
                                         ? new Date(
                                             flow.updatedAt,
@@ -698,7 +698,7 @@ export default function ChatbotFlowsPage() {
                                       flow._id,
                                       "set-active",
                                     )}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl min-w-[160px] font-semibold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-900/20"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl min-w-[160px] font-semibold text-[15px] uppercase tracking-wider shadow-md shadow-indigo-900/20"
                                   >
                                     {isActionLoading(flow._id, "set-active") ? (
                                       <>

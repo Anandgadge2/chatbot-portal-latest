@@ -256,7 +256,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
               </div>
               <div>
                 <CardTitle className="text-base font-bold text-white uppercase tracking-tight">{editingCompany ? 'Modify Organization Node' : 'Initialize New Organization'}</CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Global Infrastructure Registry</p>
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Global Infrastructure Registry</p>
               </div>
             </div>
             <button
@@ -317,7 +317,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                       />
                       <Label htmlFor={`lang-${language.code}`} className="text-sm font-medium cursor-pointer">
                         {language.label}
-                        {isEnglish && <span className="ml-1 text-[10px] text-slate-400">(Default)</span>}
+                        {isEnglish && <span className="ml-1 text-[14px] text-slate-400">(Default)</span>}
                       </Label>
                     </div>
                   );
@@ -419,7 +419,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                     variant="outline"
                     size="sm"
                     onClick={() => setShowAdminForm(true)}
-                    className="h-8 text-[11px] font-bold uppercase tracking-wider border-blue-200 text-blue-600 hover:bg-blue-50"
+                    className="h-8 text-[15px] font-bold uppercase tracking-wider border-blue-200 text-blue-600 hover:bg-blue-50"
                   >
                     <Plus className="w-3 h-3 mr-1.5" />
                     Add Admin
@@ -547,7 +547,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
                       <Label htmlFor={module.id} className="text-xs font-bold text-slate-800 cursor-pointer">
                         {module.name}
                       </Label>
-                      <p className="text-[10px] text-slate-500 leading-tight mt-0.5">{module.description}</p>
+                      <p className="text-[14px] text-slate-500 leading-tight mt-0.5">{module.description}</p>
                     </div>
                   </div>
                 ))}
@@ -566,7 +566,7 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="px-6 bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95"
+                className="px-6 bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[14px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

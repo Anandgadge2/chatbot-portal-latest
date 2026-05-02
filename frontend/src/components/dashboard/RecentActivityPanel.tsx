@@ -166,7 +166,7 @@ export default function RecentActivityPanel({
             </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              <span className="text-[14px] text-slate-400 font-bold uppercase tracking-widest">
                 Real-time Stream
               </span>
             </div>
@@ -220,11 +220,11 @@ export default function RecentActivityPanel({
                           <span className="text-xs font-black text-slate-900 leading-none">
                             {summary.user}
                           </span>
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[15px] font-black text-slate-500 uppercase">
                             {idx === 0 ? "Latest" : summary.date}
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">
+                        <span className="text-[14px] font-bold text-slate-400 font-mono tracking-tighter">
                           {summary.time}
                         </span>
                       </div>
@@ -242,7 +242,7 @@ export default function RecentActivityPanel({
                           }`}
                         >
                           {getActivityIcon(log.action, log.resourceType)}
-                          <span className="text-[10px] font-black uppercase tracking-wider">
+                          <span className="text-[14px] font-black uppercase tracking-wider">
                             {log.action === "CREATE" ? "Proceed" : log.action}
                           </span>
                         </div>
@@ -250,7 +250,7 @@ export default function RecentActivityPanel({
                         <ChevronRight className="w-3 h-3 text-slate-300" />
 
                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-600">
+                          <span className="text-[14px] font-bold text-slate-600">
                             {log.resourceType}
                           </span>
                         </div>
@@ -258,7 +258,7 @@ export default function RecentActivityPanel({
 
                       {/* Detail Expansion */}
                       <div className="mt-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100/50 group-hover:bg-slate-50 group-hover:border-slate-200 transition-all">
-                        <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                        <p className="text-[15px] text-slate-600 font-medium leading-relaxed">
                           {log.changes?.description ||
                             `${summary.action} entry in ${log.resourceType} module`}
                         </p>
@@ -270,7 +270,7 @@ export default function RecentActivityPanel({
                               ([key, val]: [string, any]) => (
                                 <div
                                   key={key}
-                                  className="flex items-center gap-2 text-[10px]"
+                                  className="flex items-center gap-2 text-[14px]"
                                 >
                                   <span className="font-bold text-slate-400 lowercase">
                                     {key}:
@@ -294,11 +294,11 @@ export default function RecentActivityPanel({
 
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-bold text-slate-300 font-mono tracking-tighter">
+                            <span className="text-[15px] font-bold text-slate-300 font-mono tracking-tighter">
                               ID: {log.resourceId?.substring(0, 8)}...
                             </span>
                             {log.ipAddress && (
-                              <span className="text-[9px] font-bold text-slate-300 flex items-center gap-1 uppercase">
+                              <span className="text-[15px] font-bold text-slate-300 flex items-center gap-1 uppercase">
                                 <Settings className="w-2 h-2" />
                                 {log.ipAddress}
                               </span>
@@ -320,7 +320,7 @@ export default function RecentActivityPanel({
 
       {/* Footer Info */}
       <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+        <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
           End of Stream • 20 Events
         </span>
         <div className="flex gap-1.5">

@@ -59,7 +59,7 @@ function KpiCard({
       <CardHeader
         className={`flex flex-row items-center justify-between space-y-0 border-t-[3px] bg-slate-50/50 px-3 py-2.5 ${borderClass}`}
       >
-        <CardTitle className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">
+        <CardTitle className="text-[14px] sm:text-[15px] font-black uppercase tracking-widest text-slate-400">
           {title}
         </CardTitle>
         {icon}
@@ -106,7 +106,7 @@ export function OverviewGrievanceKpis({
         onClick={onPendingClick}
         loading={loading}
         footer={
-          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+          <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Waiting
           </p>
         }
@@ -121,7 +121,7 @@ export function OverviewGrievanceKpis({
         onClick={onOverdueClick}
         loading={loading}
         footer={
-          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+          <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Delayed
           </p>
         }
@@ -136,7 +136,7 @@ export function OverviewGrievanceKpis({
         onClick={onRevertedClick}
         loading={loading}
         footer={
-          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+          <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Reassigned
           </p>
         }
@@ -151,7 +151,7 @@ export function OverviewGrievanceKpis({
         onClick={onResolvedClick}
         loading={loading}
         footer={
-          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+          <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Completed
           </p>
         }
@@ -166,7 +166,7 @@ export function OverviewGrievanceKpis({
         onClick={onRejectedClick}
         loading={loading}
         footer={
-          <p className="mt-1 text-[8px] font-bold uppercase text-slate-400">
+          <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Declined
           </p>
         }
@@ -182,7 +182,7 @@ export function OverviewGrievanceKpis({
         loading={loading}
         footer={
           <div className="mt-1 flex items-center gap-1">
-            <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+            <span className="text-[14px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
               {last7DaysCount} New
             </span>
           </div>

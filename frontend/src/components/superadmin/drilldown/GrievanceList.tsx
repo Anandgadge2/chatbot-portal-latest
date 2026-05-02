@@ -79,7 +79,7 @@ export default function GrievanceList({
             variant="outline"
             size="sm"
             onClick={() => exportToCSV(grievances, "grievances")}
-            className="text-[10px] font-black uppercase tracking-wider"
+            className="text-[14px] font-black uppercase tracking-wider"
           >
             <Download className="w-3.5 h-3.5 mr-2" />
             Export
@@ -99,19 +99,19 @@ export default function GrievanceList({
                     className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                   Sr. No.
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                   Incident ID
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                   Complainant
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">
                   Current Status
                 </th>
-                <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <th className="px-6 py-4 text-right text-[14px] font-black uppercase tracking-widest text-slate-500">
                   Actions
                 </th>
               </tr>
@@ -133,7 +133,7 @@ export default function GrievanceList({
                     />
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[10px] rounded-lg group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
+                    <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[14px] rounded-lg group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
                       {idx + 1}
                     </span>
                   </td>
@@ -145,14 +145,14 @@ export default function GrievanceList({
                       <p className="font-bold text-slate-900 leading-none">
                         {g.citizenName}
                       </p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                      <p className="text-[14px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
                         {formatTo10Digits(g.citizenPhone)}
                       </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
+                      className={`px-2 py-0.5 rounded text-[15px] font-black uppercase tracking-widest border ${
                         g.status === "RESOLVED"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                           : "bg-amber-50 text-amber-700 border-amber-100"
@@ -170,7 +170,7 @@ export default function GrievanceList({
                           setSelectedGrievance(g);
                           setShowGrievanceDetail(true);
                         }}
-                        className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                        className="text-[14px] font-black uppercase tracking-wider text-slate-400 hover:text-amber-600 hover:bg-amber-50"
                       >
                         Review Case
                       </Button>
@@ -179,7 +179,7 @@ export default function GrievanceList({
                           variant="ghost"
                           size="sm"
                           onClick={() => onAssign(g)}
-                          className="text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                          className="text-[14px] font-black uppercase tracking-wider text-slate-400 hover:text-blue-600 hover:bg-blue-50"
                         >
                           <UserPlus className="w-3.5 h-3.5 mr-1" />
                           Assign

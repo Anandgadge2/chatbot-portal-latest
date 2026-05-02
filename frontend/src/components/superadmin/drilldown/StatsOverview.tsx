@@ -38,7 +38,7 @@ export default function StatsOverview({
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full group-hover:bg-blue-500/10 transition-colors"></div>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <CardTitle className="text-[14px] font-black uppercase tracking-widest text-slate-400">
             Total Users
           </CardTitle>
           <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -51,7 +51,7 @@ export default function StatsOverview({
           </div>
           <div className="flex items-center gap-2 mt-4">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">
+            <p className="text-[14px] text-emerald-600 font-black uppercase tracking-widest">
               {stats.activeUsers} Active Now
             </p>
           </div>
@@ -64,7 +64,7 @@ export default function StatsOverview({
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full group-hover:bg-indigo-500/10 transition-colors"></div>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <CardTitle className="text-[14px] font-black uppercase tracking-widest text-slate-400">
             Total Departments
           </CardTitle>
           <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -75,7 +75,7 @@ export default function StatsOverview({
           <div className="text-3xl font-black text-slate-900 leading-none">
             {stats.totalDepartments}
           </div>
-          <p className="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
+          <p className="text-[14px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
             <Workflow className="w-3 h-3" /> Organizational Departments
           </p>
         </CardContent>
@@ -88,7 +88,7 @@ export default function StatsOverview({
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full group-hover:bg-amber-500/10 transition-colors"></div>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <CardTitle className="text-[14px] font-black uppercase tracking-widest text-slate-400">
             Open Grievances
           </CardTitle>
           <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -102,13 +102,13 @@ export default function StatsOverview({
           <div className="flex items-center gap-3 mt-4">
             <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
               <Clock className="w-3 h-3 text-amber-600" />
-              <span className="text-[9px] text-amber-600 font-black uppercase tracking-tighter">
+              <span className="text-[15px] text-amber-600 font-black uppercase tracking-tighter">
                 {stats.pendingGrievances} Pending
               </span>
             </div>
             <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
               <CheckCircle className="w-3 h-3 text-emerald-600" />
-              <span className="text-[9px] text-emerald-600 font-black uppercase tracking-tighter">
+              <span className="text-[15px] text-emerald-600 font-black uppercase tracking-tighter">
                 {stats.resolvedGrievances} Solved
               </span>
             </div>
@@ -124,7 +124,7 @@ export default function StatsOverview({
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full group-hover:bg-emerald-500/10 transition-colors"></div>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <CardTitle className="text-[14px] font-black uppercase tracking-widest text-slate-400">
             Appointments
           </CardTitle>
           <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -135,7 +135,7 @@ export default function StatsOverview({
           <div className="text-3xl font-black text-slate-900 leading-none">
             {stats.totalAppointments}
           </div>
-          <p className="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
+          <p className="text-[14px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
             <TrendingUp className="w-3 h-3" /> Scheduled Engagement
           </p>
         </CardContent>
@@ -149,7 +149,7 @@ export default function StatsOverview({
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full group-hover:bg-indigo-500/10 transition-colors"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <CardTitle className="text-[14px] font-black uppercase tracking-widest text-slate-400">
               Project Leads
             </CardTitle>
             <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -160,7 +160,7 @@ export default function StatsOverview({
             <div className="text-3xl font-black text-slate-900 leading-none">
               {stats.totalLeads || 0}
             </div>
-            <p className="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
+            <p className="text-[14px] text-slate-400 font-bold mt-4 uppercase tracking-widest flex items-center gap-1.5">
               <TrendingUp className="w-3 h-3" /> Potential Leads
             </p>
           </CardContent>

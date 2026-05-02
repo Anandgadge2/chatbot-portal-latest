@@ -81,7 +81,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`w-full flex items-center gap-2 justify-between px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wide shadow-sm transition-all ${
+        className={`w-full flex items-center gap-2 justify-between px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-[15px] font-bold uppercase tracking-wide shadow-sm transition-all ${
           disabled ? "bg-slate-50 text-slate-300 cursor-not-allowed" : "hover:border-indigo-300 hover:shadow-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700"
         } ${triggerClassName}`}
       >
@@ -103,7 +103,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   placeholder="Quick search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[11px] bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold uppercase tracking-tight placeholder:normal-case"
+                  className="w-full pl-9 pr-3.5 py-2 text-[15px] bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold uppercase tracking-tight placeholder:normal-case"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchTerm && (
@@ -132,7 +132,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center">
                   <Search className="w-5 h-5 text-slate-200" />
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none">
                   {emptyMessage}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full flex items-center gap-3 justify-between px-3.5 py-3 text-[11px] font-bold uppercase tracking-wide rounded-xl transition-all text-left group ${
+                  className={`w-full flex items-center gap-3 justify-between px-3.5 py-3 text-[15px] font-bold uppercase tracking-wide rounded-xl transition-all text-left group ${
                     opt.value === value
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
                       : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600 hover:translate-x-1"

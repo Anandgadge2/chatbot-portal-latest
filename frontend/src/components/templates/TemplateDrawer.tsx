@@ -78,7 +78,7 @@ export default function TemplateDrawer({
           <DialogTitle>{template.name}</DialogTitle>
           <DialogDescription>
             <span className="inline-flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeByStatus[template.status]}`}>
+              <span className={`px-2 py-0.5 rounded-full text-[14px] font-bold ${badgeByStatus[template.status]}`}>
                 {template.status}
               </span>
               <span>{template.language}</span>
@@ -115,12 +115,12 @@ export default function TemplateDrawer({
                   <div key={`${button.text}-${index}`} className="flex flex-col rounded-lg bg-slate-50 p-3 border border-slate-100">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-sm text-slate-900">{button.text}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-[9px] font-bold text-blue-700 uppercase tracking-tighter">
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-[15px] font-bold text-blue-700 uppercase tracking-tighter">
                         {button.type.replace(/_/g, ' ')}
                       </span>
                     </div>
                     {button.value && (
-                      <span className="text-[10px] text-slate-400 truncate" title={button.value}>
+                      <span className="text-[14px] text-slate-400 truncate" title={button.value}>
                         {button.value}
                       </span>
                     )}

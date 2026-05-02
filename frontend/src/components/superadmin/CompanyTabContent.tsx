@@ -136,7 +136,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
               <CardTitle className="text-sm font-bold text-white">
                 Organization Registry
               </CardTitle>
-              <CardDescription className="text-slate-400 text-[10px] font-medium leading-none mt-1">
+              <CardDescription className="text-slate-400 text-[14px] font-medium leading-none mt-1">
                 Manage global corporate entities
               </CardDescription>
             </div>
@@ -154,7 +154,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
               </Button>
             )}
             <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[10px] uppercase tracking-wider px-3 sm:px-4 border-0 transition-all shrink-0"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 shadow-md shadow-indigo-900/20 font-bold text-[14px] uppercase tracking-wider px-3 sm:px-4 border-0 transition-all shrink-0"
               onClick={() => setShowCreateDialog(true)}
             >
               <Plus className="w-3 h-3 mr-1 sm:mr-1.5" />
@@ -167,11 +167,11 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
         {/* Filters */}
         <div className="px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Rows</span>
+            <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Rows</span>
             <select
               value={companyPagination.limit}
               onChange={(e) => { setCompanyLimit(Number(e.target.value)); setCompanyPage(1); }}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[15px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
             >
               {[10, 20, 25, 50, 100].map(v => (
                 <option key={v} value={v}>{v}</option>
@@ -194,11 +194,11 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
           </div>
           <div className="flex flex-row items-center gap-3">
             <div className="flex items-center gap-2 flex-1 sm:flex-none">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Status</span>
+              <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Status</span>
               <select
                 value={companyStatusFilter}
                 onChange={(e) => { setCompanyStatusFilter(e.target.value); setCompanyPage(1); }}
-                className="w-full sm:w-auto h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+                className="w-full sm:w-auto h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[15px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
               >
                 <option value="">All Status</option>
                 <option value="active">Active</option>
@@ -206,11 +206,11 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
               </select>
             </div>
             <div className="flex items-center gap-2 flex-1 sm:flex-none">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Type</span>
+              <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Type</span>
               <select
                 value={companyTypeFilter}
                 onChange={(e) => { setCompanyTypeFilter(e.target.value); setCompanyPage(1); }}
-                className="w-full sm:w-auto h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+                className="w-full sm:w-auto h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[15px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
               >
                 <option value="">All Types</option>
                 <option value="SOCIETY">Society</option>
@@ -235,19 +235,19 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedIds(new Set())}
-                className="h-7 text-[10px] font-bold uppercase tracking-wider border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                className="h-7 text-[14px] font-bold uppercase tracking-wider border-indigo-200 text-indigo-600 hover:bg-indigo-100"
               >
                 Deselect All
               </Button>
               {showBulkConfirm ? (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                  <span className="text-[10px] text-red-700 font-bold">Delete {selectedIds.size} companies?</span>
+                  <span className="text-[14px] text-red-700 font-bold">Delete {selectedIds.size} companies?</span>
                   <Button
                     size="sm"
                     onClick={handleBulkDelete}
                     disabled={bulkDeleting}
-                    className="h-6 px-2.5 text-[10px] bg-red-600 hover:bg-red-700 text-white rounded-md font-bold"
+                    className="h-6 px-2.5 text-[14px] bg-red-600 hover:bg-red-700 text-white rounded-md font-bold"
                   >
                     {bulkDeleting ? "Deleting..." : "Confirm"}
                   </Button>
@@ -255,7 +255,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowBulkConfirm(false)}
-                    className="h-6 px-2 text-[10px] text-slate-500"
+                    className="h-6 px-2 text-[14px] text-slate-500"
                   >
                     Cancel
                   </Button>
@@ -264,7 +264,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                 <Button
                   size="sm"
                   onClick={() => setShowBulkConfirm(true)}
-                  className="h-7 px-3 text-[10px] font-bold uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white rounded-lg gap-1.5"
+                  className="h-7 px-3 text-[14px] font-bold uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white rounded-lg gap-1.5"
                 >
                   <Trash2 className="w-3 h-3" />
                   Delete Selected
@@ -296,15 +296,15 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                     )}
                   </button>
                 </th>
-                <th className="hidden md:table-cell px-3 py-2.5 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">#</th>
-                <th className="px-2 sm:px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Organization</th>
-                <th className="px-2 sm:px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
-                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
-                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Depts</th>
-                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Users</th>
-                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
-                <th className="hidden sm:table-cell px-5 py-2.5 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-2 sm:px-5 py-2.5 text-right text-[9px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                <th className="hidden md:table-cell px-3 py-2.5 text-center text-[15px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                <th className="px-2 sm:px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Organization</th>
+                <th className="px-2 sm:px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
+                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Depts</th>
+                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Users</th>
+                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
+                <th className="hidden sm:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-2 sm:px-5 py-2.5 text-right text-[15px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
@@ -359,13 +359,13 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                               <LoadingSpinner className="scale-50 origin-left shrink-0" />
                             )}
                           </div>
-                          <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
+                          <div className="text-[14px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
                             Open Dashboard
                           </div>
                         </div>
                       </td>
                       <td className="px-2 sm:px-5 py-4 whitespace-nowrap">
-                        <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[9px] sm:text-[10px] font-bold uppercase truncate max-w-[80px] sm:max-w-none inline-block">
+                        <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[15px] sm:text-[14px] font-bold uppercase truncate max-w-[80px] sm:max-w-none inline-block">
                           {company.companyId}
                         </span>
                       </td>
@@ -373,7 +373,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                         <div className="flex flex-col gap-0.5">
                           <span className="text-xs text-slate-600 font-medium">{company.companyHead?.name || "N/A"}</span>
                           <span className="text-xs text-slate-600 font-medium">{company.companyHead?.email || "N/A"}</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{formatTo10Digits(company.companyHead?.phone || "")}</span>
+                          <span className="text-[14px] text-slate-400 font-bold">{formatTo10Digits(company.companyHead?.phone || "")}</span>
                         </div>
                       </td>
                       <td className="hidden lg:table-cell px-5 py-4 whitespace-nowrap">
@@ -392,14 +392,14 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                         <span className="text-xs text-slate-600 font-medium">{company.userCount}</span>
                       </td>
                       <td className="hidden md:table-cell px-5 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-wider border border-indigo-100">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[15px] font-black uppercase tracking-wider border border-indigo-100">
                           {company.companyType}
                         </span>
                       </td>
                       <td className="hidden sm:table-cell px-5 py-4 whitespace-nowrap">
                         <button
                           onClick={() => toggleCompanyStatus(company)}
-                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                          className={`px-3 py-1 rounded-full text-[15px] font-black uppercase tracking-widest transition-all ${
                             company.isActive
                               ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200"
                               : "bg-red-50 text-red-600 hover:bg-red-100 border border-red-100"
@@ -461,7 +461,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
         </div>
         {companyPagination.pages > 1 && (
           <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
               Record {(companyPage - 1) * companyPagination.limit + 1}–
               {Math.min(companyPage * companyPagination.limit, companyPagination.total)} of {companyPagination.total}
             </div>

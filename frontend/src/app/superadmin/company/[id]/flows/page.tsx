@@ -142,7 +142,7 @@ export default function CompanyFlowsPage() {
               <Button 
                 variant="ghost" 
                 onClick={() => router.push(`/superadmin/company/${companyId}`)} 
-                className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[15px] uppercase tracking-wider"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Return
@@ -156,7 +156,7 @@ export default function CompanyFlowsPage() {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-white tracking-tight leading-none uppercase">Interactive Flows</h1>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
                      <span className="h-1 w-1 bg-indigo-500 rounded-full animate-pulse"></span>
                      Orchestration & Logic Registry
                   </p>
@@ -166,7 +166,7 @@ export default function CompanyFlowsPage() {
             
             <Button
               onClick={handleCreateFlow}
-              className="h-10 px-6 bg-white hover:bg-white/90 text-slate-900 rounded-xl shadow-lg shadow-white/5 font-bold text-[11px] uppercase tracking-wider border-0"
+              className="h-10 px-6 bg-white hover:bg-white/90 text-slate-900 rounded-xl shadow-lg shadow-white/5 font-bold text-[15px] uppercase tracking-wider border-0"
             >
               <Plus className="w-4 h-4 mr-2" />
               Initialize Flow
@@ -260,7 +260,7 @@ export default function CompanyFlowsPage() {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="text-xl font-bold text-gray-900">{flow.flowName}</h3>
-                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded uppercase">v{flow.version}</span>
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[14px] font-bold rounded uppercase">v{flow.version}</span>
                             </div>
                             <p className="text-gray-500 line-clamp-2 mb-4">{flow.flowDescription || 'No description'}</p>
                             

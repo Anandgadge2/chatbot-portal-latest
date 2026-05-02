@@ -38,7 +38,7 @@ const DeptAnalytics = dynamic(
   () => import("@/components/superadmin/drilldown/DeptAnalytics"),
   {
     loading: () => (
-      <div className="h-[300px] flex items-center justify-center bg-white border border-slate-200 rounded-2xl animate-pulse text-[10px] font-black uppercase text-slate-400">
+      <div className="h-[300px] flex items-center justify-center bg-white border border-slate-200 rounded-2xl animate-pulse text-[14px] font-black uppercase text-slate-400">
         Loading Analytics...
       </div>
     ),
@@ -333,13 +333,13 @@ export default function DepartmentDrillDown() {
                   {department?.name}
                 </h1>
                 <div className="flex items-center gap-2 mt-1.5 min-w-0">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block">
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block">
                     Department Management Portal
                   </p>
                   {company && (
                     <>
                       <span className="w-1 h-1 rounded-full bg-indigo-500 hidden sm:block"></span>
-                      <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest truncate">
+                      <span className="text-[14px] text-indigo-400 font-bold uppercase tracking-widest truncate">
                         {company.name}
                       </span>
                     </>
@@ -350,10 +350,10 @@ export default function DepartmentDrillDown() {
 
             <div className="flex items-center gap-2 sm:gap-3 self-end md:self-auto">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-4 mr-1">
-                <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                <span className="text-[15px] font-black text-white uppercase tracking-wider">
                   Sync Active
                 </span>
-                <span className="text-[9px] text-emerald-400 font-black uppercase tracking-[0.2em] mt-0.5">
+                <span className="text-[15px] text-emerald-400 font-black uppercase tracking-[0.2em] mt-0.5">
                   Live Connection
                 </span>
               </div>
@@ -361,7 +361,7 @@ export default function DepartmentDrillDown() {
                 onClick={fetchData}
                 variant="ghost"
                 size="sm"
-                className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[11px] uppercase tracking-wider"
+                className="h-9 sm:h-10 px-3 sm:px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 font-bold text-[15px] uppercase tracking-wider"
               >
                 <RefreshCw className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Refresh</span>
@@ -381,31 +381,31 @@ export default function DepartmentDrillDown() {
             <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-auto min-h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full w-full justify-start">
               <TabsTrigger
                 value="overview"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[15px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Overview
               </TabsTrigger>
               <TabsTrigger
                 value="users"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[15px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Users
               </TabsTrigger>
               <TabsTrigger
                 value="grievances"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[15px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Grievances
               </TabsTrigger>
               <TabsTrigger
                 value="appointments"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-4 sm:px-6 h-8 text-[15px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Appointments
               </TabsTrigger>
               <TabsTrigger
                 value="analytics"
-                className="px-4 sm:px-6 h-8 text-[11px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
+                className="px-4 sm:px-6 h-8 text-[15px] font-black uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center"
               >
                 <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
                 Analytics
@@ -424,7 +424,7 @@ export default function DepartmentDrillDown() {
                   <Building className="w-4 h-4 text-indigo-400" />
                   Department Infrastructure Status
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                   Core department settings and identity
                 </p>
               </CardHeader>

@@ -131,7 +131,7 @@ export default function DepartmentList({
             variant="outline"
             size="sm"
             onClick={() => setIsImportModalOpen(true)}
-            className="bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[10px] font-black uppercase tracking-wider"
+            className="bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100 text-[14px] font-black uppercase tracking-wider"
             title="Upload Excel to create hierarchy"
           >
             <Upload className="w-3.5 h-3.5 mr-2" />
@@ -166,19 +166,19 @@ export default function DepartmentList({
               variant="outline"
               size="sm"
               onClick={() => setSelectedIds(new Set())}
-              className="h-7 text-[10px] font-bold uppercase tracking-wider border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+              className="h-7 text-[14px] font-bold uppercase tracking-wider border-indigo-200 text-indigo-600 hover:bg-indigo-100"
             >
               Deselect All
             </Button>
             {showConfirm ? (
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                <span className="text-[10px] text-red-700 font-bold">Delete {selectedIds.size} depts?</span>
+                <span className="text-[14px] text-red-700 font-bold">Delete {selectedIds.size} depts?</span>
                 <Button
                   size="sm"
                   onClick={handleBulkDelete}
                   disabled={bulkDeleting}
-                  className="h-6 px-2.5 text-[10px] bg-red-600 hover:bg-red-700 text-white rounded-md font-bold"
+                  className="h-6 px-2.5 text-[14px] bg-red-600 hover:bg-red-700 text-white rounded-md font-bold"
                 >
                   {bulkDeleting ? "Deleting..." : "Confirm"}
                 </Button>
@@ -186,7 +186,7 @@ export default function DepartmentList({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowConfirm(false)}
-                  className="h-6 px-2 text-[10px] text-slate-500"
+                  className="h-6 px-2 text-[14px] text-slate-500"
                 >
                   Cancel
                 </Button>
@@ -195,7 +195,7 @@ export default function DepartmentList({
               <Button
                 size="sm"
                 onClick={() => setShowConfirm(true)}
-                className="h-7 px-3 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg gap-1.5"
+                className="h-7 px-3 text-[14px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg gap-1.5"
               >
                 <Trash2 className="w-3 h-3" />
                 Delete Selected
@@ -228,11 +228,11 @@ export default function DepartmentList({
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Sr. No.</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Department Name</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Users</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">
+                <th className="px-4 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">Sr. No.</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">Department Name</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500 text-center">Users</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <span>Priority</span>
                     {onTogglePriorityColumn && (
@@ -243,16 +243,16 @@ export default function DepartmentList({
                           disabled={priorityToggleSaving}
                           aria-label="Toggle company admin priority column visibility"
                         />
-                        <span className="text-[9px] font-bold normal-case tracking-normal text-slate-400">
+                        <span className="text-[15px] font-bold normal-case tracking-normal text-slate-400">
                           {showPriorityColumn ? "Visible to company admin" : "Hidden from company admin"}
                         </span>
                       </div>
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Hierarchy</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Internal ID</th>
-                <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Actions</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">Hierarchy</th>
+                <th className="px-6 py-4 text-[14px] font-black uppercase tracking-widest text-slate-500">Internal ID</th>
+                <th className="px-6 py-4 text-right text-[14px] font-black uppercase tracking-widest text-slate-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -278,7 +278,7 @@ export default function DepartmentList({
                       </button>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[10px] rounded-lg group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-colors">
+                      <span className="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-600 font-black text-[14px] rounded-lg group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-colors">
                         {idx + 1}
                       </span>
                     </td>
@@ -288,7 +288,7 @@ export default function DepartmentList({
                       </p>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[15px] font-black uppercase tracking-widest border ${
                         isMain ? "bg-indigo-50 text-indigo-700 border-indigo-100" : "bg-slate-100 text-slate-600 border-slate-200"
                       }`}>
                         {isMain ? "Main Department" : "Sub Department"}
@@ -322,7 +322,7 @@ export default function DepartmentList({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                              className="h-8 px-2 text-[14px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
                               onClick={() => onSavePriority?.(d)}
                               disabled={savingPriorityIds.has(d._id)}
                               title="Save priority"
@@ -340,29 +340,29 @@ export default function DepartmentList({
                           </span>
                         )
                       ) : (
-                        <span className="text-[10px] font-bold text-slate-300">-</span>
+                        <span className="text-[14px] font-bold text-slate-300">-</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {d.parentDepartmentId ? (
                         <div className="flex items-center gap-1.5">
-                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-bold border border-slate-200 uppercase">
+                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[15px] font-bold border border-slate-200 uppercase">
                             Sub Unit
                           </span>
                           <ChevronRight className="w-3 h-3 text-slate-300" />
-                          <span className="text-[10px] font-bold text-slate-400 capitalize">
+                          <span className="text-[14px] font-bold text-slate-400 capitalize">
                             {typeof d.parentDepartmentId === "object"
                               ? (d.parentDepartmentId as any).name
                               : "Main"}
                           </span>
                         </div>
                       ) : (
-                        <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black border border-indigo-100 uppercase">
+                        <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[15px] font-black border border-indigo-100 uppercase">
                           Main Dept
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-mono text-[10px] text-slate-400 font-bold">
+                    <td className="px-6 py-4 font-mono text-[14px] text-slate-400 font-bold">
                       {d.departmentId}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -370,7 +370,7 @@ export default function DepartmentList({
                         variant="ghost"
                         size="sm"
                         onClick={() => router.push(`/superadmin/department/${d._id}`)}
-                        className="text-[10px] font-black uppercase tracking-wider text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        className="text-[14px] font-black uppercase tracking-wider text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                       >
                         Configuration
                         <ArrowLeft className="w-3.5 h-3.5 ml-2 rotate-180" />

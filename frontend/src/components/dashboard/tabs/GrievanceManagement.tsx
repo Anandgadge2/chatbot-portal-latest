@@ -137,7 +137,7 @@ export default function GrievanceManagement() {
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    className={`px-4 py-2 rounded-xl text-[14px] font-black uppercase tracking-widest transition-all ${
                       statusFilter === s 
                         ? "bg-white text-indigo-600 shadow-md shadow-indigo-600/5 border border-indigo-100" 
                         : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
@@ -159,12 +159,12 @@ export default function GrievanceManagement() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Incident ID</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Created At</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Incident ID</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest">Created At</th>
+                  <th className="px-6 py-4 text-[14px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,7 +182,7 @@ export default function GrievanceManagement() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-slate-900 leading-none">{g.citizenName}</span>
-                          <span className="text-[11px] font-bold text-slate-500 mt-1">{g.citizenPhone}</span>
+                          <span className="text-[15px] font-bold text-slate-500 mt-1">{g.citizenPhone}</span>
                         </div>
                       </div>
                     </td>
@@ -190,12 +190,12 @@ export default function GrievanceManagement() {
                       <span className="text-xs font-bold text-slate-700">{g.category}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(g.status)}`}>
+                      <span className={`px-3 py-1.5 rounded-full text-[14px] font-black uppercase tracking-widest border ${getStatusColor(g.status)}`}>
                         {g.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span className="text-[15px] font-bold text-slate-500 uppercase tracking-wider">
                         {new Date(g.createdAt).toLocaleDateString()}
                       </span>
                     </td>
@@ -205,7 +205,7 @@ export default function GrievanceManagement() {
                           <Button
                             onClick={() => handleStatusUpdate(g)}
                             size="sm"
-                            className="h-8 rounded-lg bg-white border border-slate-200 text-indigo-600 font-bold text-[10px] items-center px-4 hover:shadow-lg transition-all"
+                            className="h-8 rounded-lg bg-white border border-slate-200 text-indigo-600 font-bold text-[14px] items-center px-4 hover:shadow-lg transition-all"
                           >
                             <Clock className="w-3 h-3 mr-2" />
                             UPDATE STATUS
@@ -231,7 +231,7 @@ export default function GrievanceManagement() {
                             <span className="text-lg font-black text-slate-900 uppercase tracking-tighter">No Active Signals Found</span>
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Adjust your parameters or initiate a system-wide scan</span>
                           </div>
-                          <Button onClick={fetchGrievances} variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[10px]">
+                          <Button onClick={fetchGrievances} variant="outline" className="rounded-xl font-bold uppercase tracking-widest text-[14px]">
                             <RefreshCw className="w-3 h-3 mr-2" />
                             Retune Receiver
                           </Button>

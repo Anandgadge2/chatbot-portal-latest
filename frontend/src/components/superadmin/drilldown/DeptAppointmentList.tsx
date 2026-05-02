@@ -142,7 +142,7 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
                     <p className="text-xs text-amber-600">{a.appointmentTime}</p>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                    className={`px-2.5 py-1 rounded-full text-[14px] font-bold ${
                       a.status === "COMPLETED"
                         ? "bg-emerald-100 text-emerald-700"
                         : a.status === "CANCELLED"
@@ -175,25 +175,25 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 border-b border-purple-100">
                 <tr>
-                  <th className="px-3 py-4 text-center text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-3 py-4 text-center text-[15px] font-bold text-purple-700 uppercase">
                     Sr. No.
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase">
                     Appointment ID
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase">
                     Citizen
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase">
                     Purpose
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase">
                     Scheduled
                   </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-left text-[15px] font-bold text-purple-700 uppercase">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-center text-[11px] font-bold text-purple-700 uppercase">
+                  <th className="px-6 py-4 text-center text-[15px] font-bold text-purple-700 uppercase">
                     Actions
                   </th>
                 </tr>
@@ -248,7 +248,7 @@ const DeptAppointmentList: React.FC<DeptAppointmentListProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        className={`px-2.5 py-1 rounded-full text-[14px] font-bold ${
                           a.status === "COMPLETED"
                             ? "bg-emerald-100 text-emerald-700"
                             : a.status === "CANCELLED"

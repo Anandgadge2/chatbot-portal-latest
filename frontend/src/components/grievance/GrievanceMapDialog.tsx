@@ -69,7 +69,7 @@ export default function GrievanceMapDialog({
               <DialogTitle className="text-white text-base font-black uppercase tracking-tight">
                 Geospatial Location
               </DialogTitle>
-              <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] font-bold text-white/80 uppercase tracking-widest mt-0.5">
                 Grievance #{grievanceId} • {lat.toFixed(6)}, {lng.toFixed(6)}
               </p>
             </div>
@@ -100,7 +100,7 @@ export default function GrievanceMapDialog({
           {address && (
             <div className="absolute bottom-6 left-6 right-6 z-[1000]">
               <div className="bg-[#0f172a]/90 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl ring-1 ring-[#00AEEF]/30">
-                <p className="text-[9px] font-black text-[#00AEEF] uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                <p className="text-[15px] font-black text-[#00AEEF] uppercase tracking-widest mb-1.5 flex items-center gap-2">
                   <MapPin className="w-3 h-3" /> Reported Address
                 </p>
                 <p className="text-xs font-bold text-white tracking-tight leading-relaxed">
@@ -116,13 +116,13 @@ export default function GrievanceMapDialog({
             href={`https://www.google.com/maps?q=${lat},${lng}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-widest rounded-lg transition-all border border-white/20 flex items-center gap-2"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-[15px] font-black uppercase tracking-widest rounded-lg transition-all border border-white/20 flex items-center gap-2"
           >
             Open in Google Maps
           </a>
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-white text-[#00AEEF] text-[11px] font-black uppercase tracking-widest rounded-lg transition-all shadow-lg active:scale-95"
+            className="px-6 py-2 bg-white text-[#00AEEF] text-[15px] font-black uppercase tracking-widest rounded-lg transition-all shadow-lg active:scale-95"
           >
             Done
           </button>

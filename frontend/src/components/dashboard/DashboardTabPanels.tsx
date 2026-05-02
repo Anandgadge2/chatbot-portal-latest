@@ -707,7 +707,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               <h3 className="text-sm font-bold text-slate-800">
                               Grievance Trend
                               </h3>
-                              <p className="text-[10px] text-slate-400">
+                              <p className="text-[14px] text-slate-400">
                                 Last 7 days activity
                               </p>
                             </div>
@@ -754,11 +754,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 />
                                 <XAxis
                                   dataKey="name"
-                                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                                  tick={{ fontSize: 14, fill: "#94a3b8" }}
                                   tickMargin={4}
                                 />
                                 <YAxis
-                                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                                  tick={{ fontSize: 14, fill: "#94a3b8" }}
                                   allowDecimals={false}
                                   width={30}
                                 />
@@ -766,7 +766,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   contentStyle={{
                                     borderRadius: "12px",
                                     border: "1px solid #e2e8f0",
-                                    fontSize: "12px",
+                                    fontSize: "14px",
                                   }}
                                 />
                                 <Area
@@ -799,10 +799,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               <PieChartIcon className="w-4 h-4 text-purple-600" />
                             </div>
                             <div>
-                              <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-tight leading-none">
+                              <h3 className="text-[14px] font-black text-slate-800 uppercase tracking-tight leading-none">
                                 Grievance Operational Status
                               </h3>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
+                              <p className="text-[15px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
                                 Real-time efficiency
                               </p>
                             </div>
@@ -877,7 +877,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           border: "none",
                                           boxShadow:
                                             "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                                          fontSize: "10px",
+                                          fontSize: "14px",
                                           fontWeight: "bold",
                                         }}
                                       />
@@ -887,7 +887,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     <span className="text-xl font-black text-slate-900 tracking-tighter">
                                       {totalRegisteredGrievances}
                                     </span>
-                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                                    <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
                                       Total
                                     </span>
                                   </div>
@@ -923,19 +923,19 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           style={{ backgroundColor: d.color }}
                                         ></span>
                                         <div>
-                                          <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter leading-none">
+                                          <p className="text-[14px] font-black text-slate-700 uppercase tracking-tighter leading-none">
                                             {d.name}
                                           </p>
-                                          <p className="text-[8px] text-slate-400 group-hover:text-slate-500 transition-colors mt-0.5">
+                                          <p className="text-[14px] text-slate-400 group-hover:text-slate-500 transition-colors mt-0.5">
                                             {d.subText}
                                           </p>
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <p className="text-[11px] font-black text-slate-900 leading-none">
+                                        <p className="text-[15px] font-black text-slate-900 leading-none">
                                           {d.value}
                                         </p>
-                                        <p className="text-[8px] font-bold text-slate-400 mt-0.5">
+                                        <p className="text-[14px] font-bold text-slate-400 mt-0.5">
                                           {(
                                             (d.value /
                                               (stats?.grievances
@@ -975,7 +975,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight">
                                 High Grievance Departments
                               </h3>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-tighter">
                                 Grievance Distribution
                               </p>
                             </div>
@@ -987,7 +987,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 setHighGrievanceMainDept(e.target.value);
                                 setHighGrievanceSubDept(""); // Reset sub-dept on main-dept change
                               }}
-                              className="text-[10px] h-7 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[120px]"
+                              className="text-[14px] h-7 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[120px]"
                             >
                               <option value="">🏢 All Main Depts</option>
                               {allDepartments
@@ -1002,7 +1002,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               <select
                                 value={highGrievanceSubDept}
                                 onChange={(e) => setHighGrievanceSubDept(e.target.value)}
-                                className="text-[10px] h-7 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[120px]"
+                                className="text-[14px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-rose-500 bg-white font-bold text-slate-700 max-w-[140px]"
                               >
                                 <option value="">🏢 All Sub Depts</option>
                                 {allDepartments
@@ -1086,7 +1086,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         border: "none",
                                         boxShadow:
                                           "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                                        fontSize: "10px",
+                                        fontSize: "14px",
                                       }}
                                     />
                                     <Bar
@@ -1140,7 +1140,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             <h3 className="text-sm font-bold text-slate-800">
                               Appointment Overview
                             </h3>
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-[14px] text-slate-400">
                               Status distribution
                             </p>
                           </div>
@@ -1189,20 +1189,20 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     />
                                     <XAxis
                                       type="number"
-                                      tick={{ fontSize: 10, fill: "#94a3b8" }}
+                                      tick={{ fontSize: 14, fill: "#94a3b8" }}
                                       allowDecimals={false}
                                     />
                                     <YAxis
                                       type="category"
                                       dataKey="name"
-                                      tick={{ fontSize: 10, fill: "#94a3b8" }}
+                                      tick={{ fontSize: 14, fill: "#94a3b8" }}
                                       width={60}
                                     />
                                     <Tooltip
                                       contentStyle={{
                                         borderRadius: "12px",
                                         border: "1px solid #e2e8f0",
-                                        fontSize: "10px",
+                                        fontSize: "14px",
                                       }}
                                     />
                                     <Bar
@@ -1222,7 +1222,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     <p className="text-xl font-black text-slate-900 leading-none">
                                       {stats?.appointments.last7Days || 0}
                                     </p>
-                                    <p className="text-[9px] text-slate-500 font-semibold uppercase mt-1">
+                                    <p className="text-[15px] text-slate-500 font-semibold uppercase mt-1">
                                       Last 7 days
                                     </p>
                                   </div>
@@ -1233,7 +1233,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       ).toFixed(0)}
                                       %
                                     </p>
-                                    <p className="text-[9px] text-slate-500 font-semibold uppercase mt-1">
+                                    <p className="text-[15px] text-slate-500 font-semibold uppercase mt-1">
                                       Completion Rate
                                     </p>
                                   </div>
@@ -1260,7 +1260,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             <h3 className="text-sm font-bold text-slate-800">
                               Staff by Role
                             </h3>
-                            <p className="text-[10px] text-slate-400">
+                            <p className="text-[14px] text-slate-400">
                               {isViewingCompany
                                 ? "Across all departments"
                                 : "In your department"}
@@ -1388,10 +1388,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 {roleData.map((r, i) => (
                                   <div key={i}>
                                     <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+                                      <span className="text-[15px] font-black text-slate-500 uppercase tracking-tighter">
                                         {r.name}
                                       </span>
-                                      <span className="text-[11px] font-black text-slate-900 leading-none">
+                                      <span className="text-[15px] font-black text-slate-900 leading-none">
                                         {r.value}
                                       </span>
                                     </div>
@@ -1407,10 +1407,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   </div>
                                 ))}
                                 <div className="pt-2 mt-3 border-t border-slate-100 flex items-center justify-between">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                  <span className="text-[15px] font-bold text-slate-400 uppercase">
                                     Total Staff
                                   </span>
-                                  <span className="text-[12px] font-black text-slate-900 tabular-nums leading-none">
+                                  <span className="text-[14px] font-black text-slate-900 tabular-nums leading-none">
                                     {totalStaffCount}
                                   </span>
                                 </div>
@@ -1440,7 +1440,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 placeholder="Quick search..."
                                 value={deptSearch}
                                 onChange={(e) => setDeptSearch(e.target.value)}
-                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[15px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                               />
                             </div>
 
@@ -1455,7 +1455,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 <Button
                                   type="button"
                                   onClick={() => setShowDepartmentDialog(true)}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-wide rounded-lg px-3 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[14px] font-bold uppercase tracking-wide rounded-lg px-3 shadow-md transition-all active:scale-95 whitespace-nowrap"
                                 >
                                   <Building className="w-3.5 h-3.5 mr-1.5" />
                                   Add Department
@@ -1472,7 +1472,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       size="sm"
                                       onClick={handleBulkDeleteDepartments}
                                       disabled={isDeleting}
-                                      className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                      className="h-8 text-[14px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
                                     >
                                       <Trash2 className="w-3 h-3 mr-1.5" />
                                       Delete ({selectedDepartments.size})
@@ -1488,14 +1488,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   <Button
                                     type="button"
                                     onClick={() => setShowDepartmentDialog(true)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[15px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
                                   >
                                     <Building className="w-3.5 h-3.5 mr-1.5" />
                                     Add Department
                                   </Button>
                                 )}
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                                  <span className="text-[14px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
                                     Showing{" "}
                                     <span className="text-indigo-600 font-black px-1">
                                       {departments.length}
@@ -1504,7 +1504,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   </span>
 
                                   <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                       Rows:
                                     </span>
                                     <select
@@ -1515,7 +1515,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           limit: Number(e.target.value),
                                         }))
                                       }
-                                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                      className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                     >
                                       {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                         <option key={l} value={l}>
@@ -1543,7 +1543,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     (prev) => !prev,
                                   )
                                 }
-                                className="shrink-0 border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[10px] font-bold uppercase tracking-tight"
+                                className="shrink-0 border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[14px] font-bold uppercase tracking-tight"
                                 title="Toggle filters"
                               >
                                 <Filter className="w-3.5 h-3.5 mr-1" />
@@ -1551,7 +1551,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               </Button>
                             )}
 
-                            <span className="shrink-0 text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                            <span className="shrink-0 text-[14px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
                               Showing{" "}
                               <span className="text-indigo-600 font-black px-1">
                                 {departments.length}
@@ -1560,7 +1560,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             </span>
 
                             <div className="shrink-0 flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                 Rows:
                               </span>
                               <select
@@ -1571,7 +1571,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     limit: Number(e.target.value),
                                   }))
                                 }
-                                className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                               >
                                 {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                   <option key={l} value={l}>
@@ -1587,7 +1587,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 size="sm"
                                 onClick={handleBulkDeleteDepartments}
                                 disabled={isDeleting}
-                                className="shrink-0 h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                className="shrink-0 h-8 text-[14px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
                               >
                                 <Trash2 className="w-3 h-3 mr-1.5" />
                                 Delete ({selectedDepartments.size})
@@ -1611,7 +1611,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             <>
                               <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
                                 <Filter className="w-3.5 h-3.5 text-indigo-500" />
-                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
+                                <span className="text-[15px] font-bold text-slate-700 uppercase tracking-tight">
                                   Filters
                                 </span>
                               </div>
@@ -1625,7 +1625,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       type: e.target.value,
                                     }))
                                   }
-                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[120px]"
+                                  className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[120px]"
                                   title="Filter by department type"
                                 >
                                   <option value="">🏢 All Types</option>
@@ -1641,7 +1641,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       status: e.target.value,
                                     }))
                                   }
-                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[120px]"
+                                  className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[120px]"
                                   title="Filter by status"
                                 >
                                   <option value="">📊 All Status</option>
@@ -1687,7 +1687,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           subDeptId: "",
                                         });
                                       }}
-                                      className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                      className="h-8 px-3 text-[15px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                       title="Clear all filters"
                                     >
                                       <X className="w-3 h-3 mr-1" />
@@ -1697,7 +1697,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 {canToggleDepartmentPriorityColumn && (
                                   <div className="flex items-center gap-2 h-8 px-3 rounded-xl border border-slate-200 bg-white shadow-sm">
                                     <Settings className="w-3.5 h-3.5 text-slate-500" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 whitespace-nowrap">
+                                    <span className="text-[14px] font-black uppercase tracking-widest text-slate-600 whitespace-nowrap">
                                       Priority Column
                                     </span>
                                     <Switch
@@ -1713,7 +1713,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             </>
                           )}
 
-                          <div className="ml-auto flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <div className="ml-auto flex items-center gap-2 text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                             {!isDepartmentAdminRole && (
                               <>
                                 <span className="px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg whitespace-nowrap">
@@ -1730,7 +1730,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 size="sm"
                                 onClick={handleBulkDeleteDepartments}
                                 disabled={isDeleting}
-                                className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                                className="text-[15px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
                               >
                                 <Trash2 className="w-3 h-3 mr-1" />
                                 Delete ({selectedDepartments.size})
@@ -1789,7 +1789,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       {/* Name + badges */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-start gap-2">
-                                          <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-slate-100 px-1.5 text-[9px] font-black text-slate-600 shadow-sm">
+                                          <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-slate-100 px-1.5 text-[15px] font-black text-slate-600 shadow-sm">
                                             {departmentSerialNumber}
                                           </span>
                                           <h4 className="pt-0.5 text-sm font-bold text-slate-900 leading-tight break-words">
@@ -1798,13 +1798,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         </div>
                                         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                                           <span className={cn(
-                                            "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border",
+                                            "px-1.5 py-0.5 rounded text-[14px] font-black uppercase tracking-wider border",
                                             isMain ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" : "bg-slate-200 text-slate-700 border-slate-300 shadow-sm"
                                           )}>
                                             {isMain ? "MAIN DEPARTMENT" : "SUB DEPARTMENT"}
                                           </span>
                                           <span className={cn(
-                                            "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border",
+                                            "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[14px] font-black uppercase tracking-wider border",
                                             dept.isActive
                                               ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                               : "bg-slate-50 text-slate-400 border-slate-100"
@@ -1813,7 +1813,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             {dept.isActive ? "Active" : "Inactive"}
                                           </span>
                                           {dept.departmentId && (
-                                            <span className="font-mono text-[8px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                            <span className="font-mono text-[14px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
                                               {dept.departmentId}
                                             </span>
                                           )}
@@ -1852,7 +1852,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       >
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                          <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Personnel</span>
+                                          <span className="text-[15px] font-black text-emerald-700 uppercase tracking-wider">Personnel</span>
                                         </div>
                                         <p className="text-xs font-bold text-slate-800">{userCount} Staff Members</p>
                                       </button>
@@ -1869,7 +1869,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       >
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <UserIcon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                          <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">Admin Head</span>
+                                          <span className="text-[15px] font-black text-indigo-700 uppercase tracking-wider">Admin Head</span>
                                         </div>
                                         <p className="text-xs font-bold text-slate-800 leading-normal break-words">
                                           {headDisplayName}
@@ -1917,7 +1917,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           />
                                         </th>
                                       )}
-                                      <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest w-12">
+                                      <th className="px-3 py-3 text-center text-[15px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest w-12">
                                         Sr.
                                       </th>
                                       <th className="px-4 py-3 text-left border-b border-slate-100">
@@ -1925,7 +1925,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           onClick={() =>
                                             handleSort("name", "departments")
                                           }
-                                      className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                      className="group flex items-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                     >
                                       <span>Department Name</span>
                                       <SortIcon sortConfig={sortConfig} columnKey="name" />
@@ -1936,7 +1936,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       onClick={() =>
                                         handleSort("type", "departments")
                                       }
-                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                      className="group flex items-center justify-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
                                     >
                                       <span>Type</span>
                                       <SortIcon sortConfig={sortConfig} columnKey="type" />
@@ -1947,18 +1947,18 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       onClick={() =>
                                         handleSort("userCount", "departments")
                                       }
-                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                      className="group flex items-center justify-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
                                     >
                                       <span>Users</span>
                                       <SortIcon sortConfig={sortConfig} columnKey="userCount" />
                                     </button>
                                   </th>
                                   {showDepartmentPriorityColumn && (
-                                    <th className="px-4 py-3 text-center border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th className="px-4 py-3 text-center border-b border-slate-100 text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                       Priority
                                     </th>
                                   )}
-                                  <th className="px-4 py-3 text-left border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  <th className="px-4 py-3 text-left border-b border-slate-100 text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                     Head / Contact
                                   </th>
                                   <th className="px-4 py-3 text-center border-b border-slate-100">
@@ -1966,13 +1966,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       onClick={() =>
                                         handleSort("status", "departments")
                                       }
-                                      className="group flex items-center justify-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
+                                      className="group flex items-center justify-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors mx-auto"
                                     >
                                       <span>Status</span>
                                       <SortIcon sortConfig={sortConfig} columnKey="status" />
                                     </button>
                                   </th>
-                                  <th className="px-4 py-3 text-right border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                  <th className="px-4 py-3 text-right border-b border-slate-100 text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                     Actions
                                   </th>
                                 </tr>
@@ -2034,7 +2034,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
                                         {/* # */}
                                         <td className="px-3 py-4 text-center">
-                                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
+                                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-[14px] font-black group-hover/row:bg-indigo-100 group-hover/row:text-indigo-700 transition-colors">
                                             {(departmentPage - 1) *
                                               departmentPagination.limit +
                                               index +
@@ -2055,11 +2055,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               <Building className="w-3 h-3" />
                                             </div>
                                             <div>
-                                              <div className="text-[13px] sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                              <div className="text-[15px] sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                                 {dept.name}
                                               </div>
                                               {!isMain && parentName && (
-                                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                                <p className="text-[14px] text-slate-400 mt-0.5">
                                                   ↳ {parentName}
                                                 </p>
                                               )}
@@ -2077,7 +2077,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 );
                                                 setShowHierarchyDialog(true);
                                               }}
-                                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer active:scale-95"
+                                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[15px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer active:scale-95"
                                               title="View Hierarchy Tree"
                                             >
                                               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -2091,7 +2091,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 );
                                                 setShowHierarchyDialog(true);
                                               }}
-                                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all cursor-pointer active:scale-95"
+                                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[15px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all cursor-pointer active:scale-95"
                                               title="View Hierarchy Tree"
                                             >
                                               <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -2160,7 +2160,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                   <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 px-2 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
+                                                    className="h-8 px-2 text-[14px] font-black text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
                                                     onClick={() =>
                                                       handleSaveDepartmentPriority(
                                                         dept,
@@ -2187,7 +2187,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 </span>
                                               )
                                             ) : (
-                                              <span className="text-[10px] font-bold text-slate-300">
+                                              <span className="text-[14px] font-bold text-slate-300">
                                                 -
                                               </span>
                                             )}
@@ -2209,7 +2209,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             </div>
                                             {(dept.headEmail ||
                                               dept.contactEmail) && (
-                                              <div className="text-[10px] text-indigo-500 flex items-center gap-1.5 font-bold hover:underline cursor-pointer transition-colors px-1 break-all">
+                                              <div className="text-[14px] text-indigo-500 flex items-center gap-1.5 font-bold hover:underline cursor-pointer transition-colors px-1 break-all">
                                                 <Mail className="w-3 h-3 text-indigo-300 shrink-0" />
                                                 {dept.headEmail ||
                                                   dept.contactEmail}
@@ -2282,7 +2282,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               />
                                             </button>
                                             <span
-                                              className={`text-[9px] font-black uppercase tracking-wider ${
+                                              className={`text-[15px] font-black uppercase tracking-wider ${
                                                 dept.isActive
                                                   ? "text-emerald-600"
                                                   : "text-gray-400"
@@ -2388,7 +2388,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
                         {/* Footer info & Pagination */}
                         <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <div className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                             Showing{" "}
                             {(departmentPage - 1) *
                               departmentPagination.limit +
@@ -2431,7 +2431,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               Project Leads{" "}
                               {leads.length > 0 && `(${leads.length})`}
                             </CardTitle>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                            <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                               Leads captured from chatbot interactions
                             </p>
                           </div>
@@ -2449,7 +2449,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 { key: "status", label: "Status" },
                               ])
                             }
-                            className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[10px] font-bold uppercase tracking-wider"
+                            className="flex items-center gap-2 px-4 h-8 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 text-[14px] font-bold uppercase tracking-wider"
                           >
                             <Download className="w-3.5 h-3.5" />
                             Export CSV
@@ -2597,7 +2597,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     setUserSearch(e.target.value);
                                     setUserPage(1);
                                   }}
-                                  className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                                  className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[15px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                                 />
                               </div>
                               {(isSuperAdminUser ||
@@ -2605,7 +2605,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 <Button
                                   type="button"
                                   onClick={() => setShowUserDialog(true)}
-                                  className="h-9 shrink-0 whitespace-nowrap rounded-lg border-0 bg-indigo-600 px-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition-all active:scale-95 hover:bg-indigo-700"
+                                  className="h-9 shrink-0 whitespace-nowrap rounded-lg border-0 bg-indigo-600 px-3 text-[14px] font-bold uppercase tracking-wide text-white shadow-md transition-all active:scale-95 hover:bg-indigo-700"
                                 >
                                   <UserPlus className="mr-1.5 h-3.5 w-3.5" />
                                   Add User
@@ -2625,7 +2625,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   onClick={() =>
                                     setShowUserFiltersOnMobile((prev) => !prev)
                                   }
-                                  className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 text-[10px] font-bold uppercase tracking-tight hover:bg-slate-50"
+                                  className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 text-[14px] font-bold uppercase tracking-tight hover:bg-slate-50"
                                   title="Toggle filters"
                                 >
                                   <Filter className="mr-1 h-3.5 w-3.5" />
@@ -2633,7 +2633,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 </Button>
                               )}
 
-                              <span className="flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm">
+                              <span className="flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 text-[14px] font-bold text-slate-700 shadow-sm">
                                 Showing
                                 <span className="px-1 font-black text-indigo-600">
                                   {users.length}
@@ -2642,7 +2642,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               </span>
 
                               <div className="flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                <span className="text-[15px] font-black uppercase tracking-widest text-slate-400">
                                   Rows:
                                 </span>
                                 <select
@@ -2653,7 +2653,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       limit: Number(e.target.value),
                                     }))
                                   }
-                                  className="h-auto cursor-pointer border-0 bg-transparent p-0 text-[10px] font-bold text-slate-900 focus:ring-0"
+                                  className="h-auto cursor-pointer border-0 bg-transparent p-0 text-[14px] font-bold text-slate-900 focus:ring-0"
                                 >
                                   {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                     <option key={l} value={l}>
@@ -2669,7 +2669,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   size="sm"
                                   onClick={handleBulkDeleteUsers}
                                   disabled={isDeleting}
-                                  className="h-8 shrink-0 rounded-lg border border-red-700 bg-red-600 px-3 text-[10px] font-bold uppercase text-white shadow-sm transition-all hover:bg-red-700"
+                                  className="h-8 shrink-0 rounded-lg border border-red-700 bg-red-600 px-3 text-[14px] font-bold uppercase text-white shadow-sm transition-all hover:bg-red-700"
                                 >
                                   <Trash2 className="mr-1.5 h-3 w-3" />
                                   Delete ({selectedUsers.size})
@@ -2688,7 +2688,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   setUserSearch(e.target.value);
                                   setUserPage(1);
                                 }}
-                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                                className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[15px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                               />
                             </div>
 
@@ -2700,7 +2700,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     size="sm"
                                     onClick={handleBulkDeleteUsers}
                                     disabled={isDeleting}
-                                    className="h-8 text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
+                                    className="h-8 text-[14px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3"
                                   >
                                     <Trash2 className="w-3 h-3 mr-1.5" />
                                     Delete ({selectedUsers.size})
@@ -2712,14 +2712,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   <Button
                                     type="button"
                                     onClick={() => setShowUserDialog(true)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[11px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[15px] font-bold uppercase tracking-wide rounded-lg px-4 shadow-md transition-all active:scale-95 whitespace-nowrap"
                                   >
                                     <UserPlus className="w-3.5 h-3.5 mr-1.5" />
                                     Add User
                                   </Button>
                                 )}
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                                  <span className="text-[14px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
                                     Showing{" "}
                                     <span className="text-indigo-600 font-black px-1">
                                       {users.length}
@@ -2728,7 +2728,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   </span>
 
                                   <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                       Rows:
                                     </span>
                                     <select
@@ -2739,7 +2739,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           limit: Number(e.target.value),
                                         }))
                                       }
-                                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                      className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                     >
                                       {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                         <option key={l} value={l}>
@@ -2766,7 +2766,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             >
                               <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
                                 <Filter className="w-3.5 h-3.5 text-indigo-500" />
-                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
+                                <span className="text-[15px] font-bold text-slate-700 uppercase tracking-tight">
                                   Filters
                                 </span>
                               </div>
@@ -2781,7 +2781,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     }));
                                     setUserPage(1);
                                   }}
-                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
+                                  className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
                                   title="Filter by role"
                                 >
                                   <option value="">👤 All Roles</option>
@@ -2809,7 +2809,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     }));
                                     setUserPage(1);
                                   }}
-                                  className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
+                                  className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium min-w-[100px] max-w-[120px]"
                                   title="Filter by status"
                                 >
                                   <option value="">📊 All Status</option>
@@ -2856,7 +2856,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       });
                                       setUserPage(1);
                                     }}
-                                    className="h-8 px-3 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                    className="h-8 px-3 text-[15px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                     title="Clear all filters"
                                   >
                                     <X className="w-3 h-3 mr-1" />
@@ -2899,7 +2899,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   <div className="flex items-start gap-2">
                                     {/* Avatar with status dot */}
                                     <div className="relative shrink-0">
-                                      <div className="h-9 w-9 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white text-[11px] font-bold border-2 border-white ring-1 ring-slate-200 shadow-sm">
+                                      <div className="h-9 w-9 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white text-[15px] font-bold border-2 border-white ring-1 ring-slate-200 shadow-sm">
                                         {(u.firstName?.[0] || "")}{(u.lastName?.[0] || "")}
                                       </div>
                                       <div className={cn(
@@ -2911,7 +2911,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     {/* Name + role + dept + designation */}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start gap-2">
-                                        <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-emerald-100 px-1.5 text-[9px] font-black text-emerald-700 shadow-sm">
+                                        <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-emerald-100 px-1.5 text-[15px] font-black text-emerald-700 shadow-sm">
                                           {(userPage - 1) * userPagination.limit + index + 1}
                                         </span>
                                         <button
@@ -2923,15 +2923,15 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         </button>
                                       </div>
                                       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 uppercase tracking-wider break-words max-w-full">
+                                        <span className="px-1.5 py-0.5 rounded text-[14px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 uppercase tracking-wider break-words max-w-full">
                                           {getUserRoleLabel(u)}
                                         </span>
-                                        <span className="font-mono text-[8px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                        <span className="font-mono text-[14px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
                                           {u.userId}
                                         </span>
                                       </div>
                                       <div className="mt-1 flex flex-wrap items-center gap-1">
-                                        <span className="max-w-full break-words rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-700">
+                                        <span className="max-w-full break-words rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[14px] font-bold uppercase tracking-wider text-sky-700">
                                           {typeof u.departmentId === "object" &&
                                           u.departmentId !== null
                                             ? (u.departmentId as any)?.name || "No Department"
@@ -2940,7 +2940,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               (u as any).departmentName ||
                                               "No Department"}
                                         </span>
-                                        <span className="max-w-full break-words rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-amber-700">
+                                        <span className="max-w-full break-words rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[14px] font-bold uppercase tracking-wider text-amber-700">
                                           {[
                                             ...(u.designation ? [u.designation] : []),
                                             ...(u.designations || []),
@@ -2987,16 +2987,16 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                                       <div className="flex items-center gap-1 mb-0.5">
                                         <Mail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Email</span>
+                                        <span className="text-[14px] font-black text-slate-400 uppercase tracking-wider">Email</span>
                                       </div>
-                                      <p className="text-[9px] font-medium text-slate-700 truncate">{u.email}</p>
+                                      <p className="text-[15px] font-medium text-slate-700 truncate">{u.email}</p>
                                     </div>
                                     <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                                       <div className="flex items-center gap-1 mb-0.5">
                                         <Phone className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Phone</span>
+                                        <span className="text-[14px] font-black text-slate-400 uppercase tracking-wider">Phone</span>
                                       </div>
-                                      <p className="text-[9px] font-medium text-slate-700">
+                                      <p className="text-[15px] font-medium text-slate-700">
                                         {u.phone ? formatTo10Digits(u.phone) : "—"}
                                       </p>
                                     </div>
@@ -3034,7 +3034,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         />
                                       </th>
                                     )}
-                                    <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-[5%]">
+                                    <th className="px-3 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest w-[5%]">
                                       Sr.
                                     </th>
                                     <th className="px-6 py-3 text-left w-[25%]">
@@ -3042,7 +3042,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("firstName", "users")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>User Info</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="firstName" />
@@ -3053,7 +3053,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("email", "users")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Contact Information</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="email" />
@@ -3064,7 +3064,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("role", "users")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Role &amp; Dept</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="role" />
@@ -3075,13 +3075,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("isActive", "users")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Status &amp; Access</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="isActive" />
                                       </button>
                                     </th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest">
+                                    <th className="px-6 py-3 text-right text-[15px] font-black text-slate-400 border-b border-slate-100 uppercase tracking-widest">
                                       Actions
                                     </th>
                                   </tr>
@@ -3159,7 +3159,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     ),
                                                   );
                                                 })()}
-                                                <span className="text-[8px] font-black bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-md border border-slate-100 uppercase tracking-widest w-fit">
+                                                <span className="text-[14px] font-black bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-md border border-slate-100 uppercase tracking-widest w-fit">
                                                   ID: {u.userId}
                                                 </span>
                                               </div>
@@ -3183,7 +3183,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 <div className="flex items-center gap-2 mt-2">
                                                   <div
                                                     title={`Email Notifications: ${u.notificationSettings.email ? "Enabled" : "Disabled"}`}
-                                                    className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                                    className={`px-1.5 py-0.5 rounded text-[14px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
                                                       u.notificationSettings
                                                         .email
                                                         ? "bg-blue-50 text-blue-600 border-blue-100"
@@ -3197,7 +3197,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                   </div>
                                                   <div
                                                     title={`WhatsApp Notifications: ${u.notificationSettings.whatsapp ? "Enabled" : "Disabled"}`}
-                                                    className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
+                                                    className={`px-1.5 py-0.5 rounded text-[14px] font-black uppercase tracking-tighter border flex items-center gap-1 ${
                                                       u.notificationSettings
                                                         .whatsapp
                                                         ? "bg-emerald-50 text-emerald-600 border-emerald-100"
@@ -3217,7 +3217,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           <div className="flex flex-col space-y-2">
                                             <div className="flex">
                                               <span
-                                                className={`px-2.5 py-0.5 inline-flex items-center text-[10px] font-bold rounded-full border shadow-sm ${
+                                                className={`px-2.5 py-0.5 inline-flex items-center text-[14px] font-bold rounded-full border shadow-sm ${
                                                   u.level === 1
                                                     ? "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-200 shadow-slate-900/5"
                                                     : typeof u.customRoleId ===
@@ -3286,7 +3286,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
                                                 if (deptList.length === 0)
                                                   return (
-                                                    <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
+                                                    <div className="flex items-center text-[14px] text-slate-400 font-bold uppercase tracking-widest italic">
                                                       <Building className="w-3.5 h-3.5 mr-1.5 opacity-50" />
                                                       All Company Access
                                                     </div>
@@ -3298,7 +3298,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                       (d: any, i: number) => (
                                                         <div
                                                           key={i}
-                                                          className="flex items-start text-[10px] font-black uppercase tracking-tight leading-tight text-indigo-700 transition-colors"
+                                                          className="flex items-start text-[14px] font-black uppercase tracking-tight leading-tight text-indigo-700 transition-colors"
                                                         >
                                                           <Building className="w-2.5 h-2.5 mr-1 mt-0.5 opacity-60" />
                                                           {d.name}
@@ -3324,7 +3324,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                       (p: any, i: number) => (
                                                         <span
                                                           key={i}
-                                                          className="text-[8px] font-black text-indigo-400 bg-indigo-50/50 px-1 py-px rounded uppercase tracking-tighter border border-indigo-100/50"
+                                                          className="text-[14px] font-black text-indigo-400 bg-indigo-50/50 px-1 py-px rounded uppercase tracking-tighter border border-indigo-100/50"
                                                         >
                                                           {p.module?.replace(
                                                             /_/g,
@@ -3335,7 +3335,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     )}
                                                   {(u.customRoleId as any)
                                                     .permissions.length > 3 && (
-                                                    <span className="text-[8px] font-black text-slate-300">
+                                                    <span className="text-[14px] font-black text-slate-300">
                                                       +
                                                       {(u.customRoleId as any)
                                                         .permissions.length -
@@ -3394,7 +3394,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               </button>
                                               {/* Show only one action label - the current status */}
                                               <span
-                                                className={`ml-2 text-[10px] font-bold uppercase tracking-wider ${
+                                                className={`ml-2 text-[14px] font-bold uppercase tracking-wider ${
                                                   u.isActive
                                                     ? "text-green-600"
                                                     : "text-gray-400"
@@ -3521,14 +3521,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               </table>
                             </div>
 
-                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-end text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-end text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                               {isSuperAdminUser && selectedUsers.size > 0 && (
                                 <Button
                                   variant="destructive"
                                   size="sm"
                                   onClick={handleBulkDeleteUsers}
                                   disabled={isDeleting}
-                                  className="text-[9px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
+                                  className="text-[15px] font-black h-7 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all animate-in zoom-in duration-200"
                                 >
                                   <Trash2 className="w-3 h-3 mr-1" />
                                   Delete ({selectedUsers.size})
@@ -3570,7 +3570,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 setGrievanceSearch(e.target.value);
                                 setGrievancePage(1);
                               }}
-                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[15px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
                           <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full lg:w-auto">
@@ -3581,7 +3581,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 onClick={() =>
                                   setShowGrievanceFiltersOnMobile((prev) => !prev)
                                 }
-                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[11px] font-bold uppercase tracking-tight"
+                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-8 text-[15px] font-bold uppercase tracking-tight"
                                 title="Toggle filters"
                               >
                                 <Filter className="w-3.5 h-3.5 mr-1" />
@@ -3605,7 +3605,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
+                              <span className="text-[14px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-8 flex items-center">
                                 Showing{" "}
                                 <span className="text-indigo-600 font-black px-1">
                                   {getSortedData(grievances, "grievances").length}
@@ -3614,7 +3614,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               </span>
 
                               <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-8">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                   Rows:
                                 </span>
                                 <select
@@ -3625,7 +3625,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       limit: Number(e.target.value),
                                     }))
                                   }
-                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                  className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                 >
                                   {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                     <option key={l} value={l}>
@@ -3649,7 +3649,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                         >
                           <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
                             <Filter className="w-3.5 h-3.5 text-indigo-500" />
-                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
+                            <span className="text-[15px] font-bold text-slate-700 uppercase tracking-tight">
                               Filters
                             </span>
                           </div>
@@ -3664,7 +3664,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[140px]"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[140px]"
                             title="Filter by grievance status"
                           >
                             <option value="">📋 All Status</option>
@@ -3712,7 +3712,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
                             title="Filter by assignment status"
                           >
                             <option value="">👥All Assignments</option>
@@ -3730,7 +3730,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[130px]"
                             title="Filter by overdue status"
                           >
                             <option value="">⏱️ Overdue Status</option>
@@ -3749,7 +3749,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               }));
                               setGrievancePage(1);
                             }}
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[110px]"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium w-full sm:max-w-[110px]"
                             title="Filter by date range"
                           >
                             <option value="">📅 All Time</option>
@@ -3785,7 +3785,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 setGrievanceSearch("");
                                 setGrievancePage(1);
                               }}
-                              className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                              className="text-[15px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                               title="Clear all filters"
                             >
                               <X className="w-3 h-3 mr-1" />
@@ -3832,13 +3832,15 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 // --- SLA Calculation (mirrors desktop) ---
                                 const createdDate = new Date(grievance.createdAt);
                                 const now = new Date();
-                                const hoursDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
                                 let slaStatus: "on-track" | "overdue" | "completed" = "on-track";
                                 if (grievance.status === "RESOLVED" || grievance.status === "CLOSED" || grievance.status === "REJECTED") {
                                   slaStatus = "completed";
-                                } else if (grievance.status === "PENDING" || grievance.status === "ASSIGNED" || grievance.status === "IN_PROGRESS") {
-                                  // Hardened Governance: Strictly 120 hours from creation
-                                  if (hoursDiff > 120) slaStatus = "overdue";
+                                } else if (grievance.status === "PENDING" || grievance.status === "ASSIGNED" || grievance.status === "IN_PROGRESS" || grievance.status === "REVERTED") {
+                                  // Dynamic SLA Governance: Use grievance-specific threshold
+                                  const currentSlaHours = grievance.slaHours || 120;
+                                  if ((now.getTime() - createdDate.getTime()) > (currentSlaHours * 3600000)) {
+                                    slaStatus = "overdue";
+                                  }
                                 }
 
                                 const assignedName = typeof grievance.assignedTo === 'object' && grievance.assignedTo !== null
@@ -3864,12 +3866,12 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     {/* ── TOP ROW: Number · GRV ID · Status badges ── */}
                                     <div className="flex items-center justify-between mb-2.5">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-black shrink-0">
+                                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[15px] font-black shrink-0">
                                           {(grievancePage - 1) * grievancePagination.limit + index + 1}
                                         </span>
                                         <button
                                           onClick={() => openGrievanceDetail(grievance._id, grievance)}
-                                          className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 px-1.5 py-0.5 rounded transition-colors border border-slate-200"
+                                          className="font-mono text-[14px] font-bold text-slate-500 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 px-1.5 py-0.5 rounded transition-colors border border-slate-200"
                                         >
                                           {grievance.grievanceId}
                                         </button>
@@ -3878,31 +3880,31 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       <div className="flex items-center gap-1">
                                         {/* SLA Badge */}
                                         {slaStatus === "completed" ? (
-                                          <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                          <span className="px-1.5 py-0.5 rounded-md text-[14px] font-black uppercase tracking-tight bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             ✓ Done
                                           </span>
                                         ) : slaStatus === "overdue" ? (
                                           canSendOverdueReminder ? (
                                             <button
                                               onClick={() => openOverdueReminderDialog(grievance)}
-                                              className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight bg-red-50 text-red-600 border border-red-200 animate-pulse"
+                                              className="px-1.5 py-0.5 rounded-md text-[14px] font-black uppercase tracking-tight bg-red-50 text-red-600 border border-red-200 animate-pulse"
                                             >
                                               ⚠ Overdue
                                             </button>
                                           ) : (
-                                            <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight bg-red-50 text-red-600 border border-red-200">
+                                            <span className="px-1.5 py-0.5 rounded-md text-[14px] font-black uppercase tracking-tight bg-red-50 text-red-600 border border-red-200">
                                               ⚠ Overdue
                                             </span>
                                           )
                                         ) : (
-                                          <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight bg-green-50 text-green-700 border border-green-200">
+                                          <span className="px-1.5 py-0.5 rounded-md text-[14px] font-black uppercase tracking-tight bg-green-50 text-green-700 border border-green-200">
                                             ✓ On Track
                                           </span>
                                         )}
 
                                         {/* Status Badge */}
                                         <span className={cn(
-                                          "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight border",
+                                          "px-1.5 py-0.5 rounded-md text-[14px] font-black uppercase tracking-tight border",
                                           grievance.status === 'PENDING' || grievance.status === 'ASSIGNED' ? "bg-amber-50 text-amber-700 border-amber-200" :
                                           grievance.status === 'RESOLVED' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                                           grievance.status === 'IN_PROGRESS' ? "bg-blue-50 text-blue-700 border-blue-200" :
@@ -3922,11 +3924,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           {grievance.citizenName}
                                         </h4>
                                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                          <span className="flex items-center text-[10px] text-slate-500 font-medium gap-0.5">
+                                          <span className="flex items-center text-[14px] text-slate-500 font-medium gap-0.5">
                                             <Phone className="w-3 h-3 shrink-0" />
                                             {formatTo10Digits(grievance.citizenPhone)}
                                           </span>
-                                          <span className="flex items-center text-[10px] text-slate-500 font-medium gap-0.5">
+                                          <span className="flex items-center text-[14px] text-slate-500 font-medium gap-0.5">
                                             <Calendar className="w-3 h-3 shrink-0" />
                                             {new Date(grievance.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })} • {new Date(grievance.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                           </span>
@@ -3998,14 +4000,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       <div className="bg-indigo-50/60 rounded-lg p-2 border border-indigo-100/60">
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <Building2 className="w-2.5 h-2.5 text-indigo-400 shrink-0" />
-                                          <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider">Dept</span>
+                                          <span className="text-[14px] font-black text-indigo-400 uppercase tracking-wider">Dept</span>
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-700 leading-tight break-words whitespace-normal">
+                                        <p className="text-[14px] font-bold text-slate-700 leading-tight break-words whitespace-normal">
                                           {deptName || "General"}
                                           {subDeptName && <span className="text-slate-400"> / {subDeptName}</span>}
                                         </p>
                                         {grievance.category && (
-                                          <span className="mt-1 inline-block max-w-full break-words whitespace-normal text-[8px] font-bold text-orange-500 uppercase">
+                                          <span className="mt-1 inline-block max-w-full break-words whitespace-normal text-[14px] font-bold text-orange-500 uppercase">
                                             {grievance.category}
                                           </span>
                                         )}
@@ -4029,20 +4031,20 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             <div className="mt-2 space-y-2">
                                               {latestRevertRemark && (
                                                 <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
-                                                  <p className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                                  <p className="text-[14px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
                                                     <Undo2 className="w-2.5 h-2.5" /> Revert Remark
                                                   </p>
-                                                  <p className="text-[10px] text-rose-700 font-bold leading-tight break-words">
+                                                  <p className="text-[14px] text-rose-700 font-bold leading-tight break-words">
                                                     {latestRevertRemark}
                                                   </p>
                                                 </div>
                                               )}
                                               {(suggestedDeptId || suggestedSubDeptId) && (
                                                 <div className="bg-rose-50/50 border border-rose-100 rounded-lg p-2">
-                                                  <div className="flex items-center gap-1 text-[8px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                                  <div className="flex items-center gap-1 text-[14px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
                                                     <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
                                                   </div>
-                                                  <span className="text-[10px] font-bold text-slate-900 leading-none">
+                                                  <span className="text-[14px] font-bold text-slate-900 leading-none">
                                                     {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
                                                   </span>
                                                 </div>
@@ -4056,18 +4058,18 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <UserIcon className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Assigned</span>
+                                          <span className="text-[14px] font-black text-slate-400 uppercase tracking-wider">Assigned</span>
                                         </div>
                                         {assignedName ? (
                                           <button
                                             type="button"
                                             onClick={() => openUserDetail((grievance.assignedTo as any)._id || grievance.assignedTo)}
-                                            className="text-[10px] font-bold text-indigo-600 truncate hover:text-indigo-800 hover:underline text-left w-full"
+                                            className="text-[14px] font-bold text-indigo-600 truncate hover:text-indigo-800 hover:underline text-left w-full"
                                           >
                                             {assignedName}
                                           </button>
                                         ) : (
-                                          <p className="text-[10px] text-slate-400 italic">Unassigned</p>
+                                          <p className="text-[14px] text-slate-400 italic">Unassigned</p>
                                         )}
                                       </div>
                                     </div>
@@ -4077,11 +4079,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             </div>
 
                             {/* Desktop Table View */}
-                            <div className="hidden md:block border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto shadow-lg bg-white">
-                              <div className="max-h-[600px] overflow-y-auto custom-scrollbar min-w-[1000px]">
-                              <table className="w-full relative border-collapse">
+                            <div className="hidden md:block border border-slate-200 rounded-2xl shadow-lg bg-white overflow-hidden">
+                              <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+                              <table className="w-full relative border-collapse table-fixed">
                                 <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
-                                  <tr className="whitespace-nowrap">
+                                  <tr>
                                     {isSuperAdminUser && (
                                       <th className="px-3 py-4 text-center">
                                         <input
@@ -4107,7 +4109,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         />
                                       </th>
                                     )}
-                                    <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th className="px-3 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                       Sr.
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -4118,9 +4120,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             "grievances",
                                           )
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
-                                        <span>Grievance No</span>
+                                        <span>ID</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="grievanceId" />
                                       </button>
                                     </th>
@@ -4132,7 +4134,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             "grievances",
                                           )
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Citizen</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="citizenName" />
@@ -4143,9 +4145,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("category", "grievances")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
-                                        <span>Dept &amp; Category</span>
+                                        <span>Category</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="category" />
                                       </button>
                                     </th>
@@ -4154,9 +4156,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("assignedTo", "grievances")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
-                                        <span>Assigned Official</span>
+                                        <span>Assigned</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="assignedTo" />
                                       </button>
                                     </th>
@@ -4165,7 +4167,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("status", "grievances")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
                                         <span>Status</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="status" />
@@ -4176,9 +4178,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("slaStatus", "grievances")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
-                                        <span>SLA Status</span>
+                                        <span>SLA</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="slaStatus" />
                                       </button>
                                     </th>
@@ -4187,13 +4189,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         onClick={() =>
                                           handleSort("createdAt", "grievances")
                                         }
-                                        className="group flex items-center space-x-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                        className="group flex items-center space-x-1.5 text-[13px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                                       >
-                                        <span>Raised On</span>
+                                        <span>Date</span>
                                         <SortIcon sortConfig={sortConfig} columnKey="createdAt" />
                                       </button>
                                     </th>
-                                    <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th className="px-4 py-3 text-center text-[13px] font-black text-slate-400 uppercase tracking-widest">
                                       Actions
                                     </th>
                                   </tr>
@@ -4241,19 +4243,19 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               1}
                                           </span>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <button
                                             onClick={() =>
                                               openGrievanceDetail(grievance._id)
                                             }
-                                            className="font-bold text-[11px] sm:text-sm text-blue-700 hover:text-blue-800 hover:underline whitespace-nowrap"
+                                            className="font-bold text-[13px] sm:text-xs text-blue-700 hover:text-blue-800 hover:underline"
                                           >
-                                            <span className="text-[10px] sm:text-sm font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">
+                                            <span className="text-[12px] sm:text-xs font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                                               {grievance.grievanceId}
                                             </span>
                                           </button>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <div className="flex flex-col">
                                             <button
                                               onClick={() =>
@@ -4274,7 +4276,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             </div>
                                           </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <div className="flex flex-col">
                                             <span className="text-xs font-semibold text-gray-700">
                                               {typeof grievance.departmentId ===
@@ -4289,7 +4291,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     ).name
                                                 : dashboardTenantConfig.revertAdminLabel}
                                             </span>
-                                            <span className="text-[10px] text-orange-400 uppercase">
+                                            <span className="text-[14px] text-orange-400 uppercase">
                                               {grievance.category}
                                             </span>
                                             
@@ -4312,17 +4314,17 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 <div className="mt-2 space-y-2">
                                                   {latestRevertRemark && (
                                                     <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 max-w-[200px]">
-                                                      <p className="text-[9px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                                                      <p className="text-[15px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
                                                         <Undo2 className="w-2.5 h-2.5" /> Revert Remark
                                                       </p>
-                                                      <p className="text-[10px] text-rose-700 font-bold leading-tight break-words">
+                                                      <p className="text-[14px] text-rose-700 font-bold leading-tight break-words">
                                                         {latestRevertRemark}
                                                       </p>
                                                     </div>
                                                   )}
                                                   {(suggestedDeptId || suggestedSubDeptId) && (
                                                     <div className="group/suggested max-w-[200px]">
-                                                      <div className="flex items-center gap-1 text-[9px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
+                                                      <div className="flex items-center gap-1 text-[15px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
                                                         <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
                                                       </div>
                                                       <div className="flex items-center gap-2 bg-rose-50/50 border border-rose-100 rounded-lg p-2">
@@ -4330,7 +4332,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                           <Building2 className="w-3.5 h-3.5" />
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
-                                                          <span className="text-[10px] font-bold text-slate-900 leading-none truncate">
+                                                          <span className="text-[14px] font-bold text-slate-900 leading-none truncate">
                                                             {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
                                                           </span>
                                                         </div>
@@ -4342,7 +4344,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             })()}
                                           </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <div className="flex flex-col">
                                             {grievance.assignedTo ? (
                                               <>
@@ -4401,7 +4403,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     (
                                                       grievance.assignedTo as any
                                                     ).designation && (
-                                                      <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
+                                                      <span className="text-[14px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
                                                         {
                                                           (
                                                             grievance.assignedTo as any
@@ -4411,7 +4413,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     )}
                                                 </div>
                                                 {grievance.assignedAt && (
-                                                  <span className="text-[10px] text-slate-400 font-medium">
+                                                  <span className="text-[14px] text-slate-400 font-medium">
                                                     Assigned:{" "}
                                                     {new Date(
                                                       grievance.assignedAt,
@@ -4422,14 +4424,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             ) : (
                                               <div className="flex items-center gap-1.5 text-slate-400 italic">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                <span className="text-[11px]">
+                                                <span className="text-[15px]">
                                                   Unassigned
                                                 </span>
                                               </div>
                                             )}
                                           </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <button
                                             /* onClick={() => {
                                               // Status updates now open from the Actions column.
@@ -4442,7 +4444,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                 grievance._id,
                                               )
                                             }
-                                            className={`px-3 py-1.5 text-[10px] font-bold border border-gray-200 rounded bg-white uppercase tracking-tight transition-all cursor-default ${
+                                            className={`px-3 py-1.5 text-[14px] font-bold border border-gray-200 rounded bg-white uppercase tracking-tight transition-all cursor-default ${
                                               updatingGrievanceStatus.has(
                                                 grievance._id,
                                               )
@@ -4461,24 +4463,18 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               : grievance.status}
                                           </button>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           {(() => {
                                             const createdDate = new Date(
                                               grievance.createdAt,
                                             );
                                             const now = new Date();
-                                            const hoursDiff = Math.floor(
-                                              (now.getTime() -
-                                                createdDate.getTime()) /
-                                                (1000 * 60 * 60),
-                                            );
-
                                             let isOverdue = false;
-                                            let slaHours = 0;
 
                                             const activeStatuses = ["PENDING", "ASSIGNED", "IN_PROGRESS", "REVERTED"];
                                             if (activeStatuses.includes(grievance.status)) {
-                                              isOverdue = hoursDiff > 120;
+                                              const currentSlaHours = grievance.slaHours || 120;
+                                              isOverdue = (now.getTime() - createdDate.getTime()) > (currentSlaHours * 3600000);
                                             }
                                             if (
                                               grievance.status === "RESOLVED" ||
@@ -4486,7 +4482,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               grievance.status === "REJECTED"
                                             ) {
                                               return (
-                                                <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
+                                                <span className="px-2 py-1 text-[14px] font-bold bg-green-100 text-green-700 rounded">
                                                   Completed
                                                 </span>
                                               );
@@ -4501,23 +4497,23 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     )
                                                   }
                                                   title="Click to open overdue reminder dialog"
-                                                  className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
+                                                  className="px-2 py-1 text-[14px] font-bold bg-red-100 text-red-700 rounded animate-pulse border border-red-300 hover:bg-red-200 cursor-pointer"
                                                 >
                                                   Overdue
                                                 </button>
                                               ) : (
-                                                <span className="px-2 py-1 text-[10px] font-bold bg-red-100 text-red-700 rounded border border-red-200">
+                                                <span className="px-2 py-1 text-[14px] font-bold bg-red-100 text-red-700 rounded border border-red-200">
                                                   Overdue
                                                 </span>
                                               )
                                             ) : (
-                                              <span className="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded">
+                                              <span className="px-2 py-1 text-[14px] font-bold bg-green-100 text-green-700 rounded">
                                                 On Track
                                               </span>
                                             );
                                           })()}
                                         </td>
-                                        <td className="px-4 py-4 text-xs text-gray-600">
+                                        <td className="px-2 py-4 text-xs text-gray-600">
                                           <div className="flex flex-col">
                                             <span className="font-medium">
                                               {new Date(
@@ -4526,7 +4522,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 py-4">
                                           <div className="flex items-center justify-center space-x-1">
                                             {hasPermission(
                                               user,
@@ -4694,7 +4690,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               onChange={(e) =>
                                 setAppointmentSearch(e.target.value)
                               }
-                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[11px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
+                              className="w-full pl-9 pr-3.5 h-9 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-[15px] font-bold uppercase tracking-tight placeholder:normal-case placeholder:text-slate-400 shadow-sm"
                             />
                           </div>
                           <div className="flex items-center gap-3">
@@ -4707,7 +4703,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     (prev) => !prev,
                                   )
                                 }
-                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[11px] font-bold uppercase tracking-tight"
+                                className="md:hidden border-slate-200 hover:bg-slate-50 rounded-lg h-8 text-[15px] font-bold uppercase tracking-tight"
                                 title="Toggle filters"
                               >
                                 <Filter className="w-3.5 h-3.5 mr-1" />
@@ -4719,7 +4715,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     onClick={() =>
                                       setShowAvailabilityCalendar(true)
                                     }
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[10px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-9 text-[14px] font-bold uppercase tracking-widest rounded-lg px-4 shadow-md whitespace-nowrap"
                                     title="Configure when appointments can be scheduled"
                                   >
                                     <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
@@ -4732,7 +4728,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 size="sm"
                                 onClick={handleRefreshData}
                                 disabled={isRefreshing}
-                                className="border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-9 text-[11px] font-bold uppercase tracking-tight"
+                                className="border-slate-200 hover:bg-slate-50 rounded-lg whitespace-nowrap h-9 text-[15px] font-bold uppercase tracking-tight"
                                 title="Refresh data"
                               >
                                 <RefreshCw
@@ -4748,7 +4744,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     size="sm"
                                     onClick={handleBulkDeleteAppointments}
                                     disabled={isDeleting}
-                                    className="text-[10px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3 h-9"
+                                    className="text-[14px] font-bold uppercase bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-700 shadow-sm transition-all px-3 h-9"
                                     title={`Delete ${selectedAppointments.size} selected appointment(s)`}
                                   >
                                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />
@@ -4758,7 +4754,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-9 flex items-center">
+                              <span className="text-[14px] font-bold text-slate-700 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 whitespace-nowrap h-9 flex items-center">
                                 Showing{" "}
                                 <span className="text-indigo-600 font-black px-1">
                                   {getSortedData(appointments, "appointments").length}
@@ -4767,7 +4763,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               </span>
 
                               <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm h-9">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <span className="text-[15px] font-black text-slate-400 uppercase tracking-widest">
                                   Rows:
                                 </span>
                                 <select
@@ -4778,7 +4774,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                       limit: Number(e.target.value),
                                     }))
                                   }
-                                  className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
+                                  className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer p-0 h-auto"
                                 >
                                   {[10, 20, 25, 50, 100, 200, 250].map((l) => (
                                     <option key={l} value={l}>
@@ -4802,7 +4798,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                         >
                           <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200 h-8">
                             <Filter className="w-3.5 h-3.5 text-indigo-500" />
-                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">
+                            <span className="text-[15px] font-bold text-slate-700 uppercase tracking-tight">
                               Filters
                             </span>
                           </div>
@@ -4816,7 +4812,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 status: e.target.value,
                               }))
                             }
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
                             title="Filter by appointment status"
                           >
                             <option value="">📋 All Status</option>
@@ -4835,7 +4831,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                 dateFilter: e.target.value,
                               }))
                             }
-                            className="text-[11px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
+                            className="text-[15px] h-8 px-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm hover:border-indigo-300 transition-colors cursor-pointer font-medium"
                             title="Filter by date"
                           >
                             <option value="">📅 All Time</option>
@@ -4859,7 +4855,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     dateFilter: "",
                                   })
                                 }
-                                className="text-[11px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
+                                className="text-[15px] h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 font-medium"
                                 title="Clear all filters"
                               >
                                 <X className="w-3 h-3 mr-1" />
@@ -4922,13 +4918,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           />
                                         </th>
                                       )}
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Appointment ID</th>
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose</th>
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
-                                      <th className="px-4 py-3.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                      <th className="px-4 py-3.5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Sr.</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Appointment ID</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Purpose</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
+                                      <th className="px-4 py-3.5 text-left text-[14px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                      <th className="px-4 py-3.5 text-right text-[14px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
@@ -4949,18 +4945,18 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                             />
                                           </td>
                                         )}
-                                        <td className="px-4 py-4 text-[11px] font-bold text-slate-400">
+                                        <td className="px-4 py-4 text-[15px] font-bold text-slate-400">
                                           {(appointmentPage - 1) * appointmentPagination.limit + idx + 1}
                                         </td>
                                         <td className="px-4 py-4">
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-mono font-bold text-slate-600">
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[14px] font-mono font-bold text-slate-600">
                                             {appointment.appointmentId}
                                           </span>
                                         </td>
                                         <td className="px-4 py-4">
                                           <div className="flex flex-col">
                                             <span className="text-sm font-bold text-slate-700">{appointment.citizenName}</span>
-                                            <span className="text-[10px] text-slate-400 font-medium">{appointment.citizenPhone}</span>
+                                            <span className="text-[14px] text-slate-400 font-medium">{appointment.citizenPhone}</span>
                                           </div>
                                         </td>
                                         <td className="px-4 py-4">
@@ -4974,7 +4970,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                                               {new Date(appointment.appointmentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold ml-5">
+                                            <div className="flex items-center gap-1.5 text-[14px] text-slate-400 font-bold ml-5">
                                               <Clock className="w-3 h-3" />
                                               {appointment.appointmentTime}
                                             </div>
@@ -4982,7 +4978,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                         </td>
                                         <td className="px-4 py-4 text-center">
                                           <span className={cn(
-                                            "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                                            "inline-flex items-center px-2.5 py-1 rounded-full text-[14px] font-black uppercase tracking-wider border",
                                             appointment.status === 'SCHEDULED' && "bg-blue-50 text-blue-600 border-blue-100",
                                             appointment.status === 'CONFIRMED' && "bg-indigo-50 text-indigo-600 border-indigo-100",
                                             appointment.status === 'COMPLETED' && "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -5037,11 +5033,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                   <div key={appointment._id} className="p-4 bg-white active:bg-slate-50 transition-colors" onClick={() => openAppointmentDetail(appointment._id, appointment)}>
                                     <div className="flex justify-between items-start mb-2">
                                       <div className="flex flex-col">
-                                        <span className="text-[10px] font-mono font-bold text-slate-400 mb-1">{appointment.appointmentId}</span>
+                                        <span className="text-[14px] font-mono font-bold text-slate-400 mb-1">{appointment.appointmentId}</span>
                                         <h4 className="font-bold text-slate-800">{appointment.citizenName}</h4>
                                       </div>
                                       <span className={cn(
-                                        "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                        "px-2 py-0.5 rounded-full text-[15px] font-black uppercase tracking-wider border",
                                         appointment.status === 'SCHEDULED' && "bg-blue-50 text-blue-600 border-blue-100",
                                         appointment.status === 'CONFIRMED' && "bg-indigo-50 text-indigo-600 border-indigo-100",
                                         appointment.status === 'COMPLETED' && "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -5053,11 +5049,11 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     <p className="text-xs text-slate-500 mb-3 line-clamp-2">{appointment.purpose}</p>
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                        <div className="flex items-center gap-1.5 text-[15px] font-bold text-slate-600">
                                           <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                                           {new Date(appointment.appointmentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                        <div className="flex items-center gap-1.5 text-[15px] font-bold text-slate-600">
                                           <Clock className="w-3.5 h-3.5 text-indigo-500" />
                                           {appointment.appointmentTime}
                                         </div>

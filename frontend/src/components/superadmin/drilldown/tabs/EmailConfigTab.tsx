@@ -434,7 +434,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div>
            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">SMTP Relay Matrix</h2>
-           <p className="text-[10px] text-slate-500 font-medium italic">Config: <span className="text-indigo-600">{company?.name}</span></p>
+           <p className="text-[14px] text-slate-500 font-medium italic">Config: <span className="text-indigo-600">{company?.name}</span></p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
             {config?._id && (
@@ -443,14 +443,14 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                   onClick={handleTest}
                   disabled={testing}
                   variant="outline"
-                  className="h-8 px-3 text-[10px] font-bold uppercase rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  className="h-8 px-3 text-[14px] font-bold uppercase rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                 >
                   {testing ? "Verifying..." : "Test SMTP"}
                 </Button>
                 <Button
                   onClick={() => setShowTestInput((v) => !v)}
                   variant="outline"
-                  className="h-8 px-3 text-[10px] font-bold uppercase rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  className="h-8 px-3 text-[14px] font-bold uppercase rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                 >
                   <Send className="w-3.5 h-3.5 mr-1.5" />
                   Send Test
@@ -462,7 +462,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                 <Button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 px-4 text-[10px] font-bold uppercase"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-8 px-4 text-[14px] font-bold uppercase"
                 >
                   <Save className="w-3.5 h-3.5 mr-1.5" />
                   {saving ? "Deploying..." : "Save Config"}
@@ -470,7 +470,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                 <Button
                   variant="ghost"
                   onClick={() => setIsEditing(false)}
-                  className="h-8 text-[10px]"
+                  className="h-8 text-[14px]"
                 >
                   Cancel
                 </Button>
@@ -478,7 +478,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
             ) : (
               <Button
                 onClick={() => setIsEditing(true)}
-                className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg h-8 px-4 text-[10px] font-bold uppercase"
+                className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg h-8 px-4 text-[14px] font-bold uppercase"
               >
                 Modify Config
               </Button>
@@ -490,7 +490,7 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
         <Card className="bg-emerald-50 border-emerald-200 animate-in slide-in-from-top-2">
            <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-3">
               <div className="flex-1 space-y-1">
-                 <Label className="text-[10px] font-bold text-emerald-800 uppercase">Test Recipient Email</Label>
+                 <Label className="text-[14px] font-bold text-emerald-800 uppercase">Test Recipient Email</Label>
                  <Input 
                    type="email" 
                    value={testEmailAddr} 
@@ -518,33 +518,33 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
              <CardContent className="p-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">SMTP Host</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">SMTP Host</Label>
                         <Input value={config?.host || ""} onChange={(e) => updateConfig("host", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">Port (465/587)</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">Port (465/587)</Label>
                         <Input type="number" value={config?.port ?? 465} onChange={(e) => updateConfig("port", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">SMTP User</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">SMTP User</Label>
                         <Input value={config?.auth?.user || ""} onChange={(e) => updateConfig("auth.user", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">SMTP Password</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">SMTP Password</Label>
                         <Input type="password" value={config?.auth?.pass || ""} onChange={(e) => updateConfig("auth.pass", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">From Email</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">From Email</Label>
                         <Input value={config?.fromEmail || ""} onChange={(e) => updateConfig("fromEmail", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-500">Sender Name</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-500">Sender Name</Label>
                         <Input value={config?.fromName || ""} onChange={(e) => updateConfig("fromName", e.target.value)} disabled={!isEditing} className="h-9 text-xs" />
                     </div>
                 </div>
                 <div className="flex items-center space-x-2 pt-2 border-t border-slate-50">
                    <Switch id="active-mail" checked={config?.isActive !== false} onCheckedChange={(v) => updateConfig("isActive", v)} disabled={!isEditing}/>
-                   <Label htmlFor="active-mail" className="text-[11px] font-medium">Activate Mail Matrix Node</Label>
+                   <Label htmlFor="active-mail" className="text-[15px] font-medium">Activate Mail Matrix Node</Label>
                 </div>
              </CardContent>
           </Card>
@@ -556,14 +556,14 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                     <Mail className="w-3.5 h-3.5 text-emerald-400" />
                     Payload Templates
                 </CardTitle>
-                <Button onClick={handleSaveTemplates} disabled={savingTemplates} className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[9px] uppercase font-black px-3">
+                <Button onClick={handleSaveTemplates} disabled={savingTemplates} className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[15px] uppercase font-black px-3">
                    {savingTemplates ? "Syncing..." : "Sync Templates"}
                 </Button>
              </CardHeader>
              <CardContent className="p-5 flex-1 flex flex-col space-y-4">
                 <div className="flex items-center gap-3">
                     <div className="flex-1 space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Select Event Node</Label>
+                        <Label className="text-[15px] font-black uppercase text-slate-400">Select Event Node</Label>
                         <select
                             value={selectedTemplateKey}
                             onChange={(e) => setSelectedTemplateKey(e.target.value)}
@@ -574,22 +574,22 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                             ))}
                         </select>
                     </div>
-                    <Button onClick={handleLoadDefault} variant="ghost" className="h-9 rounded-lg border border-slate-100 mt-5 text-[10px] font-bold text-indigo-600">
+                    <Button onClick={handleLoadDefault} variant="ghost" className="h-9 rounded-lg border border-slate-100 mt-5 text-[14px] font-bold text-indigo-600">
                         <RotateCcw className="w-3 h-3 mr-1.5" /> Reset Default
                     </Button>
                 </div>
 
                 <div className="space-y-1">
-                    <Label className="text-[9px] font-black uppercase text-slate-400">Subject</Label>
+                    <Label className="text-[15px] font-black uppercase text-slate-400">Subject</Label>
                     <Input value={selectedTemplate?.subject || ""} onChange={(e) => updateTemplateField("subject", e.target.value)} placeholder="e.g. {companyName} Alert" className="h-9 text-xs font-mono font-bold" />
                 </div>
 
                 <div className="flex-1 flex flex-col space-y-2">
                    <div className="flex items-center justify-between">
-                      <Label className="text-[9px] font-black uppercase text-slate-400">Payload HTML</Label>
+                      <Label className="text-[15px] font-black uppercase text-slate-400">Payload HTML</Label>
                       <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-                         <button onClick={() => setEditorTab("code")} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${editorTab === "code" ? "bg-white text-indigo-700 shadow-sm" : "hover:bg-white/50 text-slate-500"}`}>Code</button>
-                         <button onClick={() => setEditorTab("preview")} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${editorTab === "preview" ? "bg-white text-indigo-700 shadow-sm" : "hover:bg-white/50 text-slate-500"}`}>Eye</button>
+                         <button onClick={() => setEditorTab("code")} className={`px-3 py-1 text-[15px] font-black uppercase rounded-md transition-all ${editorTab === "code" ? "bg-white text-indigo-700 shadow-sm" : "hover:bg-white/50 text-slate-500"}`}>Code</button>
+                         <button onClick={() => setEditorTab("preview")} className={`px-3 py-1 text-[15px] font-black uppercase rounded-md transition-all ${editorTab === "preview" ? "bg-white text-indigo-700 shadow-sm" : "hover:bg-white/50 text-slate-500"}`}>Eye</button>
                       </div>
                    </div>
 
@@ -609,10 +609,10 @@ export default function EmailConfigTab({ companyId }: EmailConfigTabProps) {
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                   <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Matrix Placeholders</p>
+                   <p className="text-[15px] font-black text-slate-400 uppercase mb-2">Matrix Placeholders</p>
                    <div className="flex flex-wrap gap-1.5">
                       {PLACEHOLDERS.map(ph => (
-                         <button key={ph} onClick={() => insertPlaceholder(ph)} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono font-bold text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-all">{ph}</button>
+                         <button key={ph} onClick={() => insertPlaceholder(ph)} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[14px] font-mono font-bold text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-all">{ph}</button>
                       ))}
                    </div>
                 </div>

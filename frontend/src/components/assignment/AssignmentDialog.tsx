@@ -687,16 +687,16 @@ export default function AssignmentDialog({
                   <DialogTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-black tracking-tight text-white sm:text-[1.35rem] leading-tight">
                     <span>Assign {itemType === 'grievance' ? 'Grievance' : 'Appointment'}</span>
                     {displayId && (
-                      <span className="text-[10px] sm:text-xs font-black text-white/70 bg-black/15 px-2 py-0.5 rounded-md border border-white/10 font-mono tracking-wider inline-flex items-center">
+                      <span className="text-[14px] sm:text-xs font-black text-white/70 bg-black/15 px-2 py-0.5 rounded-md border border-white/10 font-mono tracking-wider inline-flex items-center">
                         #{displayId}
                       </span>
                     )}
                   </DialogTitle>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-50/90">
+                    <span className="text-[15px] font-bold uppercase tracking-[0.08em] text-cyan-50/90">
                       Currently with
                     </span>
-                    <span className="max-w-full truncate rounded-full border border-white/35 bg-white/16 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-white backdrop-blur-sm">
+                    <span className="max-w-full truncate rounded-full border border-white/35 bg-white/16 px-2.5 py-0.5 text-[14px] font-black uppercase tracking-[0.06em] text-white backdrop-blur-sm">
                       {getCurrentAssigneeName()}
                     </span>
                   </div>
@@ -767,7 +767,7 @@ export default function AssignmentDialog({
                     <Layers className="w-3.5 h-3.5 text-slate-700" />
                     Sub Department
                     {!hasSubDepartments && selectedDepartment && (
-                      <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">
+                      <span className="text-[15px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full border">
                         None available
                       </span>
                     )}
@@ -863,7 +863,7 @@ export default function AssignmentDialog({
                                 />
                                 <div className="min-w-0">
                                   <div className="text-sm font-semibold text-slate-800">{department.name}</div>
-                                  <div className="text-[11px] text-slate-500">{department.departmentId}</div>
+                                  <div className="text-[15px] text-slate-500">{department.departmentId}</div>
                                 </div>
                               </label>
                             );
@@ -882,7 +882,7 @@ export default function AssignmentDialog({
                       {selectedDepartmentNames.map((name) => (
                         <span
                           key={name}
-                          className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700"
+                          className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[15px] font-semibold text-sky-700"
                         >
                           {name}
                         </span>
@@ -951,7 +951,7 @@ export default function AssignmentDialog({
                                   />
                                   <div className="min-w-0">
                                     <div className="text-sm font-semibold text-slate-800">{subDepartment.name}</div>
-                                    <div className="text-[11px] text-slate-500">
+                                    <div className="text-[15px] text-slate-500">
                                       {parentDepartmentName}
                                     </div>
                                   </div>
@@ -972,7 +972,7 @@ export default function AssignmentDialog({
                         {selectedSubDepartmentNames.map((name) => (
                           <span
                             key={name}
-                            className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700"
+                            className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[15px] font-semibold text-violet-700"
                           >
                             {name}
                           </span>
@@ -996,14 +996,14 @@ export default function AssignmentDialog({
                               {subDepartments.map((subDepartment) => (
                                 <span
                                   key={subDepartment._id}
-                                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600"
+                                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[15px] text-slate-600"
                                 >
                                   {subDepartment.name}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <div className="mt-1 text-[11px] text-slate-500">No sub-departments under this department.</div>
+                            <div className="mt-1 text-[15px] text-slate-500">No sub-departments under this department.</div>
                           )}
                         </div>
                       ))}
@@ -1047,11 +1047,11 @@ export default function AssignmentDialog({
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
                   Note / Description
-                  <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal text-slate-400">
+                  <span className="ml-1 text-[15px] font-semibold normal-case tracking-normal text-slate-400">
                     (optional)
                   </span>
                   <span
-                    className={`ml-auto text-[10px] font-bold ${assignmentNote.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}
+                    className={`ml-auto text-[14px] font-bold ${assignmentNote.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}
                   >
                     {assignmentNote.length}/100
                   </span>
@@ -1067,7 +1067,7 @@ export default function AssignmentDialog({
                   className={`min-h-[52px] w-full rounded-2xl border ${assignmentNote.length > 100 ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-slate-200'} bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-indigo-500`}
                 />
                 {assignmentNote.length > 100 && (
-                  <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1">
+                  <p className="mt-1 text-[14px] font-bold text-rose-500 uppercase tracking-tight px-1">
                     Character limit exceeded by {assignmentNote.length - 100} characters
                   </p>
                 )}
@@ -1152,17 +1152,17 @@ export default function AssignmentDialog({
                               {user.firstName} {user.lastName}
                             </h4>
                             {isCurrentAssignee && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded-full font-bold uppercase">
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[14px] rounded-full font-bold uppercase">
                                 Current
                               </span>
                             )}
                             {multipleAssignEnabled && isPrimary && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded-full font-bold uppercase">
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[14px] rounded-full font-bold uppercase">
                                 Primary
                               </span>
                             )}
                             {multipleAssignEnabled && isSelected && !isPrimary && (
-                              <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-[10px] rounded-full font-bold uppercase">
+                              <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-[14px] rounded-full font-bold uppercase">
                                 Also notify
                               </span>
                             )}
@@ -1172,22 +1172,22 @@ export default function AssignmentDialog({
                             <span className="break-words whitespace-normal">{user.email}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
+                            <span className="text-[14px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
                               {user.userId}
                             </span>
                             <span
-                              className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getRoleColor(getUserRoleLabel(user))}`}
+                              className={`px-2 py-0.5 text-[14px] font-bold rounded-full border ${getRoleColor(getUserRoleLabel(user))}`}
                             >
                               {getUserRoleLabel(user)}
                             </span>
                             {userDept && (
-                              <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <span className="flex items-center gap-1 text-[14px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                                 <Building2 className="w-3 h-3" />
                                 <span className="break-words whitespace-normal">{userDept.name}</span>
                               </span>
                             )}
                             {multipleAssignEnabled && !belongsToScope && (
-                              <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              <span className="text-[14px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                                 fallback scope
                               </span>
                             )}

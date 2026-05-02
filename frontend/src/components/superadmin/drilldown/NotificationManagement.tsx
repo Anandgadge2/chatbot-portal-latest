@@ -321,7 +321,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
     return (
       <div className="flex items-center justify-center p-12">
         <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-        <span className="ml-3 text-slate-500 font-black uppercase tracking-widest text-[10px]">
+        <span className="ml-3 text-slate-500 font-black uppercase tracking-widest text-[14px]">
           Syncing Notification Matrix...
         </span>
       </div>
@@ -335,14 +335,14 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
            <TabsList className="bg-white/50 backdrop-blur-sm p-1.5 h-auto lg:h-14 rounded-2xl gap-2 border border-slate-200 flex-wrap lg:flex-nowrap justify-center lg:justify-start w-full lg:w-auto">
             <TabsTrigger 
               value="roles" 
-              className="px-4 lg:px-8 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-200 transition-all flex-1 lg:flex-none"
+              className="px-4 lg:px-8 h-11 rounded-xl text-[14px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-200 transition-all flex-1 lg:flex-none"
             >
               <Shield className="w-4 h-4 mr-2" />
               Authority Roles
             </TabsTrigger>
             <TabsTrigger 
               value="users" 
-              className="px-4 lg:px-8 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-200 transition-all flex-1 lg:flex-none"
+              className="px-4 lg:px-8 h-11 rounded-xl text-[14px] font-black uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-200 transition-all flex-1 lg:flex-none"
             >
               <UsersIcon className="w-4 h-4 mr-2" />
               Personnel Entities
@@ -353,7 +353,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
               <select
                 value={mainDeptFilter}
                 onChange={(e) => setMainDeptFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[180px]"
+                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[14px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[180px]"
               >
                 <option value="">All Main Departments</option>
                 {mainDepartments.map(d => (
@@ -365,7 +365,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                 value={subDeptFilter}
                 onChange={(e) => setSubDeptFilter(e.target.value)}
                 disabled={!mainDeptFilter}
-                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[180px] disabled:opacity-50"
+                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[14px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[180px] disabled:opacity-50"
               >
                 <option value="">All Sub Departments</option>
                 {subDepartments.map(d => (
@@ -376,7 +376,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[150px]"
+                className="bg-white border border-slate-200 rounded-lg px-3 h-10 text-[14px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full sm:w-auto min-w-[150px]"
               >
                 <option value="">All Roles</option>
                 {Array.from(new Set(roles.map(r => formatRoleLabel(r.key || r.name))))
@@ -398,7 +398,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                   placeholder={activeSubTab === "roles" ? "Search roles..." : "Search entities..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 h-10 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 h-10 text-[14px] font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               </div>
@@ -406,7 +406,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 h-10 rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-600/20 active:scale-95 transition-all border-0 w-full sm:w-auto"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 h-10 rounded-lg font-black uppercase tracking-widest text-[14px] shadow-lg shadow-indigo-600/20 active:scale-95 transition-all border-0 w-full sm:w-auto"
               >
                 {saving ? (
                   <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" />
@@ -424,10 +424,10 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100 whitespace-nowrap">
-                    <th className="px-4 lg:px-8 py-6 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Designation</th>
-                    <th className="px-4 lg:px-8 py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">Email</th>
-                    <th className="px-4 lg:px-8 py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">WhatsApp</th>
-                    <th className="px-4 lg:px-8 py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Logic</th>
+                    <th className="px-4 lg:px-8 py-6 text-left text-[14px] font-black uppercase tracking-widest text-slate-400">Designation</th>
+                    <th className="px-4 lg:px-8 py-6 text-center text-[14px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">Email</th>
+                    <th className="px-4 lg:px-8 py-6 text-center text-[14px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">WhatsApp</th>
+                    <th className="px-4 lg:px-8 py-6 text-right text-[14px] font-black uppercase tracking-widest text-slate-400">Logic</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/50">
@@ -446,7 +446,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs lg:text-sm font-black text-slate-800 uppercase tracking-tight truncate">{role.name}</p>
-                                <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">
+                                <p className="text-[14px] lg:text-[15px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">
                                   {role.isSystem ? "System" : "Custom"} • {roleKey}
                                 </p>
                               </div>
@@ -473,7 +473,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => toggleRowExpansion(roleKey)}
-                                className={`px-2 lg:px-4 h-8 lg:h-9 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isExpanded ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"}`}
+                                className={`px-2 lg:px-4 h-8 lg:h-9 rounded-lg text-[14px] font-black uppercase tracking-widest transition-all ${isExpanded ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"}`}
                              >
                                <span className="hidden sm:inline">{isExpanded ? "Hide Details" : "Action Control"}</span>
                                <span className="sm:hidden">{isExpanded ? "Close" : "Actions"}</span>
@@ -486,11 +486,11 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                             <td colSpan={4} className="px-4 lg:px-12 py-6 lg:py-8 border-t border-indigo-100/30">
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="space-y-4">
-                                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 flex items-center">
+                                  <h4 className="text-[14px] font-black uppercase tracking-[0.2em] text-indigo-500 flex items-center">
                                     <MessageSquare className="w-4 h-4 mr-2" />
                                     Granular Template Override
                                   </h4>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                  <p className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                                     Define specific triggers for this role. If unchecked, base protocol applies.
                                   </p>
                                 </div>
@@ -510,7 +510,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                     const actionSet = settings.actions?.[action.key] || { email: true, whatsapp: true };
                                     return (
                                       <div key={action.key} className="bg-white p-3 lg:p-4 rounded-xl border border-indigo-100/50 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-3">
-                                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-600">
+                                        <span className="text-[14px] font-black uppercase tracking-tight text-slate-600">
                                           {action.label}
                                         </span>
                                         <div className="flex items-center gap-4 lg:gap-6">
@@ -519,14 +519,14 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                               checked={actionSet.email}
                                               onChange={(e: any) => toggleRoleActionSetting(roleKey, action.key, "email", e.target.checked)}
                                             />
-                                            <span className="text-[9px] font-bold text-slate-400">EMAIL</span>
+                                            <span className="text-[15px] font-bold text-slate-400">EMAIL</span>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <Checkbox 
                                               checked={actionSet.whatsapp}
                                               onChange={(e: any) => toggleRoleActionSetting(roleKey, action.key, "whatsapp", e.target.checked)}
                                             />
-                                            <span className="text-[9px] font-bold text-slate-400">WA</span>
+                                            <span className="text-[15px] font-bold text-slate-400">WA</span>
                                           </div>
                                         </div>
                                       </div>
@@ -550,10 +550,10 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100 whitespace-nowrap">
-                    <th className="px-4 lg:px-8 py-6 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Personnel Entity</th>
-                    <th className="px-4 lg:px-8 py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">Email</th>
-                    <th className="px-4 lg:px-8 py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">WhatsApp</th>
-                    <th className="px-4 lg:px-8 py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Logic</th>
+                    <th className="px-4 lg:px-8 py-6 text-left text-[14px] font-black uppercase tracking-widest text-slate-400">Personnel Entity</th>
+                    <th className="px-4 lg:px-8 py-6 text-center text-[14px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">Email</th>
+                    <th className="px-4 lg:px-8 py-6 text-center text-[14px] font-black uppercase tracking-widest text-slate-400 w-24 lg:w-32">WhatsApp</th>
+                    <th className="px-4 lg:px-8 py-6 text-right text-[14px] font-black uppercase tracking-widest text-slate-400">Logic</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/50">
@@ -569,7 +569,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                             <div className="flex items-center gap-3 lg:gap-4">
                               <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl flex items-center justify-center border bg-white border-slate-200 shadow-sm relative shrink-0 overflow-hidden group-hover:border-indigo-200 transition-colors">
                                 {u.firstName ? (
-                                  <div className="w-full h-full bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center text-[10px] lg:text-xs font-black text-indigo-600">
+                                  <div className="w-full h-full bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center text-[14px] lg:text-xs font-black text-indigo-600">
                                     {(u.firstName[0] || '') + (u.lastName?.[0] || '')}
                                   </div>
                                 ) : (
@@ -580,17 +580,17 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs lg:text-[13px] font-black text-slate-800 uppercase tracking-tight leading-tight truncate">
+                                <p className="text-xs lg:text-[15px] font-black text-slate-800 uppercase tracking-tight leading-tight truncate">
                                   {u.firstName} {u.lastName}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mt-1">
-                                  <span className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[150px]">
+                                  <span className="text-[14px] lg:text-[15px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[150px]">
                                     {u.email || u.phone || 'NO CONTACT'}
                                   </span>
                                   {u.role && (
                                     <>
                                       <span className="w-1 h-1 bg-slate-200 rounded-full shrink-0" />
-                                      <span className="text-[8px] lg:text-[9px] font-black text-indigo-500 uppercase tracking-widest shrink-0">
+                                      <span className="text-[14px] lg:text-[15px] font-black text-indigo-500 uppercase tracking-widest shrink-0">
                                         {formatRoleLabel(u.role)}
                                       </span>
                                     </>
@@ -620,7 +620,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => toggleRowExpansion(u._id)}
-                                className={`px-2 lg:px-4 h-8 lg:h-9 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isExpanded ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"}`}
+                                className={`px-2 lg:px-4 h-8 lg:h-9 rounded-lg text-[14px] font-black uppercase tracking-widest transition-all ${isExpanded ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"}`}
                              >
                                <span className="hidden sm:inline">{isExpanded ? "Hide Details" : "Action Control"}</span>
                                <span className="sm:hidden">{isExpanded ? "Close" : "Actions"}</span>
@@ -633,11 +633,11 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                             <td colSpan={4} className="px-4 lg:px-12 py-6 lg:py-8 border-t border-indigo-100/30">
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="space-y-4">
-                                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 flex items-center">
+                                  <h4 className="text-[14px] font-black uppercase tracking-[0.2em] text-indigo-500 flex items-center">
                                     <Mail className="w-4 h-4 mr-2" />
                                     Entity Specific Triggers
                                   </h4>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                  <p className="text-[14px] font-bold text-slate-400 uppercase tracking-widest">
                                     Personalize template notifications for this specific personnel entity.
                                   </p>
                                 </div>
@@ -657,7 +657,7 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                     const actionSet = settings.actions?.[action.key] || { email: true, whatsapp: true };
                                     return (
                                       <div key={action.key} className="bg-white p-3 lg:p-4 rounded-xl border border-indigo-100/50 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-3">
-                                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-600">
+                                        <span className="text-[14px] font-black uppercase tracking-tight text-slate-600">
                                           {action.label}
                                         </span>
                                         <div className="flex items-center gap-4 lg:gap-6">
@@ -666,14 +666,14 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({
                                               checked={actionSet.email}
                                               onChange={(e: any) => toggleUserActionSetting(u._id, action.key, "email", e.target.checked)}
                                             />
-                                            <span className="text-[9px] font-bold text-slate-400">EMAIL</span>
+                                            <span className="text-[15px] font-bold text-slate-400">EMAIL</span>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <Checkbox 
                                               checked={actionSet.whatsapp}
                                               onChange={(e: any) => toggleUserActionSetting(u._id, action.key, "whatsapp", e.target.checked)}
                                             />
-                                            <span className="text-[9px] font-bold text-slate-400">WA</span>
+                                            <span className="text-[15px] font-bold text-slate-400">WA</span>
                                           </div>
                                         </div>
                                       </div>

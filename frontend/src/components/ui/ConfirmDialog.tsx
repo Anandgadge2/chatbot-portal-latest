@@ -64,7 +64,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">{title}</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Confirmation Required</p>
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Confirmation Required</p>
             </div>
           </div>
           <button

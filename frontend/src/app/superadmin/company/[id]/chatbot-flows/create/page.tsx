@@ -193,7 +193,7 @@ function CreateFlowPageContent() {
             </div>
 
             <div className="flex w-full md:w-auto items-center justify-end gap-2 sm:gap-3">
-              <div className="hidden lg:flex flex-col items-end mr-2 text-white/60 text-[10px] uppercase tracking-wider font-bold">
+              <div className="hidden lg:flex flex-col items-end mr-2 text-white/60 text-[14px] uppercase tracking-wider font-bold">
                 <span>Company Mode</span>
                 <span className="text-white/40">
                   ID: {companyId.substring(0, 8)}...

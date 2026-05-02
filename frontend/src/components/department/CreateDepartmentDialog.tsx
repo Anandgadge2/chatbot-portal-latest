@@ -397,7 +397,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   ? "Modify Department Node"
                   : "Initialize New Department"}
               </CardTitle>
-              <p className="text-[10px] text-gray-100/70 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[14px] text-gray-100/70 font-bold uppercase tracking-widest mt-0.5">
                 Global Infrastructure Registry
               </p>
             </div>
@@ -418,7 +418,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             {/* Company selector - only shown to SuperAdmin if not default */}
             {isSuperAdmin(user) && !defaultCompanyId ? (
               <div>
-                <Label htmlFor="companyId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
+                <Label htmlFor="companyId" className="text-[14px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Company *</Label>
                 <SearchableSelect
                   options={companies.map((company) => ({
                     value: company._id,
@@ -444,7 +444,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             {/* Department Hierarchy Toggle - Restricted for Dept Admins */}
             {(user?.level || 4) <= 1 ? (
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 mb-4">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2.5 block text-center">Department Structure</Label>
+                <Label className="text-[14px] font-black uppercase tracking-widest text-slate-500 mb-2.5 block text-center">Department Structure</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -452,7 +452,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       setIsSubDepartment(false);
                       setFormData(prev => ({ ...prev, parentDepartmentId: "" }));
                     }}
-                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[15px] font-bold uppercase tracking-wider transition-all border ${
                       !isSubDepartment
                         ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
                         : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
@@ -464,7 +464,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsSubDepartment(true)}
-                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                    className={`flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-[15px] font-bold uppercase tracking-wider transition-all border ${
                       isSubDepartment
                         ? "bg-slate-800 text-white border-slate-700 shadow-md shadow-slate-900/40 ring-1 ring-blue-500/50"
                         : "bg-white text-slate-500 border-slate-200 hover:border-slate-800 hover:text-slate-800"
@@ -481,8 +481,8 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             ) : (
               <div className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 mb-4">
                 <div className="flex items-baseline justify-between px-2">
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Target Unit Level</span>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sub-Department</span>
+                  <span className="text-[14px] font-black text-indigo-600 uppercase tracking-widest">Target Unit Level</span>
+                  <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Sub-Department</span>
                 </div>
               </div>
             )}
@@ -490,7 +490,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
             {/* Parent Department Selection for Sub Department */}
             {isSubDepartment && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label htmlFor="parentDepartmentId" className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">
+                <Label htmlFor="parentDepartmentId" className="text-[14px] font-black uppercase tracking-widest text-slate-500 mb-1.5 block">
                   Select Main Department *
                 </Label>
                 {(user?.level || 4) <= 1 ? (
@@ -532,7 +532,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80">
                 <Label
                   htmlFor="displayOrder"
-                  className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1.5 block"
+                  className="text-[14px] font-black uppercase tracking-widest text-amber-700 mb-1.5 block"
                 >
                   Department Priority (Lower = Higher)
                 </Label>
@@ -547,7 +547,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   placeholder="e.g. 1"
                   className="border-amber-200 focus:border-amber-500 bg-white"
                 />
-                <p className="mt-1.5 text-[10px] text-amber-800 font-semibold">
+                <p className="mt-1.5 text-[14px] text-amber-800 font-semibold">
                   Example: 1 appears before 2. Default is 999 for normal order.
                 </p>
               </div>
@@ -572,7 +572,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                     <TabsTrigger
                       key={option.code}
                       value={option.code}
-                      className="rounded-lg text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                      className="rounded-lg text-[14px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
                     >
                       {option.label}
                     </TabsTrigger>
@@ -587,7 +587,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <div className="space-y-2">
                     <Label
                       htmlFor="name"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       {isSubDepartment ? "Sub-Department Name (Required)" : "Main Department Name (Required)"}
                     </Label>
@@ -605,7 +605,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   {/* <div className="space-y-2">
                     <Label
                       htmlFor="description"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       Infrastructure Role / Description
                     </Label>
@@ -629,7 +629,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <div className="space-y-2">
                     <Label
                       htmlFor="nameHi"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       {isSubDepartment ? "हिंदी उप-विभाग नाम (Required)" : "हिंदी मुख्य विभाग नाम (Required)"}
                     </Label>
@@ -646,7 +646,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionHi"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       हिंदी विवरण (Hindi Description)
                     </Label>
@@ -670,7 +670,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <div className="space-y-2">
                     <Label
                       htmlFor="nameOr"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       {isSubDepartment ? "ଓଡ଼ିଆ ଉପ-ବିଭାଗ ନାମ (Required)" : "ଓଡ଼ିଆ ମୁଖ୍ୟ ବିଭାଗ ନାମ (Required)"}
                     </Label>
@@ -687,7 +687,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionOr"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       ଓଡ଼ିଆ ବିବରଣୀ (Odia Description)
                     </Label>
@@ -711,7 +711,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   <div className="space-y-2">
                     <Label
                       htmlFor="nameMr"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       {isSubDepartment ? "मराठी उप-विभाग नाव (Required)" : "मराठी मुख्य विभाग नाव (Required)"}
                     </Label>
@@ -728,7 +728,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                   {/* <div className="space-y-2">
                     <Label
                       htmlFor="descriptionMr"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[14px] font-black uppercase tracking-widest text-slate-500"
                     >
                       मराठी विवरण (Marathi Description)
                     </Label>
@@ -748,7 +748,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
  {/* Department Lead / Contact Selection */}
             <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="flex items-center justify-between mb-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-2">
+                <Label className="text-[14px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-2">
                   <Shield className="w-3 h-3" />
                   Department Lead / Contact Personnel
                 </Label>
@@ -759,7 +759,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                       const selected = companyUsers.find(u => u._id === formData.contactUserId);
                       if (selected) onEditUser(selected);
                     }}
-                    className="text-[9px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-white hover:bg-indigo-600 bg-white px-2 py-1 rounded-md border border-indigo-200 shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                    className="text-[15px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-white hover:bg-indigo-600 bg-white px-2 py-1 rounded-md border border-indigo-200 shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
                   >
                     <User className="w-2.5 h-2.5" />
                     Edit User Profile
@@ -807,7 +807,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
                 placeholder="-- Select Lead --"
                 className="w-full bg-white"
               />
-              <p className="mt-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+              <p className="mt-2 text-[15px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
                 {formData.contactUserId 
                   ? "This user will be designated as the primary point of contact for this unit."
                   : "Associate an existing user account to receive administrative notifications."}
@@ -825,7 +825,7 @@ const CreateDepartmentDialog: React.FC<CreateDepartmentDialogProps> = ({
               <Button
                 type="submit"
                 disabled={loading}
-                className="px-6 bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95"
+                className="px-6 bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-900/40 border-0 rounded-xl font-black uppercase text-[14px] tracking-widest transition-all ring-1 ring-blue-500/50 active:scale-95"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

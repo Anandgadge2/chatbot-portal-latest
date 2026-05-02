@@ -165,14 +165,14 @@ export default function DepartmentUsersDialog({
                   Department People
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-200/80 uppercase tracking-widest flex items-center gap-1.5 max-w-full">
+                  <span className="text-[15px] sm:text-[14px] font-bold text-slate-200/80 uppercase tracking-widest flex items-center gap-1.5 max-w-full">
                     <Building className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
                     <span className="whitespace-normal break-words">
                       {departmentName || "General"}
                     </span>
                   </span>
                   <span className="text-slate-600 font-bold hidden sm:inline">•</span>
-                  <span className="px-1.5 py-0.5 bg-emerald-500/10 rounded-full text-[8px] sm:text-[10px] font-black text-emerald-400 border border-emerald-500/20 uppercase tracking-widest whitespace-nowrap">
+                  <span className="px-1.5 py-0.5 bg-emerald-500/10 rounded-full text-[14px] sm:text-[14px] font-black text-emerald-400 border border-emerald-500/20 uppercase tracking-widest whitespace-nowrap">
                     {users.length} Total
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export default function DepartmentUsersDialog({
               <div className="flex items-center bg-white/10 rounded-xl p-0.5 sm:p-1 border border-white/10">
                 <button
                   onClick={() => setShowAddExisting(!showAddExisting)}
-                  className={`px-2 sm:px-3 py-1.25 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1 sm:gap-1.5 ${
+                  className={`px-2 sm:px-3 py-1.25 rounded-lg text-[15px] sm:text-[14px] font-black uppercase tracking-tight transition-all flex items-center gap-1 sm:gap-1.5 ${
                     showAddExisting
                       ? "bg-emerald-500 text-white shadow-lg"
                       : "text-slate-300 hover:text-white hover:bg-white/5"
@@ -196,7 +196,7 @@ export default function DepartmentUsersDialog({
                 <div className="w-px h-3 bg-white/10 mx-0.5" />
                 <button
                   onClick={onCreateNewUser}
-                  className="px-2 sm:px-3 py-1.25 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition-all flex items-center gap-1 sm:gap-1.5"
+                  className="px-2 sm:px-3 py-1.25 rounded-lg text-[15px] sm:text-[14px] font-black uppercase tracking-tight text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition-all flex items-center gap-1 sm:gap-1.5"
                   title="Create new user"
                 >
                   <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -222,7 +222,7 @@ export default function DepartmentUsersDialog({
                 <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest">
                   Assign Existing Personnel
                 </h3>
-                <span className="text-[10px] text-indigo-500 font-bold">
+                <span className="text-[14px] text-indigo-500 font-bold">
                   {allCompanyUsers.length} Users Available
                 </span>
               </div>
@@ -250,7 +250,7 @@ export default function DepartmentUsersDialog({
                             <p className="text-sm font-bold text-slate-900 leading-tight">
                               {u.firstName} {u.lastName}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-medium">
+                            <p className="text-[14px] text-slate-500 font-medium">
                               {u.email}
                             </p>
                           </div>
@@ -258,7 +258,7 @@ export default function DepartmentUsersDialog({
                         <button
                           onClick={() => handleAssignUser(u)}
                           disabled={assigningUser === u._id}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-[10px] font-black uppercase tracking-tight rounded-lg transition-all shadow-md active:scale-95"
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-[14px] font-black uppercase tracking-tight rounded-lg transition-all shadow-md active:scale-95"
                         >
                           {assigningUser === u._id ? (
                             <RefreshCw className="w-3 h-3 animate-spin" />
@@ -353,19 +353,19 @@ export default function DepartmentUsersDialog({
                           </div>
                         )}
                         <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                          <span className="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest">
+                          <span className="px-2 py-0.5 bg-slate-100 rounded text-[15px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest">
                             {user.userId || "NO ID"}
                           </span>
-                          <span className="px-2 py-0.5 bg-indigo-50 rounded text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase tracking-widest">
+                          <span className="px-2 py-0.5 bg-indigo-50 rounded text-[15px] font-black text-indigo-600 border border-indigo-100 uppercase tracking-widest">
                             {getUserRoleLabel(user)}
                           </span>
                         </div>
                         <div className="mt-1 grid grid-cols-1 gap-1.5">
                           <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
-                            <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                            <div className="text-[14px] font-black uppercase tracking-widest text-slate-400">
                               Department
                             </div>
-                            <div className="text-[10px] font-bold leading-snug text-slate-700 break-words">
+                            <div className="text-[14px] font-bold leading-snug text-slate-700 break-words">
                               {typeof user.departmentId === "object"
                                 ? user.departmentId?.name
                                 : user.departmentIds
@@ -377,10 +377,10 @@ export default function DepartmentUsersDialog({
                             </div>
                           </div>
                           <div className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1.5">
-                            <div className="text-[8px] font-black uppercase tracking-widest text-amber-500">
+                            <div className="text-[14px] font-black uppercase tracking-widest text-amber-500">
                               Designations
                             </div>
-                            <div className="text-[10px] font-bold leading-snug text-slate-700 break-words">
+                            <div className="text-[14px] font-bold leading-snug text-slate-700 break-words">
                               {[
                                 ...(user.designation ? [user.designation] : []),
                                 ...(user.designations || []),
@@ -401,12 +401,12 @@ export default function DepartmentUsersDialog({
 
         {/* Footer */}
         <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-3 justify-between flex-shrink-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest order-2 sm:order-1">
+            <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest order-2 sm:order-1">
                 Showing {filteredUsers.length} of {users.length} People
             </span>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-7 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-slate-200 order-1 sm:order-2"
+            className="w-full sm:w-auto px-7 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[15px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-slate-200 order-1 sm:order-2"
           >
             Close
           </button>

@@ -62,7 +62,7 @@ export default function NodeConfigPanel({
       <Tabs defaultValue="en" className="w-full">
         <TabsList className="grid grid-cols-4 h-8">
           {LANGUAGES.map(lang => (
-            <TabsTrigger key={lang.code} value={lang.code} className="text-[10px] px-0">
+            <TabsTrigger key={lang.code} value={lang.code} className="text-[14px] px-0">
               {lang.code.toUpperCase()}
             </TabsTrigger>
           ))}
@@ -100,7 +100,7 @@ export default function NodeConfigPanel({
       <Tabs defaultValue="en" className="w-full">
         <TabsList className="grid grid-cols-4 h-8">
           {LANGUAGES.map(lang => (
-            <TabsTrigger key={lang.code} value={lang.code} className="text-[10px] px-0">
+            <TabsTrigger key={lang.code} value={lang.code} className="text-[14px] px-0">
               {lang.code.toUpperCase()}
             </TabsTrigger>
           ))}
@@ -170,7 +170,7 @@ export default function NodeConfigPanel({
                   </Button>
                   
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase text-gray-400">Main Title (English)</Label>
+                    <Label className="text-[14px] uppercase text-gray-400">Main Title (English)</Label>
                     <Input
                       value={btn.text}
                       onChange={(e) => {
@@ -185,10 +185,10 @@ export default function NodeConfigPanel({
                   </div>
                   
                   <div className="grid grid-cols-1 gap-1">
-                    <Label className="text-[10px] uppercase text-blue-400">Translations</Label>
+                    <Label className="text-[14px] uppercase text-blue-400">Translations</Label>
                     {LANGUAGES.filter(l => l.code !== 'en').map(lang => (
                       <div key={lang.code} className="flex items-center gap-2">
-                        <span className="text-[10px] w-6 uppercase text-gray-500">{lang.code}</span>
+                        <span className="text-[14px] w-6 uppercase text-gray-500">{lang.code}</span>
                         <Input
                           value={btn.titleTranslations?.[lang.code] || ''}
                           onChange={(e) => {
@@ -199,7 +199,7 @@ export default function NodeConfigPanel({
                             handleChange('buttons', newBtns);
                           }}
                           placeholder={`...`}
-                          className="h-7 text-[10px] border-blue-50"
+                          className="h-7 text-[14px] border-blue-50"
                         />
                       </div>
                     ))}
@@ -252,7 +252,7 @@ export default function NodeConfigPanel({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>Sections</Label>
-                  <Button variant="outline" size="sm" className="h-7 text-[10px]" 
+                  <Button variant="outline" size="sm" className="h-7 text-[14px]" 
                     onClick={() => handleChange('sections', [...(listData.sections || []), { title: 'New Section', rows: [] }])}>
                     + Add Section
                   </Button>
@@ -296,7 +296,7 @@ export default function NodeConfigPanel({
                                   handleChange('sections', newSections);
                                 }}
                                 placeholder="Row Title"
-                                className="h-7 text-[11px]"
+                                className="h-7 text-[15px]"
                               />
                               <div className="pl-2 space-y-1">
                                 {LANGUAGES.filter(l => l.code !== 'en').map(lang => (
@@ -311,13 +311,13 @@ export default function NodeConfigPanel({
                                       handleChange('sections', newSections);
                                     }}
                                     placeholder={`${lang.code.toUpperCase()} title...`}
-                                    className="h-6 text-[10px] border-blue-50"
+                                    className="h-6 text-[14px] border-blue-50"
                                   />
                                 ))}
                               </div>
                            </div>
                         ))}
-                        <Button variant="ghost" size="sm" className="w-full h-6 text-[9px] border border-dashed" onClick={() => {
+                        <Button variant="ghost" size="sm" className="w-full h-6 text-[15px] border border-dashed" onClick={() => {
                            const newSections = [...listData.sections];
                            newSections[sIdx].rows = [...(section.rows || []), { id: `row_${Date.now()}`, title: 'New Option' }];
                            handleChange('sections', newSections);
@@ -445,7 +445,7 @@ export default function NodeConfigPanel({
             <span className="w-2 h-2 rounded-full bg-purple-500"></span>
             <h3 className="font-bold text-gray-900">Node Settings</h3>
           </div>
-          <p className="text-[10px] uppercase tracking-wider text-gray-400 mt-0.5">{node.type}</p>
+          <p className="text-[14px] uppercase tracking-wider text-gray-400 mt-0.5">{node.type}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 rounded-full hover:bg-gray-100">
           <X className="w-4 h-4 text-gray-500" />

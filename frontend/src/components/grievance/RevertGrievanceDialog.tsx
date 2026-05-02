@@ -75,7 +75,7 @@ export default function RevertGrievanceDialog({
             </div>
             <div>
               <h3 className="text-white font-bold text-sm">Request Reassignment</h3>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+              <p className="text-[14px] text-slate-400 uppercase tracking-widest font-semibold">
                 {`Send request to ${adminLabel}`}
               </p>
             </div>
@@ -93,7 +93,7 @@ export default function RevertGrievanceDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 px-1">Target Department <span className="text-slate-400 normal-case">(optional)</span></label>
+              <label className="block text-[14px] font-black text-slate-500 uppercase tracking-wider mb-1 px-1">Target Department <span className="text-slate-400 normal-case">(optional)</span></label>
               <SearchableSelect
                 options={mainDepartments.map(d => ({ value: d._id, label: d.name }))}
                 value={selectedMainDept}
@@ -106,7 +106,7 @@ export default function RevertGrievanceDialog({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 px-1">Sub Department <span className="text-slate-400 normal-case">(optional)</span></label>
+              <label className="block text-[14px] font-black text-slate-500 uppercase tracking-wider mb-1 px-1">Sub Department <span className="text-slate-400 normal-case">(optional)</span></label>
               <SearchableSelect
                 disabled={!selectedMainDept}
                 options={subDepartments.map(d => ({ value: d._id, label: d.name }))}
@@ -118,9 +118,9 @@ export default function RevertGrievanceDialog({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2 flex justify-between items-center">
+            <label className="block text-[14px] font-black text-slate-500 uppercase tracking-wider mb-2 flex justify-between items-center">
               <span>Reason for Reassignment *</span>
-              <span className={`text-[10px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+              <span className={`text-[14px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
                 {remarks.length}/100
               </span>
             </label>
@@ -132,7 +132,7 @@ export default function RevertGrievanceDialog({
               className={`w-full bg-slate-50 border ${remarks.length > 100 ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all resize-none`}
             />
             {remarks.length > 100 && (
-              <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1 text-right">
+              <p className="mt-1 text-[14px] font-bold text-rose-500 uppercase tracking-tight px-1 text-right">
                 Character limit exceeded by {remarks.length - 100} characters
               </p>
             )}

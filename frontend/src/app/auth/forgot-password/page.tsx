@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label htmlFor="phone" className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               Registered phone number
             </Label>
             <div className="relative">
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+            <Label className="text-[15px] font-black uppercase tracking-wider text-slate-700">
               Send OTP via: <span className="text-xs font-black tracking-wider text-slate-700">WhatsApp</span>
             </Label>
           </div>

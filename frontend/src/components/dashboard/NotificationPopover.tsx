@@ -85,7 +85,7 @@ export function NotificationPopover({
         >
           <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-in zoom-in duration-300">
+            <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[14px] font-bold text-white ring-2 ring-slate-900 animate-in zoom-in duration-300">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
@@ -98,8 +98,8 @@ export function NotificationPopover({
               <Bell className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-[13px] font-black text-slate-900 uppercase tracking-wider leading-none">Notifications</h3>
-              <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-tight">Activity Center</p>
+              <h3 className="text-[15px] font-black text-slate-900 uppercase tracking-wider leading-none">Notifications</h3>
+              <p className="text-[14px] text-slate-500 font-bold mt-1 uppercase tracking-tight">Activity Center</p>
             </div>
           </div>
           {unreadCount > 0 && (
@@ -110,7 +110,7 @@ export function NotificationPopover({
                 e.stopPropagation();
                 onMarkAllAsRead();
               }}
-              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-tight h-7 px-2 rounded-lg transition-colors"
+              className="text-[14px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-tight h-7 px-2 rounded-lg transition-colors"
             >
               Mark all read
             </Button>
@@ -124,7 +124,7 @@ export function NotificationPopover({
                 <Bell className="w-8 h-8 text-slate-300" />
               </div>
               <h4 className="text-slate-900 font-black text-sm uppercase tracking-wide">All Caught Up</h4>
-              <p className="text-slate-500 text-[11px] mt-1 font-medium">No new activity reported at the moment.</p>
+              <p className="text-slate-500 text-[15px] mt-1 font-medium">No new activity reported at the moment.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100 bg-white">
@@ -154,7 +154,7 @@ export function NotificationPopover({
                       )}>
                         {notification.title}
                       </p>
-                      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                      <span className="text-[14px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </span>
                     </div>
@@ -167,10 +167,10 @@ export function NotificationPopover({
                     {notification.grievanceId && (
                       <div className="mt-2.5 flex items-center gap-2">
                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">ID:</span>
-                          <span className="text-[10px] font-black text-slate-900 tracking-tight">#{notification.grievanceId}</span>
+                          <span className="text-[15px] font-black text-slate-500 uppercase tracking-tighter">ID:</span>
+                          <span className="text-[14px] font-black text-slate-900 tracking-tight">#{notification.grievanceId}</span>
                         </div>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[14px] font-black text-blue-600 uppercase tracking-widest">
                           View Details <ArrowRight className="w-3 h-3" />
                         </div>
                       </div>
@@ -186,7 +186,7 @@ export function NotificationPopover({
            <Button 
              variant="outline" 
              size="sm" 
-             className="w-full text-[10px] font-black text-slate-500 hover:text-slate-900 hover:bg-white hover:border-slate-300 uppercase tracking-widest h-9 rounded-xl transition-all border-slate-200"
+             className="w-full text-[14px] font-black text-slate-500 hover:text-slate-900 hover:bg-white hover:border-slate-300 uppercase tracking-widest h-9 rounded-xl transition-all border-slate-200"
            >
              View All Activity History
            </Button>

@@ -33,13 +33,13 @@ export function OverviewCompanyInfoCard({
               <h3 className="text-xl font-bold text-white leading-tight">
                 {company?.name || <LoadingDots />}
               </h3>
-              <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">
+              <p className="text-white/60 text-[14px] font-bold uppercase tracking-widest mt-1">
                 Company Profile & Statistics
               </p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="px-1.5 sm:px-3 py-1 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm truncate max-w-[80px] sm:max-w-none inline-flex items-center">
+            <span className="px-1.5 sm:px-3 py-1 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-white text-[15px] sm:text-[15px] font-black uppercase tracking-wider shadow-sm truncate max-w-[80px] sm:max-w-none inline-flex items-center">
               {company?.companyType || <LoadingDots />}
             </span>
           </div>
@@ -48,7 +48,7 @@ export function OverviewCompanyInfoCard({
       <CardContent className="p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
           <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center text-[14px] font-black text-slate-400 uppercase tracking-widest mb-3">
               <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center mr-2 shadow-sm">
                 <UserIcon className="w-3.5 h-3.5 text-blue-600" />
               </div>
@@ -58,14 +58,14 @@ export function OverviewCompanyInfoCard({
               <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
                 {loadingStats ? <LoadingDots /> : usersCount}
               </span>
-              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter">
+              <span className="text-[15px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter">
                 Live
               </span>
             </div>
           </div>
 
           <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center text-[14px] font-black text-slate-400 uppercase tracking-widest mb-3">
               <div className="w-6 h-6 bg-indigo-100 rounded flex items-center justify-center mr-2 shadow-sm">
                 <Building className="w-3.5 h-3.5 text-indigo-600" />
               </div>
@@ -75,14 +75,14 @@ export function OverviewCompanyInfoCard({
               <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
                 {loadingStats ? <LoadingDots /> : departmentsCount}
               </span>
-              <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
+              <span className="text-[15px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tighter">
                 Verified
               </span>
             </div>
           </div>
 
           <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center text-[14px] font-black text-slate-400 uppercase tracking-widest mb-3">
               <div className="w-6 h-6 bg-cyan-100 rounded flex items-center justify-center mr-2 shadow-sm">
                 <Mail className="w-3.5 h-3.5 text-cyan-600" />
               </div>
@@ -94,7 +94,7 @@ export function OverviewCompanyInfoCard({
           </div>
 
           <div className="p-4 hover:bg-slate-50 transition-all duration-200 group">
-            <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center text-[14px] font-black text-slate-400 uppercase tracking-widest mb-3">
               <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center mr-2 shadow-sm">
                 <Phone className="w-3.5 h-3.5 text-emerald-600" />
               </div>

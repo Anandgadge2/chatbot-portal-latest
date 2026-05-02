@@ -207,14 +207,14 @@ export default function CreateFlowPage() {
                   type="text"
                   value={flowDescription}
                   onChange={(e) => setFlowDescription(e.target.value)}
-                  className="text-[10px] text-indigo-300/70 bg-transparent border-none p-0 focus:outline-none placeholder-white/20 truncate font-bold uppercase tracking-widest"
+                  className="text-[14px] text-indigo-300/70 bg-transparent border-none p-0 focus:outline-none placeholder-white/20 truncate font-bold uppercase tracking-widest"
                   placeholder="Matrix Description Protocol..."
                 />
               </div>
             </div>
 
             <div className="flex w-full md:w-auto items-center justify-end gap-2 sm:gap-3">
-              <div className="hidden lg:flex flex-col items-end mr-3 border-r border-white/10 pr-4 text-[10px] font-black uppercase tracking-widest">
+              <div className="hidden lg:flex flex-col items-end mr-3 border-r border-white/10 pr-4 text-[14px] font-black uppercase tracking-widest">
                 <span className="text-white/60">Architect Access</span>
                 <span className="text-indigo-400">
                   Node: {companyId ? companyId.substring(0, 8) : "Unknown"}
@@ -223,7 +223,7 @@ export default function CreateFlowPage() {
               <Button
                 onClick={handleSaveClick}
                 disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white transition-all rounded-xl px-4 sm:px-6 h-10 font-black uppercase text-[11px] tracking-wider shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white transition-all rounded-xl px-4 sm:px-6 h-10 font-black uppercase text-[15px] tracking-wider shadow-lg shadow-indigo-600/20 disabled:opacity-50"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Deploying..." : "Publish Logic"}

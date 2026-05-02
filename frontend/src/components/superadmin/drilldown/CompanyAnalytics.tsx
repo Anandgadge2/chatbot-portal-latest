@@ -54,7 +54,7 @@ export default function CompanyAnalytics({
                     border: "none",
                     boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
                   }}
-                  itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
+                  itemStyle={{ fontSize: "14px", fontWeight: "bold" }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -74,13 +74,13 @@ export default function CompanyAnalytics({
               <BarChart data={userRoleData}>
                 <XAxis
                   dataKey="name"
-                  fontSize={10}
+                  fontSize={14}
                   fontWeight="bold"
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  fontSize={10}
+                  fontSize={14}
                   fontWeight="bold"
                   axisLine={false}
                   tickLine={false}

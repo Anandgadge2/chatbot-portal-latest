@@ -54,7 +54,7 @@ export function ProfileTab({
                 <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-900">
                   Personal Information
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">
+                <CardDescription className="text-[14px] font-bold uppercase tracking-tighter text-slate-500">
                   Update your account details and contact information
                 </CardDescription>
               </div>
@@ -152,7 +152,7 @@ export function ProfileTab({
                 <Button
                   type="submit"
                   disabled={updatingProfile}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-[15px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70"
                 >
                   {updatingProfile ? (
                     <>
@@ -180,7 +180,7 @@ export function ProfileTab({
                 <CardTitle className="text-md font-black uppercase tracking-tight text-slate-900">
                   Security
                 </CardTitle>
-                <CardDescription className="text-[9px] font-bold uppercase tracking-tighter text-slate-500">
+                <CardDescription className="text-[15px] font-bold uppercase tracking-tighter text-slate-500">
                   Update your account password
                 </CardDescription>
               </div>
@@ -229,7 +229,7 @@ export function ProfileTab({
               <Button
                 type="submit"
                 disabled={updatingPassword}
-                className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-70"
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-[15px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95 disabled:opacity-70"
               >
                 {updatingPassword ? (
                   <>
@@ -244,7 +244,7 @@ export function ProfileTab({
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-100/50">
               <div className="flex gap-3">
                 <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
-                <p className="text-[10px] text-amber-700 font-bold leading-relaxed">
+                <p className="text-[14px] text-amber-700 font-bold leading-relaxed">
                   Changing your password will require you to log in again on all
                   other devices.
                 </p>

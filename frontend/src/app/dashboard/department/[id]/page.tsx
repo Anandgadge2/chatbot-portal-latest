@@ -507,7 +507,7 @@ export default function DepartmentDetail() {
               <Button
                 variant="ghost"
                 onClick={() => router.push("/dashboard")}
-                className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest"
+                className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 text-[14px] sm:text-[15px] font-bold uppercase tracking-widest"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
                 <span className="sm:inline">Back</span>
@@ -524,11 +524,11 @@ export default function DepartmentDetail() {
                   {department.name}
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[9px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+                  <span className="text-[15px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded">
                     {department.departmentId}
                   </span>
                   {company && (
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
+                    <span className="text-[15px] text-slate-500 font-bold uppercase tracking-widest">
                       · {company.name}
                     </span>
                   )}
@@ -539,7 +539,7 @@ export default function DepartmentDetail() {
             {/* Right: Refresh */}
             <button
               onClick={fetchData}
-              className="h-9 flex items-center gap-2 px-3 bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 text-[11px] font-bold uppercase tracking-widest"
+              className="h-9 flex items-center gap-2 px-3 bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 text-[15px] font-bold uppercase tracking-widest"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Refresh
@@ -559,20 +559,20 @@ export default function DepartmentDetail() {
             <TabsList className="bg-slate-200/50 p-1 border border-slate-300/50 h-10 shadow-sm overflow-x-auto no-scrollbar max-w-full">
               <TabsTrigger
                 value="overview"
-                className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-5 h-8 text-[15px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Overview
               </TabsTrigger>
               <TabsTrigger
                 value="users"
-                className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                className="px-5 h-8 text-[15px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
               >
                 Users
               </TabsTrigger>
               {hasModule(Module.GRIEVANCE) && hasPermission(user, Permission.READ_GRIEVANCE) && (
                 <TabsTrigger
                   value="grievances"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
+                  className="px-5 h-8 text-[15px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg"
                 >
                   Grievances
                 </TabsTrigger>
@@ -580,7 +580,7 @@ export default function DepartmentDetail() {
               {hasPermission(user, Permission.VIEW_ANALYTICS) && (
                 <TabsTrigger
                   value="analytics"
-                  className="px-5 h-8 text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-1.5"
+                  className="px-5 h-8 text-[15px] font-black uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg flex items-center gap-1.5"
                 >
                   <BarChart2 className="w-3.5 h-3.5" />
                   Analytics
@@ -602,17 +602,17 @@ export default function DepartmentDetail() {
                   <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                     <Users className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                  <span className="text-[14px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
                     {stats.activeUsers} active
                   </span>
                 </div>
                 <p className="text-2xl font-black text-slate-900 tracking-tighter">
                   {stats.totalUsers}
                 </p>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                <p className="text-[14px] font-black text-slate-500 uppercase tracking-widest mt-1">
                   Total Staff
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
+                <p className="text-[14px] text-slate-400 mt-0.5">
                   Click to view →
                 </p>
               </div>
@@ -629,17 +629,17 @@ export default function DepartmentDetail() {
                       <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
                         <FileText className="w-4 h-4" />
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
+                      <span className="text-[14px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
                         {stats.pendingGrievances} pending
                       </span>
                     </div>
                     <p className="text-2xl font-black text-slate-900 tracking-tighter">
                       {stats.totalGrievances}
                     </p>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                    <p className="text-[14px] font-black text-slate-500 uppercase tracking-widest mt-1">
                       Active Grievances
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <p className="text-[14px] text-slate-400 mt-0.5">
                       Open now in this department
                     </p>
                   </div>
@@ -656,7 +656,7 @@ export default function DepartmentDetail() {
                   <h3 className="text-sm font-bold text-white uppercase tracking-tight">
                     Department Information
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                  <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                     Registry details and status
                   </p>
                 </div>
@@ -664,7 +664,7 @@ export default function DepartmentDetail() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/60">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    <p className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-1">
                       Department ID
                     </p>
                     <p className="text-sm font-mono font-bold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 inline-block">
@@ -672,7 +672,7 @@ export default function DepartmentDetail() {
                     </p>
                   </div>
                   <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/60">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    <p className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-1">
                       Company
                     </p>
                     <p className="text-sm font-bold text-slate-800">
@@ -680,7 +680,7 @@ export default function DepartmentDetail() {
                     </p>
                   </div>
                   <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/60">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    <p className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-2">
                       Status
                     </p>
                     <span
@@ -692,7 +692,7 @@ export default function DepartmentDetail() {
                   </div>
                   {department.description && (
                     <div className="md:col-span-3 bg-slate-50/50 rounded-xl p-4 border border-slate-200/60">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                      <p className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-1">
                         Description
                       </p>
                       <p className="text-sm text-slate-700">
@@ -720,14 +720,14 @@ export default function DepartmentDetail() {
                         ({userPagination.total})
                       </span>
                     </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                    <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                       All staff in this department
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => exportToCSV(users, "users")}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[10px] font-bold uppercase tracking-widest"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[14px] font-bold uppercase tracking-widest"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export
@@ -747,14 +747,14 @@ export default function DepartmentDetail() {
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                    <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
                     <select
                       value={userPagination.limit}
                       onChange={(e) => {
                         setUserPagination(prev => ({ ...prev, limit: Number(e.target.value) }));
                         setUserPage(1);
                       }}
-                      className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                      className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                     >
                       {[10, 20, 25, 50, 100].map(l => (
                         <option key={l} value={l}>{l}</option>
@@ -790,18 +790,18 @@ export default function DepartmentDetail() {
                       <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                           <tr>
-                            <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                            <th className="px-3 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
                             <th className="px-4 py-3 text-left">
                               <button
                                 onClick={() => handleSort("firstName")}
-                                className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                className="flex items-center gap-1.5 text-[15px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
                               >
                                 User <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</th>
-                            <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Role</th>
-                            <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                            <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Email</th>
+                            <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Role</th>
+                            <th className="px-4 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -819,13 +819,13 @@ export default function DepartmentDetail() {
                                   </div>
                                   <div>
                                     <p className="text-sm font-bold text-slate-900">{u.firstName} {u.lastName}</p>
-                                    <p className="text-[10px] text-slate-400 font-mono">{u.userId}</p>
+                                    <p className="text-[14px] text-slate-400 font-mono">{u.userId}</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
                               <td className="px-4 py-3">
-                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border shadow-sm ${
+                                <span className={`px-2.5 py-1 rounded-full text-[15px] font-bold border shadow-sm ${
                                   (u.level === 2 && department?.parentDepartmentId) || u.level === 3
                                     ? "bg-purple-50 text-purple-700 border-purple-100 ring-1 ring-purple-200"
                                     : "bg-indigo-50 text-indigo-700 border-indigo-100 uppercase tracking-wide"
@@ -839,7 +839,7 @@ export default function DepartmentDetail() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[15px] font-bold ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${u.isActive ? "bg-emerald-500" : "bg-slate-400"}`}></span>
                                   {u.isActive ? "Active" : "Inactive"}
                                 </span>
@@ -883,7 +883,7 @@ export default function DepartmentDetail() {
                             ({grievancePagination.total})
                           </span>
                         </h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                           Open cases in this department
                         </p>
                       </div>
@@ -893,7 +893,7 @@ export default function DepartmentDetail() {
                         onClick={() =>
                           exportToCSV(grievances, "grievances")
                         }
-                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[10px] font-bold uppercase tracking-widest"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition-all border border-slate-700 text-[14px] font-bold uppercase tracking-widest"
                       >
                         <Download className="w-3.5 h-3.5" />
                         Export
@@ -914,14 +914,14 @@ export default function DepartmentDetail() {
                       />
                     </div>
                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
+                      <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Rows:</span>
                       <select
                         value={grievancePagination.limit}
                         onChange={(e) => {
                           setGrievancePagination(prev => ({ ...prev, limit: Number(e.target.value) }));
                           setGrievancePage(1);
                         }}
-                        className="text-[10px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
+                        className="text-[14px] font-bold text-slate-900 bg-transparent border-0 focus:ring-0 cursor-pointer"
                       >
                         {[10, 20, 25, 50, 100].map(l => (
                           <option key={l} value={l}>{l}</option>
@@ -956,13 +956,13 @@ export default function DepartmentDetail() {
                           <table className="w-full">
                             <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100">
                               <tr>
-                                <th className="px-3 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
-                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Grievance ID</th>
-                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
-                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Filed</th>
-                                <th className="px-4 py-3 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                <th className="px-3 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest w-12">Sr.</th>
+                                <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Grievance ID</th>
+                                <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                                <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                                <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                <th className="px-4 py-3 text-left text-[15px] font-black text-slate-400 uppercase tracking-widest">Filed</th>
+                                <th className="px-4 py-3 text-center text-[15px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -991,16 +991,16 @@ export default function DepartmentDetail() {
                                       className="text-left hover:text-indigo-600 transition-colors"
                                     >
                                       <p className="text-sm font-semibold text-slate-800 hover:underline">{g.citizenName}</p>
-                                      <p className="text-[10px] text-slate-400">{formatTo10Digits(g.citizenPhone)}</p>
+                                      <p className="text-[14px] text-slate-400">{formatTo10Digits(g.citizenPhone)}</p>
                                     </button>
                                   </td>
                                   <td className="px-4 py-3">
                                     <div className="flex flex-col gap-1">
-                                      <span className="text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded inline-block w-fit">
+                                      <span className="text-[14px] font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded inline-block w-fit">
                                         {g.category || "General"}
                                       </span>
                                       {g.priority && (
-                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest w-fit ${
+                                        <span className={`text-[12px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest w-fit ${
                                           g.priority === 'URGENT' ? 'bg-rose-500 text-white border-rose-600' :
                                           g.priority === 'HIGH' ? 'bg-amber-500 text-white border-amber-600' :
                                           'bg-slate-50 text-slate-400 border-slate-200'
@@ -1021,7 +1021,7 @@ export default function DepartmentDetail() {
                                         updatingGrievanceStatus.has(g._id) ||
                                         !canUpdateGrievanceStatus
                                       }
-                                      className={`px-2.5 py-1 text-[9px] font-bold border rounded uppercase tracking-tight transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                                      className={`px-2.5 py-1 text-[15px] font-bold border rounded uppercase tracking-tight transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
                                         canUpdateGrievanceStatus
                                           ? "border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50"
                                           : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
@@ -1038,10 +1038,10 @@ export default function DepartmentDetail() {
                                   <td className="px-4 py-3">
                                     <div className="flex flex-col">
                                       <span className="text-xs font-medium text-slate-700">{new Date(g.createdAt).toLocaleDateString()}</span>
-                                      <span className="text-[10px] text-slate-400">{new Date(g.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                      <span className="text-[14px] text-slate-400">{new Date(g.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 text-center text-[10px] font-medium space-x-1 flex items-center justify-center">
+                                  <td className="px-4 py-3 text-center text-[14px] font-medium space-x-1 flex items-center justify-center">
                                     <button
                                       onClick={() => {
                                         setSelectedGrievanceForRevert(g);
@@ -1156,7 +1156,7 @@ export default function DepartmentDetail() {
                   <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                     <FileText className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
+                  <span className="text-[14px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
                     {stats.totalGrievances} open
                   </span>
                 </div>
@@ -1172,7 +1172,7 @@ export default function DepartmentDetail() {
                   <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
                     <Clock className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
+                  <span className="text-[14px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
                     Action
                   </span>
                 </div>
@@ -1188,7 +1188,7 @@ export default function DepartmentDetail() {
                   <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
                     <Users className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                  <span className="text-[14px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
                     {stats.activeUsers} active
                   </span>
                 </div>
@@ -1213,7 +1213,7 @@ export default function DepartmentDetail() {
                       </div>
                       <div>
                         <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Performance Summary</h3>
-                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Case distribution and staff performance</p>
+                        <p className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">Case distribution and staff performance</p>
                       </div>
                     </div>
                   </div>
@@ -1238,7 +1238,7 @@ export default function DepartmentDetail() {
                       <div key={idx}>
                         <div className="flex justify-between items-end mb-2">
                            <div>
-                              <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none mb-1">{item.name}</p>
+                              <p className="text-[14px] font-black text-indigo-300 uppercase tracking-widest leading-none mb-1">{item.name}</p>
                               <p className="text-sm font-bold">Execution Efficiency</p>
                            </div>
                            <span className="text-xl font-black text-indigo-400">{item.score}%</span>
@@ -1254,16 +1254,16 @@ export default function DepartmentDetail() {
                   </div>
                  
                  <div className="mt-12 p-6 bg-white/5 border border-white/10 rounded-2xl">
-                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">System Health</p>
+                    <p className="text-[14px] font-black text-indigo-400 uppercase tracking-widest mb-2">System Health</p>
                     <div className="flex items-center gap-4">
                        <div className="flex-1">
                           <p className="text-2xl font-black">{resolutionRate}%</p>
-                          <p className="text-[11px] text-slate-400 uppercase font-bold tracking-tight">Target Met</p>
+                          <p className="text-[15px] text-slate-400 uppercase font-bold tracking-tight">Target Met</p>
                        </div>
                        <div className="w-px h-10 bg-white/20"></div>
                        <div className="flex-1">
                           <p className="text-2xl font-black">2.4h</p>
-                          <p className="text-[11px] text-slate-400 uppercase font-bold tracking-tight">Avg Initial Response</p>
+                          <p className="text-[15px] text-slate-400 uppercase font-bold tracking-tight">Avg Initial Response</p>
                        </div>
                     </div>
                  </div>
@@ -1278,7 +1278,7 @@ export default function DepartmentDetail() {
                     </div>
                     <div>
                       <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Case Trends</h3>
-                      <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Seasonal activity and response rates</p>
+                      <p className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">Seasonal activity and response rates</p>
                     </div>
                   </div>
                 </div>
@@ -1291,12 +1291,12 @@ export default function DepartmentDetail() {
                           dataKey="name" 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{fontSize: 10, fontWeight: 700, fill: '#64748b'}}
+                          tick={{fontSize: 14, fontWeight: 700, fill: '#64748b'}}
                         />
                         <YAxis 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{fontSize: 10, fontWeight: 700, fill: '#64748b'}}
+                          tick={{fontSize: 14, fontWeight: 700, fill: '#64748b'}}
                         />
                         <Tooltip 
                            cursor={{fill: '#f8fafc'}}
@@ -1330,7 +1330,7 @@ export default function DepartmentDetail() {
                    </div>
                    <div>
                       <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Category Focus</h3>
-                      <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Type-wise incident breakdown</p>
+                      <p className="text-[15px] text-slate-400 font-bold uppercase tracking-widest">Type-wise incident breakdown</p>
                    </div>
                 </div>
                 <div className="p-8">
@@ -1355,7 +1355,7 @@ export default function DepartmentDetail() {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                        <div className="text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Open</p>
+                          <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest">Open</p>
                           <p className="text-xl font-black text-slate-800">{stats.totalGrievances}</p>
                        </div>
                     </div>
@@ -1367,7 +1367,7 @@ export default function DepartmentDetail() {
                      ).slice(0, 4).map((c, i) => (
                        <div key={i} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
                           <span className="w-2 h-2 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}}></span>
-                          <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{c.name}</span>
+                          <span className="text-[14px] font-bold text-slate-600 truncate uppercase tracking-tighter">{c.name}</span>
                        </div>
                      ))}
                   </div>

@@ -43,7 +43,7 @@ export default function WhatsAppConfigPage() {
                 <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-none">
                   WhatsApp Configuration
                 </h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 truncate">
+                <p className="text-[14px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 truncate">
                   Meta Business Setup
                   {company?.name ? ` • ${company.name}` : ""}
                 </p>

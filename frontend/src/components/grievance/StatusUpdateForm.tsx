@@ -200,7 +200,7 @@ function PremiumClockPicker({
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${period === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 py-1.5 rounded-xl text-[14px] font-black transition-all ${period === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}
             >
               {p}
             </button>
@@ -295,7 +295,7 @@ function DocumentUploadZone({
 
   return (
     <div>
-      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+      <label className="block text-[15px] font-black text-slate-400 uppercase tracking-widest mb-2">
         Upload Support Documents{' '}
         <span className="text-slate-400 font-normal normal-case">(optional – max 5 files, 10 MB each)</span>
       </label>
@@ -320,7 +320,7 @@ function DocumentUploadZone({
           <p className="text-xs font-semibold text-slate-700">
             {dragging ? 'Drop files here' : 'Drag & drop or click to upload'}
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">
+          <p className="text-[14px] text-slate-400 mt-0.5">
             Images, PDF, Word, Excel supported
           </p>
         </div>
@@ -345,7 +345,7 @@ function DocumentUploadZone({
               <span className="flex-shrink-0">{getFileIcon(file)}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-slate-800 truncate">{file.name}</p>
-                <p className="text-[10px] text-slate-400">{formatFileSize(file.size)}</p>
+                <p className="text-[14px] text-slate-400">{formatFileSize(file.size)}</p>
               </div>
               <button
                 type="button"
@@ -356,7 +356,7 @@ function DocumentUploadZone({
               </button>
             </div>
           ))}
-          <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 px-1">
+          <p className="text-[14px] text-emerald-600 font-medium flex items-center gap-1 px-1">
             <CheckCircle2 className="w-3 h-3" />
             {documents.length} file{documents.length > 1 ? 's' : ''} ready •
           </p>
@@ -500,7 +500,7 @@ export default function StatusUpdateForm({
       <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
         {/* Current Status */}
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Current Status</p>
+          <p className="text-[15px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Current Status</p>
           {currentStatusInfo && (
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 ${currentStatusInfo.iconBg} rounded-lg flex items-center justify-center`}>
@@ -515,7 +515,7 @@ export default function StatusUpdateForm({
 
         {/* Status Selection */}
         <div>
-          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
+          <p className="text-[15px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">
             Select New Status <span className="text-rose-500">*</span>
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -549,7 +549,7 @@ export default function StatusUpdateForm({
         {itemType === 'appointment' && selectedStatus === 'CONFIRMED' && (
           <div className="space-y-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Confirmation Date *</label>
+              <label className="block text-[15px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Confirmation Date *</label>
               <input
                 type="date"
                 value={appointmentDate}
@@ -558,7 +558,7 @@ export default function StatusUpdateForm({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Select Time (Clock) *</label>
+              <label className="block text-[15px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-2">Select Time (Clock) *</label>
               <PremiumClockPicker
                 value={appointmentTime}
                 onChange={(val) => setAppointmentTime(val)}
@@ -570,9 +570,9 @@ export default function StatusUpdateForm({
 
         {/* Remarks */}
         <div>
-          <label className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-1.5 flex justify-between items-center">
+          <label className="block text-[15px] font-semibold text-slate-600 uppercase tracking-[0.08em] mb-1.5 flex justify-between items-center">
             <span>Remarks / Note <span className="text-rose-500 font-normal normal-case">(Mandatory)</span></span>
-            <span className={`text-[10px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+            <span className={`text-[14px] font-bold ${remarks.length > 100 ? 'text-rose-500' : 'text-slate-400'}`}>
               {remarks.length}/100
             </span>
           </label>
@@ -584,7 +584,7 @@ export default function StatusUpdateForm({
             placeholder="Add notes, comments, or instructions about this status change. These will be sent to the citizen via WhatsApp..."
           />
           {remarks.length > 100 && (
-            <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight px-1">
+            <p className="mt-1 text-[14px] font-bold text-rose-500 uppercase tracking-tight px-1">
               Character limit exceeded by {remarks.length - 100} characters
             </p>
           )}

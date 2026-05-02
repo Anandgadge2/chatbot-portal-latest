@@ -171,7 +171,7 @@ export function DashboardNavigation({
         <span
           className={cn(
             isSpecial
-              ? "ml-3 text-[11px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+              ? "ml-3 text-[15px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
               : "w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 text-xs font-bold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap",
           )}
         >
@@ -204,15 +204,15 @@ export function DashboardNavigation({
 
   return (
     <>
-      <aside className="hidden md:block sticky top-[84px] self-start z-30">
-        <div className="group w-[72px] hover:w-[260px] transition-all duration-300 ease-out rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-sm overflow-hidden">
+      <aside className="hidden md:block sticky top-[84px] self-start z-30 w-[72px] hover:w-[260px] transition-[width] duration-300 ease-out group/sidebar">
+        <div className="group w-full h-full rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-sm overflow-hidden flex flex-col transition-all duration-300 ease-out">
           <div className="p-2 border-b border-slate-100">
             <Button
               onClick={onRefresh}
               variant="ghost"
               size="sm"
               disabled={refreshing}
-              className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl text-slate-500 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest transition-all"
+              className="w-full justify-center group-hover:justify-start h-10 px-0 group-hover:px-4 rounded-xl text-slate-500 hover:text-slate-900 font-black text-[14px] uppercase tracking-widest transition-all"
             >
               <RefreshCw
                 className={cn("w-4 h-4 shrink-0", refreshing && "animate-spin")}
@@ -239,14 +239,14 @@ export function DashboardNavigation({
               )}
               title="Account Profile"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white text-[10px] font-black shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white text-[14px] font-black shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </div>
               <div className="w-0 group-hover:w-auto overflow-hidden group-hover:ml-3 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-start leading-none min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-tight truncate w-full">
+                <span className="text-[14px] font-black uppercase tracking-tight truncate w-full">
                   {user?.firstName} {user?.lastName}
                 </span>
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5 truncate w-full">
+                <span className="text-[14px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5 truncate w-full">
                   My Account
                 </span>
               </div>
@@ -297,16 +297,16 @@ export function DashboardNavigation({
                   </h4>
                   <div className="flex flex-col mt-0.5">
                     {isJharsugudaCompany ? (
-                      <span className="text-[10px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
+                      <span className="text-[14px] font-black text-white uppercase tracking-wide mt-1 whitespace-normal break-words">
                         {(user.role || "CUSTOM").replace(/_/g, " ")}
                       </span>
                     ) : (
                       <>
-                        <span className="text-[10px] font-black text-indigo-200 uppercase tracking-wide leading-tight">
+                        <span className="text-[14px] font-black text-indigo-200 uppercase tracking-wide leading-tight">
                           {(user.role || "CUSTOM").replace("_", " ")}
                         </span>
                         {user?.companyId?.name && (
-                          <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter mt-0.5">
+                          <span className="text-[15px] font-bold text-white/60 uppercase tracking-tighter mt-0.5">
                             ({user.companyId.name})
                           </span>
                         )}
@@ -314,7 +314,7 @@ export function DashboardNavigation({
                     )}
                     {/* <div className="flex items-center gap-1.5 mt-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                      <span className="text-[15px] font-black text-slate-300 uppercase tracking-widest">
                         Online
                       </span>
                     </div> */}
@@ -325,7 +325,7 @@ export function DashboardNavigation({
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               <div className="px-2">
-                {/* <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                {/* <h5 className="text-[15px] font-black uppercase tracking-widest text-slate-400 mb-4">
                   Main Menu
                 </h5> */}
                 <div className="space-y-1.5">
@@ -333,7 +333,7 @@ export function DashboardNavigation({
                   {configurationItems.length > 0 && (
                     <>
                       <div className="h-px bg-slate-100 my-2 mx-2" />
-                      <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2">
+                      <h5 className="text-[14px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2">
                         Configuration
                       </h5>
                       {configurationItems.map(renderMobileItem)}

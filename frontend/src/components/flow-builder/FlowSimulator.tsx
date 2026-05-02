@@ -495,7 +495,7 @@ export default function FlowSimulator({
             <div className="font-semibold truncate leading-tight tracking-wide">
               {flowName}
             </div>
-            <div className="text-[11px] text-white/80 flex items-center gap-1.5 mt-0.5">
+            <div className="text-[15px] text-white/80 flex items-center gap-1.5 mt-0.5">
               <span className="capitalize">
                 {isSimulating ? "typing..." : "online"}
               </span>
@@ -503,7 +503,7 @@ export default function FlowSimulator({
               {/* <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as any)}
-                className="bg-transparent text-[11px] border-none focus:ring-0 text-white cursor-pointer p-0 font-medium"
+                className="bg-transparent text-[15px] border-none focus:ring-0 text-white cursor-pointer p-0 font-medium"
               >
                 <option value="en" className="text-black">
                   English
@@ -596,7 +596,7 @@ export default function FlowSimulator({
                     )}
 
                     <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[14px] text-gray-400">
                         {msg.timestamp.toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -669,7 +669,7 @@ export default function FlowSimulator({
                 {activeList.sections.map((section, secIdx) => (
                   <div key={secIdx} className="mb-4">
                     {section.title && (
-                      <div className="px-5 py-2 text-[#008069] text-[13px] font-semibold uppercase tracking-widest bg-gray-50/50">
+                      <div className="px-5 py-2 text-[#008069] text-[15px] font-semibold uppercase tracking-widest bg-gray-50/50">
                         {section.title}
                       </div>
                     )}
@@ -690,7 +690,7 @@ export default function FlowSimulator({
                             {row.title}
                           </div>
                           {row.description && (
-                            <div className="text-[13px] text-gray-500 mt-1 truncate w-full">
+                            <div className="text-[15px] text-gray-500 mt-1 truncate w-full">
                               {row.description}
                             </div>
                           )}

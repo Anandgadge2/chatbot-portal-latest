@@ -195,7 +195,7 @@ export default function SuperAdminView() {
                   <h1 className="text-base font-black text-white uppercase tracking-tighter leading-none">
                     Nexus Master
                   </h1>
-                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-1 flex items-center gap-1.5">
+                  <span className="text-[15px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-1 flex items-center gap-1.5">
                     <Activity className="w-2.5 h-2.5" />
                     System Prime
                   </span>
@@ -214,7 +214,7 @@ export default function SuperAdminView() {
                       <TabsTrigger
                         key={t.val}
                         value={t.val}
-                        className="px-6 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-500 font-black text-[10px] uppercase tracking-widest transition-all hover:text-slate-300 hover:bg-white/5"
+                        className="px-6 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-none text-slate-500 font-black text-[14px] uppercase tracking-widest transition-all hover:text-slate-300 hover:bg-white/5"
                       >
                         <t.icon className="w-3.5 h-3.5 mr-2.5 opacity-50 group-data-[state=active]:opacity-100" />
                         {t.label}
@@ -227,10 +227,10 @@ export default function SuperAdminView() {
 
             <div className="flex items-center gap-4">
               <div className="flex flex-col items-end border-r border-white/10 pr-6 mr-2 hidden sm:flex">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
+                <span className="text-[14px] font-black text-white uppercase tracking-widest leading-none">
                   {user.firstName} {user.lastName}
                 </span>
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">
+                <span className="text-[15px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">
                   Super Admin Session
                 </span>
               </div>
@@ -244,7 +244,7 @@ export default function SuperAdminView() {
               </Button>
               <Button
                 onClick={logout}
-                className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl h-10 px-5 border border-red-500/20 font-black text-[10px] uppercase tracking-widest transition-all duration-300 shadow-lg shadow-red-500/5 active:scale-95"
+                className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl h-10 px-5 border border-red-500/20 font-black text-[14px] uppercase tracking-widest transition-all duration-300 shadow-lg shadow-red-500/5 active:scale-95"
               >
                 TERMINATE
               </Button>
@@ -262,13 +262,13 @@ export default function SuperAdminView() {
                 <h2 className="text-4xl font-black text-white tracking-tighter uppercase leading-none">
                   Nexus Intelligence
                 </h2>
-                <p className="text-slate-400 font-bold text-[11px] uppercase tracking-[0.3em] mt-3 flex items-center gap-3">
+                <p className="text-slate-400 font-bold text-[15px] uppercase tracking-[0.3em] mt-3 flex items-center gap-3">
                   <Database className="w-3.5 h-3.5 text-indigo-500" />
                   Processing global multitenant telemetry clusters
                 </p>
               </div>
               <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-2xl border border-white/5">
-                <div className="bg-emerald-500/10 px-4 py-2 rounded-xl text-emerald-400 font-black text-[10px] uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2 shadow-inner">
+                <div className="bg-emerald-500/10 px-4 py-2 rounded-xl text-emerald-400 font-black text-[14px] uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2 shadow-inner">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                   Matrix Healthy
                 </div>
@@ -296,7 +296,7 @@ export default function SuperAdminView() {
               <div className="space-y-8">
                 <Card className="bg-slate-900/50 border-white/5 shadow-2xl overflow-hidden backdrop-blur-xl">
                   <CardHeader className="bg-indigo-600/10 border-b border-indigo-500/10 p-5">
-                    <CardTitle className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                    <CardTitle className="text-[14px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-3">
                       <Zap className="w-4 h-4" />
                       Infrastructure Uptime
                     </CardTitle>
@@ -304,19 +304,19 @@ export default function SuperAdminView() {
                   <CardContent className="p-6">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Status</span>
-                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Operational</span>
+                        <span className="text-[14px] font-black text-slate-500 uppercase tracking-widest">Global Status</span>
+                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-[15px] font-black uppercase tracking-widest border border-emerald-500/20">Operational</span>
                       </div>
                       <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner">
                         <div className="absolute top-0 left-0 h-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] w-[99.8%]"></div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Latency</span>
+                          <span className="text-[15px] font-black text-slate-500 uppercase tracking-widest block mb-1">Latency</span>
                           <span className="text-xs font-black text-indigo-400 uppercase">12ms</span>
                         </div>
                         <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Response</span>
+                          <span className="text-[15px] font-black text-slate-500 uppercase tracking-widest block mb-1">Response</span>
                           <span className="text-xs font-black text-emerald-400 uppercase">99.9%</span>
                         </div>
                       </div>
@@ -326,7 +326,7 @@ export default function SuperAdminView() {
 
                 <Card className="bg-slate-900/50 border-white/5 shadow-2xl overflow-hidden backdrop-blur-xl">
                   <CardHeader className="bg-slate-800/50 border-b border-white/5 p-5">
-                    <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                    <CardTitle className="text-[14px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
                       <Globe className="w-4 h-4" />
                       Intelligence Map
                     </CardTitle>
@@ -337,7 +337,7 @@ export default function SuperAdminView() {
                          <Shield className="w-8 h-8 text-indigo-500/40" />
                        </div>
                     </div>
-                    <Button variant="outline" className="w-full border-white/5 bg-white/5 hover:bg-white/10 text-white rounded-xl font-black text-[10px] uppercase tracking-widest h-11 active:scale-95 transition-all">
+                    <Button variant="outline" className="w-full border-white/5 bg-white/5 hover:bg-white/10 text-white rounded-xl font-black text-[14px] uppercase tracking-widest h-11 active:scale-95 transition-all">
                       VIEW TACTICAL GRID
                     </Button>
                   </CardContent>

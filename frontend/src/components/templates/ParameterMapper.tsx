@@ -122,7 +122,7 @@ export default function ParameterMapper({
       </div>
 
       {sampleValues.length > 0 && (
-        <p className="text-[11px] text-slate-500 mb-3">
+        <p className="text-[15px] text-slate-500 mb-3">
           Meta sample values detected and prefilled for quick testing.
         </p>
       )}

@@ -8,7 +8,7 @@ export default function TemplatePreview({ header, bodyText, footer }: TemplatePr
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-100 px-4 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <p className="text-[14px] font-bold uppercase tracking-wider text-slate-400">
           Message Preview
         </p>
       </div>
@@ -20,12 +20,12 @@ export default function TemplatePreview({ header, bodyText, footer }: TemplatePr
           </div>
         )}
         
-        <pre className="text-[13px] text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
+        <pre className="text-[15px] text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
           {bodyText || "No body content"}
         </pre>
 
         {footer && (
-          <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-50">
+          <div className="text-[15px] text-slate-400 mt-2 pt-2 border-t border-slate-50">
             {footer}
           </div>
         )}

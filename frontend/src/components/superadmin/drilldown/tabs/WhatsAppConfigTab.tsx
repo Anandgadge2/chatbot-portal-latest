@@ -257,7 +257,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
                 <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900">
                   Meta API Credentials
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                <CardDescription className="text-[14px] font-bold text-slate-400 uppercase tracking-tight">
                   Manage WhatsApp Business Account access tokens
                 </CardDescription>
               </div>
@@ -302,7 +302,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
         <CardContent className="p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.phoneNumber : config?.phoneNumber}
@@ -318,7 +318,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Display Phone Number</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Display Phone Number</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.displayPhoneNumber : config?.displayPhoneNumber}
@@ -334,7 +334,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number ID</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.phoneNumberId : config?.phoneNumberId}
@@ -350,7 +350,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Account ID</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Account ID</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.businessAccountId : config?.businessAccountId}
@@ -366,7 +366,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2 sm:col-span-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Permanent Access Token</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Permanent Access Token</label>
               <input 
                 type="password"
                 value={isActuallyEditing ? configForm.accessToken : config?.accessToken}
@@ -382,7 +382,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Verify Token</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Verify Token</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.verifyToken : config?.verifyToken}
@@ -398,7 +398,7 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Secret</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Secret</label>
               <input 
                 type="text"
                 value={isActuallyEditing ? configForm.webhookSecret : config?.webhookSecret}
@@ -479,10 +479,10 @@ const WhatsAppConfigTab: React.FC<WhatsAppConfigTabProps> = ({ companyId }) => {
               <AlertCircle className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h5 className="text-[11px] font-black text-amber-900 uppercase tracking-wider mb-1">
+              <h5 className="text-[15px] font-black text-amber-900 uppercase tracking-wider mb-1">
                 Production Security Protocol
               </h5>
-              <p className="text-[11px] text-amber-700/80 font-medium leading-relaxed">
+              <p className="text-[15px] text-amber-700/80 font-medium leading-relaxed">
                 Changing credentials affects all active WhatsApp sessions for this organization.
                 Verify webhook URL and token in Meta before syncing or sending templates.
               </p>
