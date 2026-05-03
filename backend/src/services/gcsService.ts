@@ -3,6 +3,29 @@ import { logger } from '../config/logger';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
+const MIME_TYPE_MAP: Record<string, string> = {
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'pdf': 'application/pdf',
+  'png': 'image/png',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+  'mp4': 'video/mp4',
+  'csv': 'text/csv'
+};
+
+function getProperContentType(fileName: string, currentType: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (ext && MIME_TYPE_MAP[ext]) {
+    return MIME_TYPE_MAP[ext];
+  }
+  return currentType;
+}
+
 /**
  * Uploads a buffer to Google Cloud Storage
  * 
@@ -21,10 +44,13 @@ export async function uploadBufferToGCS(
   try {
     const destination = `${folder}/${uuidv4()}_${fileName}`;
     const file = bucket.file(destination);
+    
+    // Ensure we use the correct content type for Office files
+    const finalContentType = getProperContentType(fileName, contentType);
 
     await file.save(buffer, {
-      contentType: contentType,
-      public: true, // Make the file publicly accessible
+      contentType: finalContentType,
+      public: true,
       metadata: {
         cacheControl: 'public, max-age=31536000',
       },
@@ -77,7 +103,20 @@ export async function uploadWhatsAppMediaToGCS(
     const buffer = Buffer.from(fileResponse.data);
     
     // 3. Upload to GCS
-    const ext = mimeType.split('/')[1] || 'bin';
+    // Try to get a clean extension from our map, otherwise fallback to split
+    let ext = 'bin';
+    for (const [key, value] of Object.entries(MIME_TYPE_MAP)) {
+      if (value === mimeType) {
+        ext = key;
+        break;
+      }
+    }
+    
+    // If not found in map, use the second part of mime type but keep it clean
+    if (ext === 'bin' && mimeType.includes('/')) {
+      ext = mimeType.split('/')[1].split('.').pop() || 'bin';
+    }
+
     const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${ext}`;
     
     return await uploadBufferToGCS(buffer, finalFileName, mimeType, folder);
