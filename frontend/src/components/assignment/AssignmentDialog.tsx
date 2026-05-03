@@ -827,11 +827,11 @@ export default function AssignmentDialog({
                           />
                         </div>
                       </div>
-                      <div
-                        className="max-h-72 overflow-y-auto overscroll-contain"
-                        onWheelCapture={(event) => event.stopPropagation()}
+                      <div 
+                        className="max-h-72 overflow-y-auto px-2 py-2"
+                        onWheelCapture={(e) => e.stopPropagation()}
                       >
-                        <div className="p-2">
+                        <div className="p-1">
                           {filteredMultiTopDepts.map((department) => {
                             const checked = selectedDepartmentIds.includes(department._id);
                             return (
@@ -924,11 +924,11 @@ export default function AssignmentDialog({
                           />
                         </div>
                       </div>
-                        <div
-                          className="max-h-72 overflow-y-auto overscroll-contain"
-                          onWheelCapture={(event) => event.stopPropagation()}
+                        <div 
+                          className="max-h-80 overflow-y-auto px-2 py-2"
+                          onWheelCapture={(e) => e.stopPropagation()}
                         >
-                          <div className="p-2">
+                          <div className="p-1">
                             {filteredMultiSubDepartments.map((subDepartment) => {
                               const checked = selectedSubDepartmentIds.includes(subDepartment._id);
                               const parentDepartmentName =
