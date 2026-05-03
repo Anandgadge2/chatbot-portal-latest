@@ -8,10 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import {
-  validatePhoneNumber,
-  validatePassword,
-} from "@/lib/utils/phoneUtils";
+import { validatePhoneNumber, validatePassword } from "@/lib/utils/phoneUtils";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
   Shield,
@@ -193,7 +190,7 @@ export default function LoginPage() {
           </div>
 
           <div className="pt-8 border-t border-white/[0.06] flex items-center justify-between text-[14px] font-black text-slate-600 uppercase tracking-[0.2em]">
-              <span>Build Version 1.2.0</span>
+            <span>Build Version 1.2.0</span>
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
                 <LockIcon className="w-3 h-3" /> Encrypted
@@ -258,11 +255,11 @@ export default function LoginPage() {
                   <div className="flex justify-between items-end px-1">
                     <Label
                       htmlFor="phone"
-                      className="text-slate-900 font-black text-[14px] uppercase tracking-widest leading-none"
+                      className="text-slate-900 font-black text-[12px] uppercase tracking-widest leading-none"
                     >
                       Phone Number
                     </Label>
-                    <span className="text-[15px] font-bold text-slate-400 uppercase tracking-tighter">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                       Required
                     </span>
                   </div>
@@ -291,13 +288,13 @@ export default function LoginPage() {
                   <div className="flex justify-between items-end px-1">
                     <Label
                       htmlFor="password"
-                      className="text-slate-900 font-black text-[14px] uppercase tracking-widest leading-none"
+                      className="text-slate-900 font-black text-[12px] uppercase tracking-widest leading-none"
                     >
                       Password Key
                     </Label>
                     <Link
                       href="/auth/forgot-password"
-                      className="text-[15px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors"
+                      className="text-[10px] font-black text-sky-600 hover:text-sky-700 uppercase tracking-widest transition-colors"
                     >
                       Forget Password?
                     </Link>
