@@ -26,11 +26,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@types/moment-timezone": "^0.5.13",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.0",
-    "cloudinary": "^1.41.0",
     "cors": "^2.8.5",
     "date-fns": "^3.0.6",
     "dotenv": "^16.6.1",
@@ -48,6 +48,7 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "nodemailer": "^6.10.1",
+    "uuid": "^14.0.0",
     "winston": "^3.11.0",
     "xlsx": "^0.18.5",
     "zod": "^3.22.4"
@@ -61,6 +62,7 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.19.28",
     "@types/nodemailer": "^6.4.21",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",
     "eslint": "^8.56.0",

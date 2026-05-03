@@ -183,7 +183,7 @@ export class ActionService {
         if (val && typeof val === 'string' && val.startsWith('http')) {
           if (!existingUrls.has(val)) {
             const isImg = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(val) || val.includes('/image/') || val.toLowerCase().includes('image');
-            extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isCloudinary: val.includes('cloudinary') });
+            extraMedia.push({ url: val, type: isImg ? 'image' : 'document', uploadedAt: new Date(), isGCS: val.includes('storage.googleapis.com') });
             existingUrls.add(val);
           }
         }

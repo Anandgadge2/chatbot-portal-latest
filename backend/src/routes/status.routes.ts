@@ -10,7 +10,7 @@ import Company from '../models/Company';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
-import { cloudinary } from '../config/cloudinary';
+import { uploadBufferToGCS } from '../services/gcsService';
 import { formatTemplateDate } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
@@ -21,27 +21,16 @@ const upload = multer({
 
 const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
 
-const uploadBufferToCloudinary = async (
+const uploadBufferToGCSWrapper = async (
   file: Express.Multer.File,
   companyId: string,
 ): Promise<string | null> => {
-  return new Promise((resolve) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: `status_documents/${companyId}`,
-        resource_type: 'auto',
-      },
-      (error: any, result: any) => {
-        if (error) {
-          console.error('❌ Cloudinary status document upload failed:', error);
-          resolve(null);
-          return;
-        }
-        resolve(result?.secure_url || null);
-      },
-    );
-    uploadStream.end(file.buffer);
-  });
+  return await uploadBufferToGCS(
+    file.buffer,
+    file.originalname,
+    file.mimetype,
+    `status_documents/${companyId}`
+  );
 };
 
 const isCollectorateJharsugudaCompanyId = (companyId?: string): boolean => {
@@ -235,7 +224,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       if (!Array.isArray(grievance.media)) grievance.media = [] as any;
       const uploadResults = await Promise.all(
         uploadedFiles.map(async (file) => {
-          const cloudUrl = await uploadBufferToCloudinary(
+          const cloudUrl = await uploadBufferToGCSWrapper(
             file,
             String(grievance.companyId._id || grievance.companyId),
           );

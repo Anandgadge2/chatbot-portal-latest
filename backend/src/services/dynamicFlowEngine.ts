@@ -20,7 +20,7 @@ import {
   getSessionFromMongo,
   clearSession,
 } from "./sessionService";
-import { uploadWhatsAppMediaToCloudinary } from "./mediaService";
+import { uploadWhatsAppMediaToGCS } from "./gcsService";
 import { ActionService } from "./actionService";
 import { checkDailyLimit } from "./grievanceRateLimitService";
 import { findDepartmentByCategory } from "./departmentMapper";
@@ -4026,9 +4026,10 @@ async function handleMediaUpload(
         company?._id?.toString() ||
         "chatbot"
       ).replace(/\s+/g, "_");
-      const cloudUrl = await uploadWhatsAppMediaToCloudinary(
+      const cloudUrl = await uploadWhatsAppMediaToGCS(
         mediaUrl,
         accessToken,
+        `wa_media_${Date.now()}`,
         folder,
       );
       storeMedia(
@@ -4059,9 +4060,9 @@ function storeMedia(
   field: string,
   url: string,
   type: string,
-  isCloudinary: boolean,
+  isGCS: boolean,
 ): void {
-  const mediaEntry = { url, type, uploadedAt: new Date(), isCloudinary };
+  const mediaEntry = { url, type, uploadedAt: new Date(), isGCS };
 
   if (field === "media") {
     data.media = data.media || [];
