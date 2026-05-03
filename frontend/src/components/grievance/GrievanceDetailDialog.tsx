@@ -298,24 +298,26 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             >
               {statusConfig.icon}
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-tight shrink-0">
                   #{grievance.grievanceId}
                 </h2>
-                <span
-                  className={`px-2.5 py-1 rounded-md text-[14px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace("text-", "bg-")} ${statusConfig.text}`}
-                >
-                  {statusConfig.label}
-                </span>
-                {isOverdue && (
-                  <span className="px-2.5 py-1 rounded-md text-[14px] font-black uppercase tracking-widest border border-rose-500 bg-rose-500 bg-opacity-10 text-rose-500 flex items-center gap-1 animate-pulse shadow-sm shadow-rose-900/20">
-                    <AlertCircle className="w-3 h-3" />
-                    Overdue
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span
+                    className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[12px] sm:text-[14px] font-black uppercase tracking-widest border border-current bg-opacity-10 ${statusConfig.text.replace("text-", "bg-")} ${statusConfig.text} whitespace-nowrap`}
+                  >
+                    {statusConfig.label}
                   </span>
-                )}
+                  {isOverdue && (
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[12px] sm:text-[14px] font-black uppercase tracking-widest border border-rose-500 bg-rose-500 bg-opacity-10 text-rose-500 flex items-center gap-1 animate-pulse shadow-sm shadow-rose-900/20 whitespace-nowrap">
+                      <AlertCircle className="w-2.5 h-2.5 sm:w-3 h-3" />
+                      Overdue
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] sm:text-xs font-bold text-slate-300 uppercase tracking-widest mt-1">
                 Submitted {timeAgo} {createdDate && !isNaN(createdDate.getTime()) ? `• ${formatDate(createdDate)}` : ""}
               </p>
             </div>
@@ -332,17 +334,17 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-slate-50 border-b border-slate-200 px-5 flex items-stretch gap-1 overflow-x-auto no-scrollbar flex-shrink-0 min-h-[3.25rem]">
+        <div className="bg-slate-50 border-b border-slate-200 px-2 sm:px-5 flex items-stretch gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar flex-shrink-0 min-h-[3rem] sm:min-h-[3.25rem]">
           {[
             {
               id: "overview",
               label: "Overview",
-              icon: <FileText className="w-3.5 h-3.5" />,
+              icon: <FileText className="w-3 h-3 sm:w-3.5 h-3.5" />,
             },
             {
               id: "media",
               label: "Media Assets",
-              icon: <ImageIcon className="w-3.5 h-3.5" />,
+              icon: <ImageIcon className="w-3 h-3 sm:w-3.5 h-3.5" />,
               count: grievance.media?.length,
             },
             ...(canUpdateStatus
@@ -350,30 +352,31 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   {
                     id: "actions",
                     label: "Actions",
-                    icon: <Settings className="w-3.5 h-3.5" />,
+                    icon: <Settings className="w-3 h-3 sm:w-3.5 h-3.5" />,
                   },
                 ]
               : []),
             {
               id: "timeline",
               label: "History & Resolution",
-              icon: <RefreshCw className="w-3.5 h-3.5" />,
+              icon: <RefreshCw className="w-3 h-3 sm:w-3.5 h-3.5" />,
             },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 text-[15px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 text-[12px] sm:text-[15px] font-black uppercase tracking-widest transition-all border-b-2 -mb-[1px] relative whitespace-nowrap ${
                 activeTab === tab.id
                   ? "border-blue-500 text-slate-800 bg-white ring-1 ring-blue-500/10 shadow-sm"
                   : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               }`}
             >
               {tab.icon}
-              {tab.label}
+              <span className="hidden xs:inline">{tab.label}</span>
+              <span className="xs:hidden">{tab.id === 'timeline' ? 'History' : tab.label.split(' ')[0]}</span>
               {tab.count !== undefined && (
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[14px] font-black ${activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"}`}
+                  className={`ml-1 px-1.5 py-0.5 rounded-full text-[12px] sm:text-[14px] font-black ${activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"}`}
                 >
                   {tab.count}
                 </span>

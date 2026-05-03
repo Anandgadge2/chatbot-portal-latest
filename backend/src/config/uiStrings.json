@@ -78,10 +78,9 @@
     "mr": "❌ *कोणतेही रेकॉर्ड आढळले नाही*\n\nआम्हाला त्या संदर्भ क्रमांकाशी जुळणारे कोणतेही रेकॉर्ड सापडले नाही.\n\nकृपया क्रमांक तपासा किंवा सपोर्टशी संपर्क साधा."
   },
   "track_found": {
-    "en": "📌 📄 *Grievance Status*\n\n📅 Date: {date}\n🎫 Ref No: {refNumber}\n\n🏢 Dept: {departmentName}\n📂 Category: {category}\n📊 Status: 📋 {status}\n\n📝 Details: {remarks}\n\nFor case escalation, please contact the department head.",
-    "hi": "📌 📄 *शिकायत की स्थिति*\n\n📅 तिथि: {date}\n🎫 संदर्भ संख्या: {refNumber}\n\n🏢 विभाग: {departmentName}\n📂 श्रेणी: {category}\n📊 स्थिति: 📋 {status}\n\n📝 विवरण: {remarks}\n\nमामले को आगे बढ़ाने के लिए, कृपया विभाग प्रमुख से संपर्क करें।",
-    "or": "📌 📄 *ଅଭିଯୋଗ ସ୍ଥିତି*\n\n📅 ତାରିଖ: {date}\n🎫 ରେଫରେନ୍ସ ନମ୍ବର: {refNumber}\n\n🏢 ବିଭାଗ: {departmentName}\n📂 ବର୍ଗ: {category}\n📊 ସ୍ଥିତି: 📋 {status}\n\n📝 ବିବରଣୀ: {remarks}\n\nଅଧିକ ସହାୟତା ପାଇଁ, ଦୟାକରି ବିଭାଗୀୟ ମୁଖ୍ୟଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।",
-    "mr": "📌 📄 *तक्रार स्थिती*\n\n📅 तारीख: {date}\n🎫 संदर्भ क्र: {refNumber}\n\n🏢 विभाग: {departmentName}\n📂 श्रेणी: {category}\n📊 स्थिती: 📋 {status}\n\n📝 तपशील: {remarks}\n\nअधिक मदतीसाठी, कृपया विभाग प्रमुखांशी संपर्क साधा."
+    "en": "📌 📄 *Grievance Status*\n\n📅 Date: {date}\n🎫 Ref No: {refNumber}\n\n🏢 Dept: {departmentName}\n📂 Office: {category}\n📊 Status: 📋 *{status}*\n👤 Assigned To: {assignedTo}\n\n📝 Details: {remarks}\n",
+    "hi": "📌 📄 *शिकायत की स्थिति*\n\n📅 तिथि: {date}\n🎫 संदर्भ संख्या: {refNumber}\n\n🏢 विभाग: {departmentName}\n📂 कार्यालय: {category}\n📊 स्थिति: 📋 *{status}*\n👤 किसे सौंपा गया: {assignedTo}\n\n📝 विवरण: {remarks}\n",
+    "or": "📌 📄 *ଅଭିଯୋଗ ସ୍ଥିତି*\n\n📅 ତାରିଖ: {date}\n🎫 ରେଫରେନ୍ସ ନମ୍ବର: {refNumber}\n\n🏢 ବିଭାଗ: {departmentName}\n📂 ଅଫିସ୍: {category}\n📊 ସ୍ଥିତି: 📋 *{status}*\n👤 ଦାୟିତ୍ୱରେ: {assignedTo}\n\n📝 ବିବରଣୀ: {remarks}\n"
   },
   "track_another": {
     "en": "🔍 Track Another",
