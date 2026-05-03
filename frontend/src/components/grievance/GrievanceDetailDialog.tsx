@@ -560,12 +560,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Monitoring Officer
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 italic">
+                        <span className="text-sm font-bold text-slate-900 italic whitespace-normal break-words">
                           {assignedTo ||
                             "Unassigned / Pending Officer Allocation"}
                         </span>
                         {assignedTo && (
-                          <UserCheck className="w-3.5 h-3.5 text-blue-500" />
+                          <UserCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                         )}
                       </div>
                     </div>

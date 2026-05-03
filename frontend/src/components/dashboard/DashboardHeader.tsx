@@ -27,6 +27,7 @@ type DashboardHeaderProps = {
   onNotificationClick?: (notification: any) => void;
   onLogout: () => void;
   onRefresh?: () => void;
+  onBackToDashboard?: () => void;
   isRefreshing?: boolean;
 };
 
@@ -53,6 +54,7 @@ export const DashboardHeader = memo(function DashboardHeader({
   onNotificationClick = () => {},
   onLogout,
   onRefresh,
+  onBackToDashboard,
   isRefreshing = false,
 }: DashboardHeaderProps) {
   return (
@@ -91,7 +93,7 @@ export const DashboardHeader = memo(function DashboardHeader({
                 />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <h1 className="text-xl sm:text-xl font-black text-white tracking-tighter leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
+                <h1 className="text-lg sm:text-xl pt-2 font-black text-white tracking-tighter leading-none uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words drop-shadow-sm">
                   {isSuperAdminUser && companyIdParam ? (
                     `Viewing: ${companyName || "..."}`
                   ) : (
@@ -115,12 +117,12 @@ export const DashboardHeader = memo(function DashboardHeader({
                   )}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[10px] sm:text-[10px] text-white/80 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
+                  <p className="text-[11px] sm:text-[14px] text-white/80 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
                     {isJharsugudaCompany
                       ? dashboardBrandSubtitle
                       : "Control Panel"}
                   </p>
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                 </div>
               </div>
             </div>
@@ -150,15 +152,17 @@ export const DashboardHeader = memo(function DashboardHeader({
             <div className="w-px h-5 bg-slate-800 hidden lg:block mr-1" />
 
             {isSuperAdminUser && companyIdParam && (
-              <Link
-                href="/dashboard"
-                onClick={() => sessionStorage.removeItem("drilldownCompanyId")}
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("drilldownCompanyId");
+                  if (onBackToDashboard) onBackToDashboard();
+                }}
                 className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 text-[15px] sm:text-[15px] font-black uppercase tracking-widest flex items-center shrink-0 max-w-[70px] sm:max-w-none"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
                 <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden text-[14px]">Back</span>
-              </Link>
+                <span className="sm:hidden text-[12px]">Back</span>
+              </button>
             )}
 
             <div className="flex items-center gap-2 sm:gap-3">

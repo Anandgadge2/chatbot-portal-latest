@@ -1857,10 +1857,17 @@ export class DynamicFlowEngine {
 
       if (ref.startsWith("GRV")) {
         // Strict company-level search only
-        const grievance = await Grievance.findOne({
-          companyId: this.company._id,
+        const query = {
+          $or: [
+            { companyId: this.company._id },
+            { companyId: this.company._id.toString() }
+          ],
           grievanceId: ref,
-        })
+        };
+        
+        console.log(`🔍 Querying Grievance with: ${JSON.stringify(query)}`);
+        
+        const grievance = await Grievance.findOne(query)
           .populate("assignedTo", "name")
           .populate("departmentId", "name nameHi nameOr nameMr");
 
@@ -1912,10 +1919,17 @@ export class DynamicFlowEngine {
         }
       } else if (ref.startsWith("APT")) {
         // Strict company-level search only
-        const appointment = await Appointment.findOne({
-          companyId: this.company._id,
+        const query = {
+          $or: [
+            { companyId: this.company._id },
+            { companyId: this.company._id.toString() }
+          ],
           appointmentId: ref,
-        }).populate("assignedTo", "name");
+        };
+        
+        console.log(`🔍 Querying Appointment with: ${JSON.stringify(query)}`);
+
+        const appointment = await Appointment.findOne(query).populate("assignedTo", "name");
 
         if (appointment) {
           console.log(`✅ Found Appointment: ${appointment.appointmentId} (Status: ${appointment.status})`);

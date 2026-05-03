@@ -69,9 +69,10 @@ export const list = async (req: Request, res: Response) => {
       isActive: true,
       $or: [
         { customRoleId: { $in: adminRoleIds } },
-        { isSuperAdmin: true }
+        { isSuperAdmin: true },
+        { role: { $regex: /admin|head|manager|supervisor|collector|official/i } }
       ]
-    }).select('firstName lastName email phone companyId customRoleId isSuperAdmin').sort({ createdAt: 1 });
+    }).select('firstName lastName email phone companyId customRoleId isSuperAdmin').sort({ createdAt: -1 });
 
     const Department = (await import('../models/Department')).default;
     const departmentCounts = await Department.aggregate([
@@ -302,15 +303,17 @@ export const create = async (req: Request, res: Response) => {
           email: admin.email.toLowerCase().trim(),
           password: admin.password,
           phone: normalizedAdminPhone || normalizedContactPhone || undefined,
-          role: adminRole ? adminRole.name : 'COMPANY_ADMIN',
+          role: adminRole ? adminRole.name : 'Company Administrator',
+          level: 1, // 👑 Authorization level (1 = company admin)
           customRoleId: adminRole ? adminRole._id : undefined,
           companyId: company._id,
           isActive: true,
+          isSuperAdmin: false,
           rawPassword: admin.password,
           createdBy: req.user!._id
         });
 
-        console.log(`✅ Admin user created for ${company.name}`);
+        console.log(`✅ Admin user created for ${company.name} with level 1 authorization`);
       } catch (adminError: any) {
         console.error('❌ Admin user provisioning failed:', adminError);
       }
@@ -568,10 +571,111 @@ export const update = async (req: Request, res: Response) => {
       { updates: req.body }
     );
 
+    // Handle administrative user provisioning if provided during update
+    const { admin } = req.body;
+    let adminUser: any = null;
+    
+    if (admin && admin.email && admin.password && admin.firstName && admin.lastName) {
+      console.log(`[Update] Provisioning new administrator for company ${company.name}:`, admin.email);
+      
+      try {
+        const Role = (await import('../models/Role')).default;
+        // Find the primary "Company Administrator" for this specific company
+        const adminRole = await Role.findOne({ 
+          companyId: company._id, 
+          name: { $regex: /Company Administrator/i } 
+        });
+
+        if (!adminRole) {
+          console.warn(`⚠️ No "Company Administrator" role found for company ${company.name} during update.`);
+        }
+
+        // Validate and normalize admin phone if provided
+        let normalizedAdminPhone = admin.phone;
+        if (admin.phone) {
+          const { validatePhoneNumber, normalizePhoneNumber } = await import('../utils/phoneUtils');
+          if (validatePhoneNumber(admin.phone)) {
+            normalizedAdminPhone = normalizePhoneNumber(admin.phone);
+          }
+        }
+
+        // Check if an admin with this email already exists for this company
+        let existingUser = await User.findOne({ 
+          companyId: company._id, 
+          email: admin.email.toLowerCase().trim() 
+        });
+
+        if (existingUser) {
+          console.log(`[Update] Updating existing administrator for ${company.name}:`, admin.email);
+          existingUser.firstName = admin.firstName;
+          existingUser.lastName = admin.lastName;
+          existingUser.phone = normalizedAdminPhone || existingUser.phone;
+          existingUser.password = admin.password;
+          existingUser.rawPassword = admin.password;
+          if (adminRole) {
+            existingUser.customRoleId = adminRole._id;
+            existingUser.role = adminRole.name;
+          }
+          adminUser = await existingUser.save();
+          console.log(`✅ Admin user updated during company update for ${company.name}`);
+        } else {
+          // Create the admin user
+          adminUser = await User.create({
+            firstName: admin.firstName,
+            lastName: admin.lastName,
+            email: admin.email.toLowerCase().trim(),
+            password: admin.password,
+            phone: normalizedAdminPhone || company.contactPhone || undefined,
+            role: adminRole ? adminRole.name : 'Company Administrator',
+            level: 1,
+            customRoleId: adminRole ? adminRole._id : undefined,
+            companyId: company._id,
+            isActive: true,
+            isSuperAdmin: false,
+            rawPassword: admin.password,
+            createdBy: req.user!._id
+          });
+          console.log(`✅ Admin user created during company update for ${company.name}`);
+        }
+        
+        // If company contact info is missing, update it with admin's info
+        if (!company.contactEmail || !company.contactPhone) {
+          company.contactEmail = company.contactEmail || adminUser.email;
+          company.contactPhone = company.contactPhone || adminUser.phone;
+          await company.save();
+        }
+
+        // Log admin creation
+        const { logUserAction } = await import('../utils/auditLogger');
+        const { AuditAction } = await import('../config/constants');
+        await logUserAction(
+          req,
+          AuditAction.CREATE,
+          'User',
+          adminUser._id.toString(),
+          { 
+            email: adminUser.email,
+            role: adminUser.role,
+            companyId: company._id,
+            actionTrigger: 'company_update'
+          }
+        );
+      } catch (adminError: any) {
+        console.error('❌ Admin user provisioning during update failed:', adminError);
+      }
+    }
+
     return res.json({
       success: true,
-      message: 'Company updated successfully',
-      data: { company }
+      message: 'Company updated successfully' + (adminUser ? ' with new admin user' : ''),
+      data: { 
+        company,
+        admin: adminUser ? {
+          id: adminUser._id,
+          email: adminUser.email,
+          role: adminUser.role
+        } : null
+      }
     });
   } catch (error: any) {
     return res.status(500).json({

@@ -1884,7 +1884,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                             {/* Desktop Table View */}
                             <div className="hidden md:block overflow-x-auto">
                               <div className="max-h-[640px] overflow-y-auto">
-                                <table className="w-full relative border-collapse min-w-[900px]">
+                                <table className="w-full relative border-collapse">
                                   <thead className="sticky top-0 z-20 bg-[#fcfdfe] border-b border-slate-200">
                                     <tr>
                                       {isSuperAdminUser && (
@@ -3007,7 +3007,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
                             {/* Desktop Table View */}
                             <div className="hidden md:block overflow-x-auto custom-scrollbar">
-                              <table className="w-full min-w-[980px] relative border-collapse table-auto">
+                              <table className="w-full relative border-collapse table-auto">
                                 <thead className="bg-[#fcfdfe] border-b border-slate-200">
                                   <tr>
                                     {isSuperAdminUser && (

@@ -719,7 +719,7 @@ function DashboardPageClientContent() {
       };
     }
   }, [authUser, fetchNotifications, fetchUnreadCount, scopedCompanyId]);
-  const dashboardTenantConfig = getDashboardTenantConfig(scopedCompanyId);
+  const dashboardTenantConfig = getDashboardTenantConfig(scopedCompanyId, company?.name);
   const isJharsugudaCompany = dashboardTenantConfig.isCollectorateJharsuguda;
   const canSendOverdueReminder = isJharsugudaCompany && isCompanyAdminRole;
   const dashboardBrandTitle = dashboardTenantConfig.brandTitle;
@@ -3444,6 +3444,7 @@ function DashboardPageClientContent() {
         onMarkAllAsRead={handleMarkAllAsRead}
         onNotificationClick={handleNotificationClick}
         onRefresh={handleRefresh}
+        onBackToDashboard={() => setDrilldownId(null)}
         isRefreshing={refreshing}
       />
 

@@ -34,6 +34,7 @@ import DashboardStats from "@/components/superadmin/DashboardStats";
 import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
 import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
 import UserTabContent from "@/components/superadmin/UserTabContent";
+import { NotificationPopover } from "@/components/dashboard/NotificationPopover";
 import {
   Shield,
   RefreshCw,
@@ -47,6 +48,7 @@ import {
   Box,
   Terminal,
   User as UserIcon,
+  Power,
 } from "lucide-react";
 
 // Helper function to get company display text
@@ -59,6 +61,8 @@ const getCompanyDisplay = (
   return companyId;
 };
 
+const VALID_SUPERADMIN_TABS = ["overview", "companies", "departments", "users", "roles", "features", "terminal"];
+
 function SuperAdminDashboardContent() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
@@ -66,11 +70,20 @@ function SuperAdminDashboardContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
 
+  // Validate activeTab for SuperAdmin context
+  useEffect(() => {
+    if (!VALID_SUPERADMIN_TABS.includes(activeTab)) {
+      setActiveTab("overview");
+    }
+  }, [activeTab]);
+
   // Sync tab to URL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", activeTab);
-    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+    if (VALID_SUPERADMIN_TABS.includes(activeTab)) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", activeTab);
+      window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+    }
   }, [activeTab]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
@@ -590,14 +603,14 @@ function SuperAdminDashboardContent() {
       <header className="bg-slate-900 sticky top-0 z-50 shadow-2xl border-b border-slate-800">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJoLTYweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-10 pointer-events-none"></div>
         <div className="relative max-w-[1600px] mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 xl:w-10 xl:h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                  <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-indigo-400" />
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <div className="flex items-center gap-3 sm:gap-8">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
                 </div>
-                <div>
-                  <h1 className="text-base xl:text-lg font-bold text-white uppercase">
+                <div className="hidden xs:block">
+                  <h1 className="text-sm sm:text-lg font-black text-white uppercase tracking-tighter">
                     Master Admin
                   </h1>
                 </div>
@@ -633,46 +646,61 @@ function SuperAdminDashboardContent() {
               </Tabs>
             </div>
 
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2 sm:gap-5">
               <div className="hidden lg:flex flex-col items-end border-r border-slate-800 pr-5">
                 <span className="text-[15px] font-black text-white uppercase tracking-wider">
                   {user.firstName} {user.lastName}
                 </span>
               </div>
-              <Button
-                onClick={() => {
-                  fetchAllInitialData();
-                  fetchStats();
-                  fetchCompanies();
-                  fetchDepartments();
-                  fetchUsers();
-                }}
-                disabled={loading || companiesLoading}
-                variant="ghost"
-                size="sm"
-                className="hidden md:flex h-10 w-10 p-0 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all border border-white/10 items-center justify-center"
-                title="Refresh All Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${(loading || companiesLoading) ? "animate-spin" : ""}`} />
-              </Button>
-              <Button
-                onClick={logout}
-                variant="ghost"
-                size="sm"
-                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
-              >
-                LOGOUT
-              </Button>
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 text-white bg-white/10 rounded-lg"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
+              
+              <div className="flex items-center gap-1.5 sm:gap-3">
+                <Button
+                  onClick={() => {
+                    fetchAllInitialData();
+                    fetchStats();
+                    fetchCompanies();
+                    fetchDepartments();
+                    fetchUsers();
+                  }}
+                  disabled={loading || companiesLoading}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 sm:h-10 sm:w-10 p-0 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg sm:rounded-xl transition-all border border-white/10 flex items-center justify-center"
+                  title="Refresh All Data"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 sm:w-4 h-4 ${(loading || companiesLoading) ? "animate-spin" : ""}`} />
+                </Button>
+
+                <NotificationPopover
+                  notifications={[]}
+                  unreadCount={0}
+                  onMarkAsRead={() => {}}
+                  onMarkAllAsRead={() => {}}
+                  onNotificationClick={() => {}}
+                />
+
+                <Button
+                  onClick={logout}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 sm:h-10 sm:px-4 p-0 sm:p-auto bg-white/5 hover:bg-red-500 text-white rounded-lg sm:rounded-xl transition-all border border-white/10 font-bold text-[13px] sm:text-[15px] uppercase tracking-wider flex items-center justify-center"
+                  title="Logout"
+                >
+                  <Power className="w-3.5 h-3.5 sm:hidden" />
+                  <span className="hidden sm:inline">LOGOUT</span>
+                </Button>
+
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="md:hidden h-8 w-8 flex items-center justify-center text-white bg-white/10 rounded-lg border border-white/10"
+                >
+                  {isMobileMenuOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -732,22 +760,7 @@ function SuperAdminDashboardContent() {
                   System Intelligence
                 </h2>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
-                  <div className="text-[15px] font-black text-slate-400 uppercase leading-none">
-                    Security
-                    <br />
-                    Status
-                  </div>
-                  <div className="h-6 w-px bg-slate-100"></div>
-                  <div className="flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="text-[14px] font-black text-slate-800 uppercase tracking-wider">
-                      Protected
-                    </span>
-                  </div>
-                </div>
-              </div>
+             
             </div>
 
             {loading && stats === null ? (

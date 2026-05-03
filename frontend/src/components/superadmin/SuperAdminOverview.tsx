@@ -43,6 +43,7 @@ import {
   User as UserIcon,
   Settings,
   FileText,
+  Power,
 } from "lucide-react";
 
 // Helper function to get company display text
@@ -55,20 +56,29 @@ const getCompanyDisplay = (
   return companyId;
 };
 
+const VALID_SUPERADMIN_TABS = ["overview", "companies", "users", "departments", "roles", "features", "terminal"];
+
 function SuperAdminOverviewContent() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") || "overview";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const isUpdatingUrl = useRef(false);
+
+  // Validate activeTab for SuperAdmin context
+  useEffect(() => {
+    if (!VALID_SUPERADMIN_TABS.includes(activeTab)) {
+      setActiveTab("overview");
+    }
+  }, [activeTab]);
 
   // Single sync: tab state -> URL (only when user clicks a tab)
   useEffect(() => {
     if (isUpdatingUrl.current) return;
     const currentUrlTab = searchParams.get("tab") || "overview";
     if (activeTab === currentUrlTab) return;
+    if (!VALID_SUPERADMIN_TABS.includes(activeTab)) return;
 
     isUpdatingUrl.current = true;
     const params = new URLSearchParams(searchParams.toString());
@@ -80,7 +90,7 @@ function SuperAdminOverviewContent() {
     router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
     // Reset after a tick to allow the URL update to settle
     setTimeout(() => { isUpdatingUrl.current = false; }, 100);
-  }, [activeTab, router, searchParams]); // intentionally minimal deps but standard-compliant
+  }, [activeTab, router, searchParams]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -669,7 +679,7 @@ function SuperAdminOverviewContent() {
                   <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-base xl:text-lg font-bold text-white uppercase">
+                  <h1 className="text-sm xl:text-lg font-bold text-white uppercase">
                     Master Admin
                   </h1>
                 </div>
@@ -726,9 +736,10 @@ function SuperAdminOverviewContent() {
                 onClick={logout}
                 variant="ghost"
                 size="sm"
-                className="hidden md:flex h-10 px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[15px] uppercase tracking-wider"
+                className="h-10 px-2 sm:px-6 bg-white/5 hover:bg-red-500 text-white rounded-xl transition-all border border-white/10 font-bold text-[11px] sm:text-[15px] uppercase tracking-wider"
               >
-                LOGOUT
+                <Power className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">LOGOUT</span>
               </Button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

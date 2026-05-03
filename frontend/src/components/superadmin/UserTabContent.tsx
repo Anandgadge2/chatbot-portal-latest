@@ -139,7 +139,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
   };
 
   return (
-    <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+    <Card className="rounded-xl border border-slate-200 shadow-sm overflow-visible bg-white">
       <CardHeader className="bg-slate-900 border-0 px-5 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -177,77 +177,83 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
       </CardHeader>
       <CardContent className="p-0">
         {/* Filters */}
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-wrap items-center gap-3">
+        <div className="px-3 sm:px-5 py-3 border-b border-slate-100 bg-slate-50/30 grid grid-cols-1 md:flex md:items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Rows</span>
+            <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Rows</span>
             <select
               value={userPagination.limit}
               onChange={(e) => { setUserLimit(Number(e.target.value)); setUserPage(1); }}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[15px] font-bold text-slate-600 outline-none transition-all cursor-pointer"
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[15px] font-bold text-slate-600 outline-none transition-all cursor-pointer flex-1 md:flex-none"
             >
               {[10, 20, 25, 50, 100].map(v => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
           </div>
+          
           <div className="h-6 w-px bg-slate-200 hidden md:block mx-1"></div>
-          <div className="relative flex-1 min-w-[240px]">
+          
+          <div className="relative flex-1 min-w-0 md:min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               placeholder="Find user by name or ID..."
               value={userSearchTerm}
               onChange={(e) => { setUserSearchTerm(e.target.value); setUserPage(1); }}
-              className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              className="w-full pl-9 pr-4 py-1.5 h-8 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Company</span>
-            <SearchableSelect
-              options={[
-                { value: "", label: "🏢 All Companies" },
-                ...allCompanies.map((c) => ({ value: c._id, label: c.name })),
-              ]}
-              value={userCompanyFilter}
-              onValueChange={(val) => {
-                setUserCompanyFilter(val);
-                setUserPage(1);
-              }}
-              placeholder="Company"
-              className="h-8 min-w-[150px] text-[14px] font-bold"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest">Role</span>
-            <SearchableSelect
-              options={[
-                { value: "", label: "🛡️ All Roles" },
-                { value: "SUPER_ADMIN", label: "Super Admin" },
-                ...(allRoles || [])
-                  .filter(
-                    (r) =>
-                      r &&
-                      r.name &&
-                      r.name !== "Platform Superadmin" &&
-                      r.name !== "Super Admin",
-                  )
-                  .map((r) => {
-                    const companyName =
-                      r.companyId?.name ||
-                      (typeof r.companyId === "string" ? r.companyId : null);
-                    return {
-                      value: r._id || r.key || r.name.toUpperCase(),
-                      label: `${r.name} ${companyName ? `(${companyName})` : "(System)"}`,
-                    };
-                  }),
-              ]}
-              value={userRoleFilter}
-              onValueChange={(val) => {
-                setUserRoleFilter(val);
-                setUserPage(1);
-              }}
-              placeholder="Role"
-              className="h-8 min-w-[200px] text-[14px] font-bold"
-            />
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:contents gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0 hidden lg:inline">Org</span>
+              <SearchableSelect
+                options={[
+                  { value: "", label: "🏢 All Companies" },
+                  ...allCompanies.map((c) => ({ value: c._id, label: c.name })),
+                ]}
+                value={userCompanyFilter}
+                onValueChange={(val) => {
+                  setUserCompanyFilter(val);
+                  setUserPage(1);
+                }}
+                placeholder="Organization"
+                className="h-8 w-full md:min-w-[150px] text-[14px] font-bold"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[15px] font-bold text-slate-400 uppercase tracking-widest shrink-0 hidden lg:inline">Role</span>
+              <SearchableSelect
+                options={[
+                  { value: "", label: "🛡️ All Roles" },
+                  { value: "SUPER_ADMIN", label: "Super Admin" },
+                  ...(allRoles || [])
+                    .filter(
+                      (r) =>
+                        r &&
+                        r.name &&
+                        r.name !== "Platform Superadmin" &&
+                        r.name !== "Super Admin",
+                    )
+                    .map((r) => {
+                      const companyName =
+                        r.companyId?.name ||
+                        (typeof r.companyId === "string" ? r.companyId : null);
+                      return {
+                        value: r._id || r.key || r.name.toUpperCase(),
+                        label: `${r.name} ${companyName ? `(${companyName})` : "(System)"}`,
+                      };
+                    }),
+                ]}
+                value={userRoleFilter}
+                onValueChange={(val) => {
+                  setUserRoleFilter(val);
+                  setUserPage(1);
+                }}
+                placeholder="Role"
+                className="h-8 w-full md:min-w-[150px] text-[14px] font-bold"
+              />
+            </div>
           </div>
         </div>
 
@@ -333,19 +339,19 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                         </span>
                       </td>
                       {/* User */}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-normal">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold bg-indigo-600 text-[15px] shadow-md shadow-indigo-100 shrink-0">
                             {u.firstName?.[0]}{u.lastName?.[0]}
                           </div>
-                          <div>
-                            <div className="text-[15px] font-bold text-slate-800 leading-none">{u.firstName} {u.lastName}</div>
-                            <div className="text-[15px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">{u.userId || u._id}</div>
+                          <div className="min-w-0">
+                            <div className="text-[15px] font-bold text-slate-800 leading-none break-words max-w-[120px] sm:max-w-[180px]">{u.firstName} {u.lastName}</div>
+                            <div className="text-[15px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter truncate max-w-[100px]">{u.userId || u._id}</div>
                           </div>
                         </div>
                       </td>
                       {/* Email */}
-                      <td className="px-4 py-4 whitespace-nowrap text-[15px] font-medium text-slate-600">{u.email}</td>
+                      <td className="px-4 py-4 whitespace-normal text-[15px] font-medium text-slate-600 break-all max-w-[150px] sm:max-w-[200px]">{u.email}</td>
                       {/* Credentials */}
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
@@ -372,7 +378,7 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                         </span>
                       </td>
                       {/* Company */}
-                      <td className="px-4 py-4 whitespace-nowrap text-[15px] font-bold text-slate-500">
+                      <td className="px-4 py-4 whitespace-normal text-[15px] font-bold text-slate-500 break-words max-w-[120px] sm:max-w-[180px]">
                         {typeof u.companyId === "object" && u.companyId?.name ? u.companyId.name : u.companyId ? String(u.companyId) : "—"}
                       </td>
                       {/* Status */}

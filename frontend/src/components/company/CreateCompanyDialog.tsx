@@ -412,7 +412,12 @@ const CreateCompanyDialog: React.FC<CreateCompanyDialogProps> = ({ isOpen, onClo
             {/* Admin Creation Section */}
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-bold text-slate-700">Organization Administrator</Label>
+                <div className="flex flex-col">
+                  <Label className="text-sm font-bold text-slate-700">Organization Administrator</Label>
+                  <p className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    Will be assigned as <span className="text-indigo-600">Company Admin</span> by default
+                  </p>
+                </div>
                 {!showAdminForm && (
                   <Button
                     type="button"

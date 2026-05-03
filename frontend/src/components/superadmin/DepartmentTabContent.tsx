@@ -85,18 +85,19 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
   return (
     <div className="space-y-4">
       {/* Search and Filters Bar */}
-      <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-        <Button variant="outline" size="sm" className="h-9 px-3 gap-2 text-slate-500 border-slate-200">
+      {/* Search and Filters Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+        <Button variant="outline" size="sm" className="h-9 px-3 gap-2 text-slate-500 border-slate-200 lg:w-auto">
           <Filter className="w-3.5 h-3.5" />
           <span className="text-xs font-bold">Filters</span>
         </Button>
         
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 w-full lg:w-auto">
           <Layers className="w-3.5 h-3.5 text-slate-400 mr-2" />
           <select 
             value={typeFilter} 
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs font-bold text-slate-600 outline-none pr-1 bg-transparent cursor-pointer"
+            className="text-xs font-bold text-slate-600 outline-none pr-1 bg-transparent cursor-pointer flex-1"
           >
             <option value="all">All Types</option>
             <option value="main">Main Depts</option>
@@ -104,12 +105,12 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 w-full lg:w-auto">
           <ClipboardCheck className="w-3.5 h-3.5 text-slate-400 mr-2" />
           <select 
             value={statusFilter} 
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs font-bold text-slate-600 outline-none pr-1 bg-transparent cursor-pointer"
+            className="text-xs font-bold text-slate-600 outline-none pr-1 bg-transparent cursor-pointer flex-1"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -117,7 +118,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 min-w-[200px] flex-1">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 min-w-0 sm:min-w-[200px] flex-1 w-full lg:w-auto">
           <Building className="w-3.5 h-3.5 text-slate-400 mr-2" />
           <SearchableSelect
             options={[
@@ -131,17 +132,17 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
           />
         </div>
 
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 flex-1 min-w-[200px]">
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 h-9 flex-1 min-w-0 sm:min-w-[200px] w-full lg:w-auto">
           <Search className="w-3.5 h-3.5 text-slate-400 mr-2" />
           <input 
-            placeholder="Search Dept by Name or ID..."
+            placeholder="Search Dept..."
             value={deptSearchTerm}
             onChange={(e) => setDeptSearchTerm(e.target.value)}
             className="text-[14px] font-bold text-slate-600 outline-none bg-transparent w-full"
           />
         </div>
 
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="flex items-center gap-4 ml-auto w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 pt-3 sm:pt-0">
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-black text-slate-400 uppercase">Rows:</span>
             <select 
@@ -156,7 +157,7 @@ const DepartmentTabContent: React.FC<DepartmentTabContentProps> = ({
             <ChevronDown className="w-3 h-3 text-slate-400 -ml-1" />
           </div>
           <span className="text-[14px] font-bold text-slate-400 whitespace-nowrap">
-            Showing <span className="text-slate-800">{departments.length}</span> of <span className="text-slate-800">{departmentPagination.total}</span>
+            <span className="text-slate-800">{departments.length}</span> / <span className="text-slate-800">{departmentPagination.total}</span>
           </span>
         </div>
       </div>
