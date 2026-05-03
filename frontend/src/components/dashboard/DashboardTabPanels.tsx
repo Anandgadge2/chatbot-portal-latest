@@ -476,7 +476,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                     setGrievanceSearch("");
                     setGrievanceFilters((prev) => ({ 
                       ...prev, 
-                      status: "PENDING",
+                      status: "PENDING,IN_PROGRESS,ASSIGNED",
                       slaStatus: "",
                       dateRange: "",
                       priority: "",
@@ -611,7 +611,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                       setGrievanceSearch("");
                       setGrievanceFilters((prev) => ({ 
                         ...prev, 
-                        status: "PENDING",
+                        status: "PENDING,IN_PROGRESS,ASSIGNED",
                         slaStatus: "",
                         dateRange: "",
                         priority: "",
@@ -3669,6 +3669,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                           >
                             <option value="">📋 All Status</option>
                             <option value="ALL">📑 Total(Inc. Resolved/Rejected)</option>
+                            <option value="PENDING,IN_PROGRESS,ASSIGNED">🔸 Pending (Inc. In Progress)</option>
                             <option value="PENDING">🔸 Pending</option>
                             <option value="IN_PROGRESS">🛠️ In Progress</option>
                             <option value="RESOLVED">✅ Resolved</option>
@@ -4044,7 +4045,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                   <div className="flex items-center gap-1 text-[14px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
                                                     <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
                                                   </div>
-                                                  <span className="text-[14px] font-bold text-slate-900 leading-none">
+                                                  <span className="text-[14px] font-bold text-slate-900 leading-tight break-words whitespace-normal">
                                                     {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
                                                   </span>
                                                 </div>
@@ -4313,7 +4314,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                               return (
                                                 <div className="mt-2 space-y-2">
                                                   {latestRevertRemark && (
-                                                    <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 max-w-[200px]">
+                                                    <div className="bg-rose-50 border border-rose-100 rounded-lg p-2 max-w-[280px]">
                                                       <p className="text-[15px] font-black text-rose-500 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
                                                         <Undo2 className="w-2.5 h-2.5" /> Revert Remark
                                                       </p>
@@ -4323,7 +4324,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                     </div>
                                                   )}
                                                   {(suggestedDeptId || suggestedSubDeptId) && (
-                                                    <div className="group/suggested max-w-[200px]">
+                                                    <div className="group/suggested max-w-[280px]">
                                                       <div className="flex items-center gap-1 text-[15px] text-rose-500 font-black uppercase tracking-widest mb-1 opacity-70">
                                                         <ArrowRightCircle className="w-2.5 h-2.5" /> Proposed Destination
                                                       </div>
@@ -4332,7 +4333,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                                           <Building2 className="w-3.5 h-3.5" />
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
-                                                          <span className="text-[14px] font-bold text-slate-900 leading-none truncate">
+                                                          <span className="text-[14px] font-bold text-slate-900 leading-tight break-words whitespace-normal">
                                                             {allDepartments?.find(d => d._id === (suggestedSubDeptId || suggestedDeptId))?.name || "Target Department"}
                                                           </span>
                                                         </div>

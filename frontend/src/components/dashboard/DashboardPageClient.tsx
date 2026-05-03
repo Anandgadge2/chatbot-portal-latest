@@ -2812,10 +2812,20 @@ function DashboardPageClientContent() {
     if (tab === "grievances") {
       // Status filter
       if (grievanceFilters.status && grievanceFilters.status !== "ALL") {
-        filteredData = filteredData.filter(
-          (g: Grievance) =>
-            g.status?.toUpperCase() === grievanceFilters.status.toUpperCase(),
-        );
+        if (grievanceFilters.status.includes(",")) {
+          const statusList = grievanceFilters.status
+            .toUpperCase()
+            .split(",")
+            .map((s) => s.trim());
+          filteredData = filteredData.filter((g: Grievance) =>
+            statusList.includes(g.status?.toUpperCase()),
+          );
+        } else {
+          filteredData = filteredData.filter(
+            (g: Grievance) =>
+              g.status?.toUpperCase() === grievanceFilters.status.toUpperCase(),
+          );
+        }
       }
       // Department filter
       if (grievanceFilters.department) {

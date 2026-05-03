@@ -347,7 +347,20 @@ export const dashboard = async (req: Request, res: Response) => {
               { $sort: { _id: 1 } }
             ],
             byDepartment: [
-              { $group: { _id: '$departmentId', total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, 'OPEN']] }, 1, 0] } } } },
+              {
+                $project: {
+                  deptIds: {
+                    $filter: {
+                      input: ["$departmentId", "$subDepartmentId"],
+                      as: "id",
+                      cond: { $ne: ["$$id", null] }
+                    }
+                  },
+                  status: 1
+                }
+              },
+              { $unwind: "$deptIds" },
+              { $group: { _id: "$deptIds", total: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', [GrievanceStatus.PENDING, GrievanceStatus.ASSIGNED, GrievanceStatus.IN_PROGRESS, 'OPEN']] }, 1, 0] } } } },
               { $match: { _id: { $ne: null } } },
               { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
               { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
@@ -393,7 +406,20 @@ export const dashboard = async (req: Request, res: Response) => {
               { $sort: { _id: 1 } }
             ],
             byDepartment: [
-              { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } },
+              {
+                $project: {
+                  deptIds: {
+                    $filter: {
+                      input: ["$departmentId", "$subDepartmentId"],
+                      as: "id",
+                      cond: { $ne: ["$$id", null] }
+                    }
+                  },
+                  status: 1
+                }
+              },
+              { $unwind: "$deptIds" },
+              { $group: { _id: "$deptIds", count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', AppointmentStatus.COMPLETED] }, 1, 0] } } } },
               { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
               { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
               { $project: { departmentId: '$_id', departmentName: '$dept.name', count: 1, completed: 1 } },
@@ -673,7 +699,20 @@ export const grievancesByDepartment = async (req: Request, res: Response) => {
     const matchQuery = await getAnalyticsBaseQuery(req, companyId);
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
-      { $group: { _id: { $ifNull: ['$subDepartmentId', '$departmentId'] }, count: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
+      {
+        $project: {
+          deptIds: {
+            $filter: {
+              input: ["$departmentId", "$subDepartmentId"],
+              as: "id",
+              cond: { $ne: ["$$id", null] }
+            }
+          },
+          status: 1
+        }
+      },
+      { $unwind: "$deptIds" },
+      { $group: { _id: "$deptIds", count: { $sum: 1 }, pending: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.PENDING] }, 1, 0] } }, resolved: { $sum: { $cond: [{ $eq: ['$status', GrievanceStatus.RESOLVED] }, 1, 0] } } } },
       { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'department' } },
       { $unwind: { path: '$department', preserveNullAndEmptyArrays: true } },
       { $project: { departmentId: '$_id', departmentName: '$department.name', parentDepartmentId: '$department.parentDepartmentId', count: 1, pending: 1, resolved: 1 } },
