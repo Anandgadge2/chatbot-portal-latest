@@ -3435,9 +3435,7 @@ function DashboardPageClientContent() {
         canReadGrievance={hasPermission(user, Permission.READ_GRIEVANCE)}
         dashboardBrandTitle={dashboardBrandTitle}
         dashboardBrandSubtitle={dashboardBrandSubtitle}
-        refreshing={refreshing}
         onOpenMobileMenu={handleOpenMobileMenu}
-        onRefresh={handleRefresh}
         onProfileClick={handleProfileClick}
         onLogout={logout}
         notifications={notifications}
