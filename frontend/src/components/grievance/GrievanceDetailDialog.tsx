@@ -50,7 +50,7 @@ const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
 });
 
 // Helper: treat as image if type is image or URL looks like an image
-// Cloudinary image URLs contain /image/upload/ in the path
+
 const isImageMedia = (media: { type?: string; url?: string }) => {
   if (media.type === "image") return true;
   if (media.type === "document") return false;
@@ -59,7 +59,7 @@ const isImageMedia = (media: { type?: string; url?: string }) => {
   // Strict extension check
   if (/\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(url)) return true;
 
-  // Cloudinary specific detection
+
   if (/\/image\/upload\//i.test(url)) {
     // If it has document extensions or /raw/, it's not an image
     if (

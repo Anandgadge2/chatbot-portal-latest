@@ -13,7 +13,7 @@ dotenv.config();
 import { connectDatabase, closeDatabase, getDatabaseStatus, isDatabaseConnected } from './config/database';
 import { connectRedis, disconnectRedis } from './config/redis';
 import { logger } from './config/logger'; 
-import { configureCloudinary } from './config/cloudinary';
+import { configureGCS } from './config/gcs';
 import { validateRequiredEnv } from './config/env';
 import User from './models/User';
 
@@ -272,12 +272,8 @@ app.use(errorHandler);
 const init = async () => {
   validateRequiredEnv();
 
-  // Configure Cloudinary
-  try {
-    configureCloudinary();
-  } catch (error: any) {
-    logger.error('Cloudinary configuration failed:', error.message);
-  }
+    // Configure GCS
+    await configureGCS();
 
   // Connect to MongoDB
   await connectDatabase();

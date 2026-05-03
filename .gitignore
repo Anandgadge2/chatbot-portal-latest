@@ -55,3 +55,6 @@ uploads/
 # backend/src/scripts/
 # **/scripts/seed*.ts
 # **/scripts/fix*.ts
+
+# Credentials
+backend/gcs-service-account.json
