@@ -306,24 +306,17 @@ export async function triggerCitizenStatusTemplate(options: {
     values
   });
 
-  // 4. Handle Proof/Evidence (Identify type and use specialized media templates)
+  // 4. Handle Proof/Evidence (Identify type and use specialized media templates via sequential sender)
   if (options.media && options.media.length > 0) {
-    logger.info(`📦 Sending ${options.media.length} proof attachments to citizen...`);
+    logger.info(`📦 Sending ${options.media.length} proof attachments to citizen via sequential sender...`);
     
-    for (const file of options.media) {
-      let mediaTemplate = 'media_image_v1';
-      if (file.type === 'video') mediaTemplate = 'media_video_v1';
-      if (file.type === 'document') mediaTemplate = 'media_document_v1';
-
-      await triggerCitizenTemplate({
-        template: mediaTemplate,
-        companyId: options.companyId,
-        citizenPhone: options.citizenPhone,
-        language,
-        values: [options.citizenName || 'Citizen'], // Media templates take 1 variable: recipientName
-        mediaUrl: file.url
-      });
-    }
+    const company = await getCompanyWithConfig(options.companyId);
+    await sendMediaSequentially(
+      company,
+      options.citizenPhone,
+      options.media,
+      options.citizenName || 'Citizen'
+    ).catch(err => logger.error(`❌ Media sequential send failed: ${err.message}`));
   }
 }
 

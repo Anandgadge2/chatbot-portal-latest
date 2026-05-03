@@ -39,6 +39,7 @@ type KpiCardProps = {
   icon: ReactNode;
   onClick: () => void;
   loading: boolean;
+  tooltip?: string;
 };
 
 function KpiCard({
@@ -50,10 +51,12 @@ function KpiCard({
   icon,
   onClick,
   loading,
+  tooltip,
 }: KpiCardProps) {
   return (
     <Card
       onClick={onClick}
+      title={tooltip}
       className="min-h-[6.5rem] sm:min-h-[8.5rem] cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
     >
       <CardHeader
@@ -98,16 +101,17 @@ export function OverviewGrievanceKpis({
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
       <KpiCard
-        title="Pending"
+        title="Pending (Inc. In Progress)"
         value={pendingCount}
         colorClass="text-blue-600"
         borderClass="border-blue-500"
         icon={<AlertCircle className="h-3 w-3 text-blue-500" />}
         onClick={onPendingClick}
         loading={loading}
+        tooltip="Includes both PENDING and IN PROGRESS grievances"
         footer={
           <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
-            Waiting
+            Awaiting/Active
           </p>
         }
       />
@@ -120,6 +124,7 @@ export function OverviewGrievanceKpis({
         icon={<Clock className="h-3 w-3 text-amber-500" />}
         onClick={onOverdueClick}
         loading={loading}
+        tooltip="Grievances that have exceeded their SLA resolution time"
         footer={
           <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Delayed
@@ -135,6 +140,7 @@ export function OverviewGrievanceKpis({
         icon={<ArrowLeft className="h-3 w-3 text-sky-500" />}
         onClick={onRevertedClick}
         loading={loading}
+        tooltip="Grievances returned for reassignment or clarification"
         footer={
           <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Reassigned
@@ -150,6 +156,7 @@ export function OverviewGrievanceKpis({
         icon={<CheckCircle2 className="h-3 w-3 text-emerald-500" />}
         onClick={onResolvedClick}
         loading={loading}
+        tooltip="Successfully addressed grievances"
         footer={
           <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Completed
@@ -165,6 +172,7 @@ export function OverviewGrievanceKpis({
         icon={<XCircle className="h-3 w-3 text-rose-500" />}
         onClick={onRejectedClick}
         loading={loading}
+        tooltip="Grievances found invalid or out of scope"
         footer={
           <p className="mt-1 text-[14px] font-bold uppercase text-slate-400">
             Declined
@@ -180,6 +188,7 @@ export function OverviewGrievanceKpis({
         icon={<FileText className="h-3 w-3 text-indigo-500" />}
         onClick={onTotalClick}
         loading={loading}
+        tooltip="Absolute total of all grievances registered"
         footer={
           <div className="mt-1 flex items-center gap-1">
             <span className="text-[14px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
