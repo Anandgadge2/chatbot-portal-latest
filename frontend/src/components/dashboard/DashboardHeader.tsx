@@ -26,9 +26,12 @@ type DashboardHeaderProps = {
   onMarkAllAsRead?: () => void;
   onNotificationClick?: (notification: any) => void;
   onLogout: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 };
 
 import { NotificationPopover } from "./NotificationPopover";
+import { RefreshCw } from "lucide-react";
 
 export const DashboardHeader = memo(function DashboardHeader({
   user,
@@ -49,6 +52,8 @@ export const DashboardHeader = memo(function DashboardHeader({
   onMarkAllAsRead = () => {},
   onNotificationClick = () => {},
   onLogout,
+  onRefresh,
+  isRefreshing = false,
 }: DashboardHeaderProps) {
   return (
     <header className="bg-slate-900 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-xl overflow-hidden">
@@ -64,15 +69,15 @@ export const DashboardHeader = memo(function DashboardHeader({
               <button
                 type="button"
                 onClick={onOpenMobileMenu}
-                className="w-10 h-10 bg-white backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg border border-white/10 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
+                className="w-12 h-10 bg-white/50 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg border border-white/10 active:scale-95 transition-transform duration-300 md:hidden overflow-hidden"
                 title="Open sidebar"
                 aria-label="Open sidebar navigation"
               >
                 <Image
                   src="/assets/sahaj.png"
                   alt="Sahaj Logo"
-                  width={40}
-                  height={40}
+                  width={50}
+                  height={50}
                   className="object-contain"
                 />
               </button>
@@ -80,13 +85,13 @@ export const DashboardHeader = memo(function DashboardHeader({
                 <Image
                   src="/assets/sahaj.png"
                   alt="Sahaj Logo"
-                  width={40}
-                  height={40}
+                  width={50}
+                  height={50}
                   className="object-contain"
                 />
               </div>
-              <div className="flex flex-col justify-center">
-                <h1 className="text-[14px] sm:text-sm font-black text-white tracking-tight leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
+              <div className="flex flex-col justify-center min-w-0">
+                <h1 className="text-xl sm:text-xl font-black text-white tracking-tighter leading-tight uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words">
                   {isSuperAdminUser && companyIdParam ? (
                     `Viewing: ${companyName || "..."}`
                   ) : (
@@ -110,7 +115,7 @@ export const DashboardHeader = memo(function DashboardHeader({
                   )}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[15px] sm:text-[14px] text-slate-400 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
+                  <p className="text-[10px] sm:text-[10px] text-white/80 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
                     {isJharsugudaCompany
                       ? dashboardBrandSubtitle
                       : "Control Panel"}
@@ -124,6 +129,8 @@ export const DashboardHeader = memo(function DashboardHeader({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+
+
             <div className="hidden sm:flex flex-col items-end mr-2 sm:mr-3 lg:mr-0">
               <span className="hidden sm:block text-[14px] font-black text-white leading-none uppercase tracking-tight">
                 {user.firstName} {user.lastName}
@@ -155,9 +162,16 @@ export const DashboardHeader = memo(function DashboardHeader({
             )}
 
             <div className="flex items-center gap-2 sm:gap-3">
-
-              
-
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  className="flex h-9 w-9 bg-white/10 backdrop-blur-sm rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95 disabled:opacity-50"
+                  title="Refresh Data"
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={cn("w-4.5 h-4.5 text-white group-hover:scale-110 transition-all duration-300", isRefreshing && "animate-spin")} />
+                </button>
+              )}
               <NotificationPopover
                 notifications={notifications}
                 unreadCount={unreadCount}
@@ -167,11 +181,11 @@ export const DashboardHeader = memo(function DashboardHeader({
               />
               <button
                 onClick={onLogout}
-                className="flex h-9 w-9 sm:h-10 sm:w-10 bg-rose-500/5 rounded-xl items-center justify-center border border-rose-500/10 shadow-lg shadow-rose-950/20 group hover:bg-rose-500/20 transition-all duration-300 active:scale-95"
+                className="flex h-9 w-9 bg-rose-500/10 backdrop-blur-sm rounded-xl items-center justify-center border border-rose-500/20 shadow-lg group hover:bg-rose-500/20 transition-all duration-300 active:scale-95"
                 title="Logout"
                 aria-label="Logout account"
               >
-                <Power className="w-5 h-5 text-rose-500 group-hover:scale-110 transition-transform duration-300" />
+                <Power className="w-4.5 h-4.5 text-rose-500 group-hover:scale-110 transition-transform duration-300" />
               </button>
             </div>
           </div>

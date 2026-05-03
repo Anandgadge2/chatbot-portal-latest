@@ -1840,10 +1840,23 @@ export class DynamicFlowEngine {
    * Load grievance or appointment by refNumber into session.data for track_result step placeholders (status, assignedTo, remarks, recordType)
    */
   private async loadTrackResultIntoSession(): Promise<void> {
-    const ref = (this.session.data.refNumber || "").trim().toUpperCase();
+    // Strip all spaces from the reference number for strict matching
+    const ref = (this.session.data.refNumber || "").replace(/\s+/g, "").toUpperCase();
     if (!ref) return;
+
+    console.log(`🔍 Tracking request for Ref: "${ref}" (Current Company: ${this.company._id})`);
+
     try {
+      const lang = this.session.language || "en";
+      const noRemarksMap: any = {
+        en: "No remarks provided",
+        hi: "कोई विवरण नहीं दिया गया",
+        or: "କୌଣସି ବିବରଣୀ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ",
+        mr: "कोणतेही तपशील प्रदान केलेले नाहीत",
+      };
+
       if (ref.startsWith("GRV")) {
+        // Strict company-level search only
         const grievance = await Grievance.findOne({
           companyId: this.company._id,
           grievanceId: ref,
@@ -1852,40 +1865,37 @@ export class DynamicFlowEngine {
           .populate("departmentId", "name nameHi nameOr nameMr");
 
         if (grievance) {
-          const lang = this.session.language || "en";
+          console.log(`✅ Found Grievance: ${grievance.grievanceId} (Status: ${grievance.status})`);
           this.session.data.recordType = "Grievance";
           this.session.data.status = grievance.status;
+          
           const lastHistory =
             grievance.statusHistory && grievance.statusHistory.length > 0
               ? grievance.statusHistory[grievance.statusHistory.length - 1]
               : null;
-          const noRemarksMap: any = {
-            en: "No remarks provided",
-            hi: "कोई विवरण नहीं दिया गया",
-            or: "କୌଣସି ବିବରଣୀ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ",
-            mr: "कोणतेही तपशील प्रदान केलेले नाहीत",
-          };
+          
           const rawRemarks = (lastHistory as any)?.remarks ?? (grievance as any).remarks;
           this.session.data.remarks =
             rawRemarks && rawRemarks.trim() !== "" ? rawRemarks : noRemarksMap[lang] || noRemarksMap.en;
+          
           this.session.data.assignedTo =
-            (grievance as any).assignedTo?.name ??
-            (grievance as any).assignedTo ??
-            "Not assigned";
+            (grievance as any).assignedTo?.name ?? "Under Review";
 
-          // Enhanced tracking details
           this.session.data.date = new Date(
             grievance.createdAt,
           ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+
           const dept = (grievance as any).departmentId;
           if (dept) {
             let localeDeptName = dept.name;
             if (lang === "hi" && dept.nameHi) localeDeptName = dept.nameHi;
             if (lang === "or" && dept.nameOr) localeDeptName = dept.nameOr;
+            if (lang === "mr" && dept.nameMr) localeDeptName = dept.nameMr;
             this.session.data.departmentName = localeDeptName || "General";
           } else {
             this.session.data.departmentName = "General";
           }
+          
           this.session.data.category = (grievance as any).category || "General";
           this.session.data.serviceType = "Grievance";
           this.session.data.updatedAt = new Date(
@@ -1894,46 +1904,42 @@ export class DynamicFlowEngine {
 
           await updateSession(this.session);
         } else {
+          console.warn(`❌ Grievance "${ref}" not found for company ${this.company._id}.`);
           this.session.data.status = "Not Found";
           this.session.data.assignedTo = "—";
-          this.session.data.remarks =
-            "No record found for this reference number.";
+          this.session.data.remarks = "No record found for this reference number.";
           this.session.data.recordType = "—";
         }
       } else if (ref.startsWith("APT")) {
+        // Strict company-level search only
         const appointment = await Appointment.findOne({
           companyId: this.company._id,
           appointmentId: ref,
         }).populate("assignedTo", "name");
 
         if (appointment) {
+          console.log(`✅ Found Appointment: ${appointment.appointmentId} (Status: ${appointment.status})`);
           this.session.data.recordType = "Appointment";
           this.session.data.status = appointment.status;
+          
           const lastHistory =
             appointment.statusHistory && appointment.statusHistory.length > 0
               ? appointment.statusHistory[appointment.statusHistory.length - 1]
               : null;
-          const noRemarksMap: any = {
-            en: "No remarks provided",
-            hi: "कोई विवरण नहीं दिया गया",
-            or: "କୌଣସି ବିବରଣୀ ପ୍ରଦାନ କରାଯାଇ ନାହିଁ",
-            mr: "कोणतेही तपशील प्रदान केलेले नाहीत",
-          };
-          const lang = this.session.language || "en";
+          
           const rawRemarks = (lastHistory as any)?.remarks ?? (appointment as any).remarks;
           this.session.data.remarks =
             rawRemarks && rawRemarks.trim() !== "" ? rawRemarks : noRemarksMap[lang] || noRemarksMap.en;
+          
           this.session.data.assignedTo =
-            (appointment as any).assignedTo?.name ??
-            (appointment as any).assignedTo ??
-            "Not assigned";
+            (appointment as any).assignedTo?.name ?? "Pending Review";
 
           this.session.data.date = new Date(
             appointment.createdAt,
           ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+          
           this.session.data.departmentName = "Administration";
-          this.session.data.category =
-            (appointment as any).purpose || "General";
+          this.session.data.category = (appointment as any).purpose || "General";
           this.session.data.serviceType = "Appointment";
           this.session.data.updatedAt = new Date(
             appointment.updatedAt || appointment.createdAt,
@@ -1941,17 +1947,16 @@ export class DynamicFlowEngine {
 
           await updateSession(this.session);
         } else {
+          console.warn(`❌ Appointment "${ref}" not found for company ${this.company._id}.`);
           this.session.data.status = "Not Found";
           this.session.data.assignedTo = "—";
-          this.session.data.remarks =
-            "No record found for this reference number.";
+          this.session.data.remarks = "No record found for this reference number.";
           this.session.data.recordType = "—";
         }
       } else {
         this.session.data.status = "Invalid";
         this.session.data.assignedTo = "—";
-        this.session.data.remarks =
-          "Reference number should start with GRV (grievance) or APT (appointment).";
+        this.session.data.remarks = "Reference number should start with GRV (grievance) or APT (appointment).";
         this.session.data.recordType = "—";
       }
     } catch (err: any) {
@@ -1961,6 +1966,7 @@ export class DynamicFlowEngine {
       this.session.data.remarks = "Could not fetch status. Please try again.";
       this.session.data.recordType = "—";
     }
+    await updateSession(this.session);
   }
 
 

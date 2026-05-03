@@ -3921,7 +3921,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     {/* ── CITIZEN NAME + phone + date ── */}
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm font-bold text-slate-900 leading-tight truncate">
+                                        <h4 className="text-sm font-bold text-slate-900 leading-tight break-words whitespace-normal">
                                           {grievance.citizenName}
                                         </h4>
                                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -4065,7 +4065,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                           <button
                                             type="button"
                                             onClick={() => openUserDetail((grievance.assignedTo as any)._id || grievance.assignedTo)}
-                                            className="text-[14px] font-bold text-indigo-600 truncate hover:text-indigo-800 hover:underline text-left w-full"
+                                            className="text-[14px] font-bold text-indigo-600 break-words whitespace-normal hover:text-indigo-800 hover:underline text-left w-full"
                                           >
                                             {assignedName}
                                           </button>

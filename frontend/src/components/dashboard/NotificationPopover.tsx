@@ -79,13 +79,13 @@ export function NotificationPopover({
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-9 w-9 sm:h-10 sm:w-10 p-0 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 flex items-center justify-center shadow-lg"
+          className="relative h-9 w-9 p-0 text-white hover:text-white hover:bg-white/20 backdrop-blur-sm rounded-xl transition-all duration-300 border border-white/20 flex items-center justify-center shadow-lg"
           title="Notifications"
           aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         >
-          <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+          <Bell className="w-4.5 h-4.5" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[14px] font-bold text-white ring-2 ring-slate-900 animate-in zoom-in duration-300">
+            <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-blue-600 shadow-lg animate-in zoom-in duration-300">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

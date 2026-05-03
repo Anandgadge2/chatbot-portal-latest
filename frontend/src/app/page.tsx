@@ -369,9 +369,9 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 lg:mt-10 w-full rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-center">
-            <p className="text-slate-500 text-[14px] font-black uppercase tracking-[0.22em]">
+            {/* <p className="text-slate-500 text-[14px] font-black uppercase tracking-[0.22em]">
               Authorized Personnel Only
-            </p>
+            </p> */}
             <p className="mt-1 text-[14px] text-slate-400 font-semibold">
               Need help signing in? Contact your company administrator.
             </p>

@@ -3443,6 +3443,8 @@ function DashboardPageClientContent() {
         onMarkAsRead={handleMarkAsRead}
         onMarkAllAsRead={handleMarkAllAsRead}
         onNotificationClick={handleNotificationClick}
+        onRefresh={handleRefresh}
+        isRefreshing={refreshing}
       />
 
       {/* Content wrapper */}
