@@ -310,14 +310,14 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                         ) : <Square className="w-4 h-4" />}
                     </button>
                   </th>
-                  <th className="px-3 py-2.5 text-center text-[15px] font-bold text-slate-400 uppercase tracking-widest">#</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">User</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Credentials</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Company</th>
-                  <th className="px-4 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                  <th className="px-4 py-2.5 text-right text-[15px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                  <th className="hidden md:table-cell px-3 py-2.5 text-center text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">User</th>
+                  <th className="hidden lg:table-cell px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                  <th className="hidden xl:table-cell px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Credentials</th>
+                  <th className="hidden sm:table-cell px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                  <th className="hidden lg:table-cell px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Company</th>
+                  <th className="hidden sm:table-cell px-4 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-4 py-2.5 text-right text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100">
@@ -333,8 +333,8 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                           {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-600" /> : <Square className="w-4 h-4" />}
                         </button>
                       </td>
-                      <td className="px-3 py-4 text-center">
-                        <span className="text-[14px] font-bold text-slate-400">
+                      <td className="hidden md:table-cell px-3 py-4 text-center">
+                        <span className="text-[11px] sm:text-[14px] font-bold text-slate-400">
                           {(userPage - 1) * userPagination.limit + idx + 1}
                         </span>
                       </td>
@@ -351,15 +351,15 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                         </div>
                       </td>
                       {/* Email */}
-                      <td className="px-4 py-4 whitespace-normal text-[15px] font-medium text-slate-600 break-all max-w-[150px] sm:max-w-[200px]">{u.email}</td>
+                      <td className="hidden lg:table-cell px-4 py-4 whitespace-normal text-[11px] sm:text-[15px] font-medium text-slate-600 break-all max-w-[150px] sm:max-w-[200px]">{u.email}</td>
                       {/* Credentials */}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td className="hidden xl:table-cell px-4 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
-                          <div className="text-[15px] font-bold text-indigo-600 tabular-nums">
+                          <div className="text-[11px] sm:text-[15px] font-bold text-indigo-600 tabular-nums">
                             {formatTo10Digits(u.phone || "")}
                           </div>
                           <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => togglePasswordVisibility(u._id)}>
-                            <span className="text-[14px] font-mono text-slate-400 font-bold tracking-tight">
+                            <span className="text-[10px] sm:text-[14px] font-mono text-slate-400 font-bold tracking-tight">
                               {u.rawPassword
                                 ? visiblePasswords.includes(u._id) ? u.rawPassword : "••••••••"
                                 : "••••••••"}
@@ -371,21 +371,21 @@ const UserTabContent: React.FC<UserTabContentProps> = ({
                         </div>
                       </td>
                       {/* Role */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[15px] leading-none font-black rounded uppercase tracking-widest border ${roleColor}`}>
+                      <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] sm:text-[15px] leading-none font-black rounded uppercase tracking-widest border ${roleColor}`}>
                           <Shield className="w-2.5 h-2.5" />
                           {roleLabel}
                         </span>
                       </td>
                       {/* Company */}
-                      <td className="px-4 py-4 whitespace-normal text-[15px] font-bold text-slate-500 break-words max-w-[120px] sm:max-w-[180px]">
+                      <td className="hidden lg:table-cell px-4 py-4 whitespace-normal text-[11px] sm:text-[15px] font-bold text-slate-500 break-words max-w-[120px] sm:max-w-[180px]">
                         {typeof u.companyId === "object" && u.companyId?.name ? u.companyId.name : u.companyId ? String(u.companyId) : "—"}
                       </td>
                       {/* Status */}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap">
                         <button
                           onClick={() => toggleUserStatus(u)}
-                          className={`px-2 py-0.5 inline-flex text-[15px] uppercase tracking-widest font-black rounded-md transition-all border ${
+                          className={`px-2 py-0.5 inline-flex text-[10px] sm:text-[15px] uppercase tracking-widest font-black rounded-md transition-all border ${
                             u.isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100"
                           }`}
                         >

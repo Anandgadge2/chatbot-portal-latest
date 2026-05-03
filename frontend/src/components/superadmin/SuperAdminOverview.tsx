@@ -679,9 +679,9 @@ function SuperAdminOverviewContent() {
                   <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h1 className="text-sm xl:text-lg font-bold text-white uppercase">
-                    Master Admin
-                  </h1>
+                  <h1 className="text-lg sm:text-2xl font-black text-white tracking-tighter leading-none uppercase truncate max-w-[150px] sm:max-w-none">
+                  Master Admin
+                </h1>
                 </div>
               </div>
 
@@ -801,31 +801,30 @@ function SuperAdminOverviewContent() {
         >
           <TabsContent value="overview" className="space-y-6 outline-none">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
+              <div className="mb-2 sm:mb-0">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">
                   System Intelligence
                 </h2>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {!showLogs && (
                   <Button 
                     onClick={() => setShowLogs(true)}
-                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-[14px] uppercase tracking-wider h-9 rounded-xl px-5 border-0 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95"
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-[12px] sm:text-[14px] uppercase tracking-wider h-8 sm:h-9 rounded-xl px-4 sm:px-5 border-0 shadow-lg shadow-slate-900/40 ring-1 ring-blue-500/50 transition-all active:scale-95 flex-1 sm:flex-none"
                   >
-                    <FileText className="w-3.5 h-3.5 mr-2" />
-                    See Audit Logs
+                    <FileText className="w-3.5 h-3.5 mr-1.5 sm:mr-2" />
+                    Audit Logs
                   </Button>
                 )}
-                <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-3">
-                  <div className="text-[15px] font-black text-slate-400 uppercase leading-none">
+                <div className="bg-white border border-slate-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-3 flex-1 sm:flex-none justify-center sm:justify-start">
+                  <div className="text-[11px] sm:text-[15px] font-black text-slate-400 uppercase leading-none">
                     Security
-                    <br />
-                    Status
+                    <span className="hidden sm:inline"><br />Status</span>
                   </div>
-                  <div className="h-6 w-px bg-slate-100"></div>
-                  <div className="flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="text-[14px] font-black text-slate-800 uppercase tracking-wider">
+                  <div className="h-5 sm:h-6 w-px bg-slate-100"></div>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-indigo-600" />
+                    <span className="text-[12px] sm:text-[14px] font-black text-slate-800 uppercase tracking-wider">
                       Protected
                     </span>
                   </div>

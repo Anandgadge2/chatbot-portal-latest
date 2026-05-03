@@ -3,7 +3,7 @@
 import React, { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Power, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Power, User as UserIcon, Bell, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ type DashboardHeaderProps = {
 };
 
 import { NotificationPopover } from "./NotificationPopover";
-import { RefreshCw } from "lucide-react";
+
 
 export const DashboardHeader = memo(function DashboardHeader({
   user,
@@ -65,7 +65,7 @@ export const DashboardHeader = memo(function DashboardHeader({
       
       {/* Content wrapper */}
       <div className="max-w-[1920px] mx-auto px-4 lg:px-6 relative z-10">
-        <div className="flex items-center justify-between min-h-[3.25rem] py-1 sm:h-16">
+        <div className="flex items-center justify-between min-h-[3.25rem] py-1 sm:min-h-[4.5rem] lg:h-20 sm:py-2">
           <div className="flex items-center gap-3 sm:gap-8 min-w-0 flex-1">
             <div className="flex items-center gap-2 sm:gap-6 group">
               <button
@@ -93,9 +93,12 @@ export const DashboardHeader = memo(function DashboardHeader({
                 />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <h1 className="text-lg sm:text-xl pt-2 font-black text-white tracking-tighter leading-none uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words drop-shadow-sm">
+                <h1 className="text-sm sm:text-lg lg:text-xl pt-1.5 sm:pt-0 font-black text-white tracking-tighter leading-none uppercase max-w-[45vw] sm:max-w-none whitespace-normal break-words drop-shadow-sm">
                   {isSuperAdminUser && companyIdParam ? (
-                    `Viewing: ${companyName || "..."}`
+                    <span className="text-white/60 text-[10px] sm:text-sm block mb-0.5">Viewing:</span>
+                  ) : null}
+                  {isSuperAdminUser && companyIdParam ? (
+                    companyName || "..."
                   ) : (
                     <>
                       {isCompanyLevel &&
@@ -117,7 +120,7 @@ export const DashboardHeader = memo(function DashboardHeader({
                   )}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[11px] sm:text-[14px] text-white/80 font-bold uppercase tracking-[0.14em] max-w-[50vw] sm:max-w-none whitespace-normal break-words">
+                  <p className="text-[9px] sm:text-[11px] lg:text-[14px] text-white/80 font-bold uppercase tracking-[0.1em] sm:tracking-[0.14em] max-w-[40vw] sm:max-w-none whitespace-normal break-words">
                     {isJharsugudaCompany
                       ? dashboardBrandSubtitle
                       : "Control Panel"}
@@ -150,32 +153,34 @@ export const DashboardHeader = memo(function DashboardHeader({
             </div>
 
             <div className="w-px h-5 bg-slate-800 hidden lg:block mr-1" />
+          </div>
 
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {isSuperAdminUser && companyIdParam && (
               <button
                 onClick={() => {
                   sessionStorage.removeItem("drilldownCompanyId");
                   if (onBackToDashboard) onBackToDashboard();
                 }}
-                className="h-8 px-2 sm:h-9 sm:px-3 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 text-[15px] sm:text-[15px] font-black uppercase tracking-widest flex items-center shrink-0 max-w-[70px] sm:max-w-none"
+                className="h-7 px-2 sm:h-9 sm:px-4 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500 hover:text-white rounded-lg sm:rounded-xl transition-all duration-300 border border-indigo-500/30 text-[10px] sm:text-[14px] font-black uppercase tracking-widest flex items-center shrink-0 shadow-lg"
               >
-                <ArrowLeft className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden text-[12px]">Back</span>
+                <ArrowLeft className="w-3 h-3 sm:mr-1.5" />
+                <span className="ml-1 sm:ml-0">Back</span>
               </button>
             )}
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {onRefresh && (
                 <button
                   onClick={onRefresh}
-                  className="flex h-9 w-9 bg-white/10 backdrop-blur-sm rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95 disabled:opacity-50"
+                  className="flex h-8 w-8 sm:h-9 sm:w-9 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl items-center justify-center border border-white/20 shadow-lg group hover:bg-white/20 transition-all duration-300 active:scale-95 disabled:opacity-50"
                   title="Refresh Data"
                   disabled={isRefreshing}
                 >
-                  <RefreshCw className={cn("w-4.5 h-4.5 text-white group-hover:scale-110 transition-all duration-300", isRefreshing && "animate-spin")} />
+                  <RefreshCw className={cn("w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white group-hover:scale-110 transition-all duration-300", isRefreshing && "animate-spin")} />
                 </button>
               )}
+
               <NotificationPopover
                 notifications={notifications}
                 unreadCount={unreadCount}

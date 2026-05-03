@@ -79,27 +79,27 @@ export function NotificationPopover({
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-9 w-9 p-0 text-white hover:text-white hover:bg-white/20 backdrop-blur-sm rounded-xl transition-all duration-300 border border-white/20 flex items-center justify-center shadow-lg"
+          className="relative h-8 w-8 sm:h-9 sm:w-9 p-0 text-white hover:text-white hover:bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl transition-all duration-300 border border-white/20 flex items-center justify-center shadow-lg group"
           title="Notifications"
           aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         >
-          <Bell className="w-4.5 h-4.5" />
+          <Bell className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-all duration-300" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-blue-600 shadow-lg animate-in zoom-in duration-300">
+            <span className="absolute -top-1 -right-1 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-600 text-[8px] sm:text-[10px] font-black text-white ring-1 sm:ring-2 ring-white shadow-lg animate-pulse">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] sm:w-[420px] p-0 bg-white border-slate-200 shadow-2xl rounded-2xl overflow-hidden z-[100] animate-in fade-in zoom-in duration-200" align="end" sideOffset={8}>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 backdrop-blur-md">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-200">
-              <Bell className="w-4 h-4 text-white" />
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[420px] p-0 bg-white border-slate-200 shadow-2xl rounded-2xl overflow-hidden z-[100] animate-in fade-in zoom-in duration-200" align="end" sideOffset={8}>
+        <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 backdrop-blur-md">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
+              <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
-            <div>
-              <h3 className="text-[15px] font-black text-slate-900 uppercase tracking-wider leading-none">Notifications</h3>
-              <p className="text-[14px] text-slate-500 font-bold mt-1 uppercase tracking-tight">Activity Center</p>
+            <div className="min-w-0">
+              <h3 className="text-[12px] sm:text-[15px] font-black text-slate-900 uppercase tracking-wider leading-none truncate">Notifications</h3>
+              <p className="text-[10px] sm:text-[14px] text-slate-500 font-bold mt-0.5 sm:mt-1 uppercase tracking-tight truncate">Activity Center</p>
             </div>
           </div>
           {unreadCount > 0 && (
@@ -110,7 +110,7 @@ export function NotificationPopover({
                 e.stopPropagation();
                 onMarkAllAsRead();
               }}
-              className="text-[14px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-tight h-7 px-2 rounded-lg transition-colors"
+              className="text-[10px] sm:text-[14px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-tight h-7 sm:h-8 px-2 rounded-lg transition-colors shrink-0"
             >
               Mark all read
             </Button>
@@ -141,7 +141,7 @@ export function NotificationPopover({
                     <div className="absolute left-0 top-3 bottom-3 w-1 bg-blue-600 rounded-r-full shadow-[2px_0_8px_rgba(37,99,235,0.4)]" />
                   )}
                   <div className={cn(
-                    "flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm border border-white/50",
+                    "flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm border border-white/50",
                     getBgColor(notification.eventType).replace("/10", "/20")
                   )}>
                     {getIcon(notification.eventType)}
@@ -149,29 +149,29 @@ export function NotificationPopover({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className={cn(
-                        "text-[12.5px] font-black leading-tight",
+                        "text-[11px] sm:text-[12.5px] font-black leading-tight",
                         notification.isRead ? "text-slate-600" : "text-slate-900"
                       )}>
                         {notification.title}
                       </p>
-                      <span className="text-[14px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                      <span className="text-[10px] sm:text-[14px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </span>
                     </div>
                     <p className={cn(
-                      "text-[11.5px] mt-1.5 leading-relaxed line-clamp-2",
+                      "text-[10.5px] sm:text-[11.5px] mt-1 sm:mt-1.5 leading-relaxed line-clamp-2",
                       notification.isRead ? "text-slate-500" : "text-slate-700 font-medium"
                     )}>
                       {notification.message}
                     </p>
                     {notification.grievanceId && (
                       <div className="mt-2.5 flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200">
-                          <span className="text-[15px] font-black text-slate-500 uppercase tracking-tighter">ID:</span>
-                          <span className="text-[14px] font-black text-slate-900 tracking-tight">#{notification.grievanceId}</span>
+                        <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                          <span className="text-[10px] sm:text-[15px] font-black text-slate-500 uppercase tracking-tighter">ID:</span>
+                          <span className="text-[10px] sm:text-[14px] font-black text-slate-900 tracking-tight">#{notification.grievanceId}</span>
                         </div>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[14px] font-black text-blue-600 uppercase tracking-widest">
-                          View Details <ArrowRight className="w-3 h-3" />
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] sm:text-[14px] font-black text-blue-600 uppercase tracking-widest">
+                          View <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         </div>
                       </div>
                     )}

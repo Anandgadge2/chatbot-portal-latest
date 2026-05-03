@@ -296,15 +296,15 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                     )}
                   </button>
                 </th>
-                <th className="hidden md:table-cell px-3 py-2.5 text-center text-[15px] font-bold text-slate-400 uppercase tracking-widest">#</th>
-                <th className="px-2 sm:px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Organization</th>
-                <th className="px-2 sm:px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
-                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
-                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Depts</th>
-                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Users</th>
-                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
-                <th className="hidden sm:table-cell px-5 py-2.5 text-left text-[15px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-2 sm:px-5 py-2.5 text-right text-[15px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                <th className="hidden md:table-cell px-3 py-2.5 text-center text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">#</th>
+                <th className="px-3 sm:px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Organization</th>
+                <th className="hidden sm:table-cell px-3 sm:px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">ID</th>
+                <th className="hidden lg:table-cell px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                <th className="hidden xl:table-cell px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Depts</th>
+                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Users</th>
+                <th className="hidden md:table-cell px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
+                <th className="hidden sm:table-cell px-5 py-2.5 text-left text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-3 sm:px-5 py-2.5 text-right text-[11px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
@@ -364,8 +364,8 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 sm:px-5 py-4 whitespace-nowrap">
-                        <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[15px] sm:text-[14px] font-bold uppercase truncate max-w-[100px]">
+                      <td className="hidden sm:table-cell px-3 sm:px-5 py-4 whitespace-nowrap">
+                        <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-[11px] sm:text-[13px] font-bold uppercase truncate max-w-[80px] sm:max-w-[100px] block">
                           {company.companyId}
                         </span>
                       </td>
@@ -376,7 +376,7 @@ const CompanyTabContent: React.FC<CompanyTabContentProps> = ({
                           <span className="text-[14px] text-slate-400 font-bold">{formatTo10Digits(company.companyHead?.phone || company.contactPhone || "")}</span>
                         </div>
                       </td>
-                      <td className="hidden lg:table-cell px-5 py-4 whitespace-nowrap">
+                      <td className="hidden xl:table-cell px-5 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
                           {company.mainDepartmentCount !== undefined && company.subDepartmentCount !== undefined ? (
                             <>
