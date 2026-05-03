@@ -203,12 +203,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative z-10 overflow-y-auto min-h-screen">
+      <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-12 relative z-10 overflow-y-auto min-h-screen lg:min-h-0">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-100/30 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-sky-100/30 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="w-full max-w-[460px] animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="lg:hidden flex flex-col items-center gap-4 mb-10 text-center">
+          <div className="lg:hidden flex flex-col items-center gap-3 mb-6 text-center">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-500 flex items-center justify-center shadow-[0_14px_30px_-10px_rgba(14,165,233,0.65)] ring-1 ring-sky-300/60">
               <MessageCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
             </div>
@@ -222,8 +222,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mb-10 text-center lg:text-left">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight uppercase bg-clip-text">
+          <div className="mb-6 lg:mb-10 text-center lg:text-left">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-tight uppercase bg-clip-text">
               Authentication
             </h2>
             <p className="text-slate-500 text-sm font-medium mt-2 flex items-center justify-center lg:justify-start gap-2">
@@ -235,7 +235,7 @@ export default function LoginPage() {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 to-cyan-500 rounded-[32px] blur-xl opacity-20 group-hover:opacity-30 transition-all duration-1000" />
 
-            <div className="relative bg-white border border-slate-200 rounded-[32px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
+            <div className="relative bg-white border border-slate-200 rounded-3xl sm:rounded-[32px] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
               <div className="absolute top-0 left-0 bg-slate-900 px-6 py-2 rounded-br-2xl flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
                 <span className="text-[15px] font-black text-white uppercase tracking-widest whitespace-nowrap">
@@ -243,7 +243,7 @@ export default function LoginPage() {
                 </span>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-10 pt-16 space-y-7">
+              <form onSubmit={handleSubmit} className="p-6 pt-14 sm:p-10 sm:pt-16 space-y-5 sm:space-y-7">
                 {error && (
                   <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-700 font-bold animate-in zoom-in-95 duration-300">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
@@ -368,7 +368,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-10 w-full rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-center">
+          <div className="mt-6 lg:mt-10 w-full rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-center">
             <p className="text-slate-500 text-[14px] font-black uppercase tracking-[0.22em]">
               Authorized Personnel Only
             </p>

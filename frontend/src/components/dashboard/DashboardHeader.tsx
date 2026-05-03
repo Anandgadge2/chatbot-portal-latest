@@ -3,7 +3,7 @@
 import React, { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Power, RefreshCw, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Power, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +18,7 @@ type DashboardHeaderProps = {
   canReadGrievance: boolean;
   dashboardBrandTitle: string;
   dashboardBrandSubtitle: string;
-  refreshing: boolean;
   onOpenMobileMenu: () => void;
-  onRefresh: () => void;
   onProfileClick: () => void;
   notifications?: any[];
   unreadCount?: number;
@@ -43,9 +41,7 @@ export const DashboardHeader = memo(function DashboardHeader({
   canReadGrievance,
   dashboardBrandTitle,
   dashboardBrandSubtitle,
-  refreshing,
   onOpenMobileMenu,
-  onRefresh,
   onProfileClick,
   notifications = [],
   unreadCount = 0,
@@ -159,21 +155,7 @@ export const DashboardHeader = memo(function DashboardHeader({
             )}
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                onClick={onRefresh}
-                variant="ghost"
-                disabled={refreshing}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-indigo-500/20 flex items-center justify-center"
-                title="Refresh data"
-                aria-label="Refresh dashboard data"
-              >
-                <RefreshCw
-                  className={cn(
-                    "w-4.5 h-4.5 sm:w-5 sm:h-5",
-                    refreshing && "animate-spin",
-                  )}
-                />
-              </Button>
+
               
 
               <NotificationPopover
