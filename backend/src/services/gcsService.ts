@@ -1,7 +1,7 @@
 import { bucket } from '../config/gcs';
 import { logger } from '../config/logger';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 const MIME_TYPE_MAP: Record<string, string> = {
   'doc': 'application/msword',
@@ -42,7 +42,7 @@ export async function uploadBufferToGCS(
   folder: string = 'media'
 ): Promise<string | null> {
   try {
-    const destination = `${folder}/${uuidv4()}_${fileName}`;
+    const destination = `${folder}/${randomUUID()}_${fileName}`;
     const file = bucket.file(destination);
     
     // Ensure we use the correct content type for Office files
