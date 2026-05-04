@@ -232,7 +232,7 @@ async function getCompanyFromMetadata(metadata: any, verifiedConfig?: VerifiedWe
     return null;
   }
 
-  const company = await Company.findById(config.companyId);
+  const company = await Company.findById(config.companyId).lean();
   if (!company) {
     console.error(`❌ Company not found for config.companyId=${config.companyId}`);
     return null;

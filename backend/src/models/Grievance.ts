@@ -40,6 +40,7 @@ export interface IGrievance extends Document {
     uploadedByRole?: 'citizen' | 'admin';
     uploadedAt: Date;
     uploadedBy?: mongoose.Types.ObjectId;
+    isGCS?: boolean;
   }>;
   resolution?: string;
   resolvedAt?: Date;
@@ -198,6 +199,10 @@ const GrievanceSchema: Schema = new Schema(
       uploadedBy: {
         type: Schema.Types.ObjectId,
         ref: 'User'
+      },
+      isGCS: {
+        type: Boolean,
+        default: false
       }
     }],
     resolution: {

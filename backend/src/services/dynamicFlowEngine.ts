@@ -4042,8 +4042,17 @@ async function handleMediaUpload(
   const { nextStepId, saveToField = "media" } = session.data.awaitingMedia;
 
   try {
-    const accessToken = (company as any)?.whatsappConfig?.accessToken;
-    if (accessToken) {
+    const whatsappConfig = (company as any)?.whatsappConfig;
+    const accessToken = whatsappConfig?.accessToken;
+
+    if (!accessToken) {
+      logger.error(`❌ CRITICAL: Cannot process media upload. WhatsApp accessToken missing for company ${company?.name || 'unknown'}. Check CompanyWhatsAppConfig.`, {
+        companyId: company?._id,
+        hasConfig: !!whatsappConfig
+      });
+      // Fallback to raw ID (legacy behavior, but now with a big error log)
+      storeMedia(session.data, saveToField, mediaUrl, messageType, false);
+    } else {
       // ✅ STRICT GCP STORAGE RULES: /grievances/{grievanceId}/evidence/{timestamp}_{filename}
       let folder = (
         company?.name ||
@@ -4070,12 +4079,19 @@ async function handleMediaUpload(
       }
 
       const timestamp = Date.now();
+      logger.info(`📸 Processing media: type=${messageType}, field=${saveToField}, folder=${folder}`);
+      
       const uploadResult = await uploadWhatsAppMediaToGCS(
         mediaUrl,
         accessToken,
         `${timestamp}_${mediaUrl}`,
         folder,
       );
+      
+      if (!uploadResult) {
+        logger.error(`❌ Media upload to GCS failed for ${mediaUrl}. Falling back to raw ID.`);
+      }
+
       storeMedia(
         session.data,
         saveToField,
@@ -4085,11 +4101,9 @@ async function handleMediaUpload(
         uploadResult?.mimeType,
         uploadResult?.originalName
       );
-    } else {
-      storeMedia(session.data, saveToField, mediaUrl, messageType, false);
     }
   } catch (err: any) {
-    console.error("❌ Media upload failed:", err.message);
+    logger.error("❌ Media upload process failed:", { message: err.message, stack: err.stack });
     storeMedia(session.data, saveToField, mediaUrl, messageType, false);
   }
 

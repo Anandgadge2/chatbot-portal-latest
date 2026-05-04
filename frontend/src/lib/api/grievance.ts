@@ -29,9 +29,10 @@ export interface Grievance {
   };
   media?: Array<{
     url: string;
-    type: 'image' | 'document';
+    type: 'image' | 'document' | 'video';
     uploadedAt: string;
     uploadedBy?: string | { _id: string; firstName: string; lastName: string; role: string };
+    isGCS?: boolean;
   }>;
   resolution?: string;
   resolvedAt?: string;

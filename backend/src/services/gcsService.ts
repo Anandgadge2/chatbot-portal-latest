@@ -45,8 +45,8 @@ export async function uploadBufferToGCS(
   const maxAttempts = 3;
 
   while (attempt < maxAttempts) {
+    const destination = `${folder}/${randomUUID()}_${fileName}`;
     try {
-      const destination = `${folder}/${randomUUID()}_${fileName}`;
       const file = bucket.file(destination);
       
       const finalContentType = getProperContentType(fileName, contentType);
@@ -64,8 +64,15 @@ export async function uploadBufferToGCS(
       return publicUrl;
     } catch (error: any) {
       attempt++;
-      logger.error(`❌ GCS upload failed (Attempt ${attempt}/${maxAttempts}): ${error.message}`);
-      if (attempt >= maxAttempts) return null;
+      logger.error(`❌ GCS upload failed (Attempt ${attempt}/${maxAttempts}) for ${fileName}: ${error.message}`, {
+        error: error.stack,
+        bucket: bucket.name,
+        destination
+      });
+      if (attempt >= maxAttempts) {
+        logger.error(`🛑 GCS upload permanently failed after ${maxAttempts} attempts for ${fileName}`);
+        return null;
+      }
       await new Promise(resolve => setTimeout(resolve, 500 * attempt));
     }
   }
@@ -102,12 +109,27 @@ export async function uploadWhatsAppMediaToGCS(
     const mimeType = mediaResponse.data.mime_type || 'application/octet-stream';
     
     // 2. Download the media
-    const fileResponse = await axios.get(downloadUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      responseType: 'arraybuffer'
-    });
+    let fileResponse;
+    try {
+      logger.info(`📥 Downloading WhatsApp media from: ${downloadUrl.substring(0, 50)}...`);
+      fileResponse = await axios.get(downloadUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        responseType: 'arraybuffer'
+      });
+    } catch (downloadErr: any) {
+      logger.warn(`⚠️ Failed to download media with Authorization header, retrying without it... Error: ${downloadErr.message}`);
+      // Fallback: Some signed URLs from Meta fail if the Authorization header is present
+      fileResponse = await axios.get(downloadUrl, {
+        responseType: 'arraybuffer'
+      });
+    }
     
+    if (!fileResponse || !fileResponse.data) {
+      throw new Error('Empty response received from WhatsApp media download');
+    }
+
     const buffer = Buffer.from(fileResponse.data);
+    logger.info(`✅ Downloaded ${buffer.length} bytes from WhatsApp`);
     
     // 3. Upload to GCS
     // Try to get a clean extension from our map, otherwise fallback to split
@@ -126,18 +148,24 @@ export async function uploadWhatsAppMediaToGCS(
 
     const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${ext}`;
     
+    logger.info(`📤 Uploading to GCS: folder=${folder}, file=${finalFileName}, mime=${mimeType}`);
     const cloudUrl = await uploadBufferToGCS(buffer, finalFileName, mimeType, folder);
     
-    return cloudUrl ? {
+    if (!cloudUrl) {
+      logger.error(`❌ GCS upload returned null for ${finalFileName}`);
+      return null;
+    }
+
+    return {
       url: cloudUrl,
       mimeType,
       originalName: fileName
-    } : null;
+    };
   } catch (error: any) {
     if (error.response) {
-      logger.error(`❌ WhatsApp media to GCS failed (API Error): ${JSON.stringify(error.response.data)}`);
+      logger.error(`❌ WhatsApp media to GCS failed (API Error): Status ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
     } else {
-      logger.error(`❌ WhatsApp media to GCS failed: ${error.message}`);
+      logger.error(`❌ WhatsApp media to GCS failed: ${error.message}`, { stack: error.stack });
     }
     return null;
   }
