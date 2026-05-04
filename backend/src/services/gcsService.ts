@@ -142,3 +142,34 @@ export async function uploadWhatsAppMediaToGCS(
     return null;
   }
 }
+
+/**
+ * Generates a signed URL for a file in GCS
+ * @param urlOrPath The public URL or raw path in the bucket
+ * @param expiresMinutes How long the URL should be valid (default 60 mins)
+ */
+export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 60): Promise<string> {
+  try {
+    if (!urlOrPath) return '';
+    if (!urlOrPath.includes(bucket.name) && !urlOrPath.startsWith('http')) {
+      // It's already a raw path
+    } else {
+      // Extract path from public URL: https://storage.googleapis.com/bucket/path/to/file
+      const parts = urlOrPath.split(`${bucket.name}/`);
+      if (parts.length > 1) {
+        urlOrPath = decodeURIComponent(parts[1]);
+      }
+    }
+
+    const [signedUrl] = await bucket.file(urlOrPath).getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + expiresMinutes * 60 * 1000,
+    });
+
+    return signedUrl;
+  } catch (error: any) {
+    logger.error(`❌ Failed to sign GCS URL for ${urlOrPath}: ${error.message}`);
+    return urlOrPath; // Fallback to original if signing fails
+  }
+}

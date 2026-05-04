@@ -340,7 +340,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             citizenName: grievance.citizenName,
             citizenPhone: grievance.citizenPhone,
             language: grievance.language,
-            departmentName: grievance.departmentId ? getLocalizedDepartmentName(grievance.departmentId, lang) : 'General',
+            departmentName: grievance.departmentId ? getLocalizedDepartmentName(grievance.departmentId, lang) : 'N/A',
             subDepartmentName: grievance.subDepartmentId ? getLocalizedDepartmentName(grievance.subDepartmentId, lang) : 'N/A',
             grievanceSummary: grievance.description,
             status,

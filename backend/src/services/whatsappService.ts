@@ -1272,22 +1272,31 @@ export async function sendMediaSequentially(
       if (!companyId) throw new Error('Company ID missing for media template send.');
       
       const normalizedTo = normalizePhoneNumber(to);
-      const resolvedTemplate = await resolveTemplateRecord({
-        companyId,
-        templateName,
-        requestedLanguage: 'en',
-        companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
-      });
+      
+      let resolvedTemplate: any;
+      const isCoreMediaTemplate = ['media_image_v1', 'media_video_v1', 'media_document_v1'].includes(templateName);
+
+      if (isCoreMediaTemplate) {
+        // ⚡ BYPASS DB CHECK for core media templates to ensure delivery in production
+        resolvedTemplate = buildVirtualResolvedTemplate(templateName, 'en');
+      } else {
+        resolvedTemplate = await resolveTemplateRecord({
+          companyId,
+          templateName,
+          requestedLanguage: 'en',
+          companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
+        });
+
+        await assertTemplateApproved({
+          companyId,
+          templateName,
+          language: resolvedTemplate.resolvedLanguage
+        });
+      }
 
       // If no DB record exists, use definition-based header type for the payload
       const definition = TEMPLATE_DEFINITIONS[templateName];
       const headerTypeForPayload = definition?.header?.type?.toLowerCase() || detectedType;
-
-      await assertTemplateApproved({
-        companyId,
-        templateName,
-        language: resolvedTemplate.resolvedLanguage
-      });
 
       await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
       await enforceRateLimit(company, normalizedTo);

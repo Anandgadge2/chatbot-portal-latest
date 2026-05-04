@@ -22,6 +22,7 @@ import {
   getAdminRecipients
 } from '../services/grievanceTemplateTriggerService';
 import { sendMediaSequentially } from '../services/whatsappService';
+import { getSignedUrl } from '../services/gcsService';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 import { getHierarchicalDepartmentAdmins } from '../services/notificationService';
@@ -441,7 +442,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
         grievanceId: grievance.grievanceId,
         citizenName: grievance.citizenName,
         citizenPhone: grievance.citizenPhone,
-        category: (await Department.findById(departmentId).select('name'))?.name || category || 'Collector & DM',
+        category: (await Department.findById(departmentId).select('name'))?.name || category || 'N/A',
         description: grievance.description,
         status: grievance.status,
         subDepartmentName: (grievance as any).subDepartmentId
@@ -794,6 +795,24 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
           }
         }
       }
+    }
+
+    // 🛡️ Sign GCS URLs for media before sending to frontend
+    if (grievance.media && grievance.media.length > 0) {
+      const signedMedia = await Promise.all(
+        grievance.media.map(async (m: any) => ({
+          ...m.toObject ? m.toObject() : m,
+          url: await getSignedUrl(m.url)
+        }))
+      );
+      // We need to use toObject() because Mongoose documents are semi-immutable for direct property assignment
+      const grievanceObj = grievance.toObject();
+      grievanceObj.media = signedMedia;
+      
+      return res.json({
+        success: true,
+        data: { grievance: grievanceObj }
+      });
     }
 
     res.json({
