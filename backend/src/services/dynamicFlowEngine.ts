@@ -4112,7 +4112,8 @@ function storeMedia(
 ): void {
   const mediaEntry = { 
     url, 
-    type: type.startsWith('image/') ? 'image' : type.startsWith('video/') ? 'video' : 'document', 
+    type: (type.startsWith('image') || (mimeType && mimeType.startsWith('image'))) ? 'image' : 
+          (type.startsWith('video') || (mimeType && mimeType.startsWith('video'))) ? 'video' : 'document', 
     mimeType,
     originalName,
     uploadedByRole: 'citizen' as const,

@@ -1245,7 +1245,7 @@ export async function sendMediaSequentially(
     const extension = cleanUrl.split('.').pop() || '';
     
     if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(extension)) return 'image';
-    if (['mp4', 'mov', 'avi', '3gp', 'm4v'].includes(extension)) return 'video';
+    if (['mp4', 'mov', 'avi', '3gp', 'm4v', 'webm', 'mkv'].includes(extension)) return 'video';
     
     // Fallback detection for common patterns in signed URLs
     if (cleanUrl.includes('image') || cleanUrl.includes('photo')) return 'image';
