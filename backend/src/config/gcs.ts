@@ -10,7 +10,7 @@ const storage = new Storage({
 export const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'chatbot-media-storage-490106');
 
 /**
- * Ensures the GCS bucket exists and is public
+ * Ensures the GCS bucket exists, has correct CORS, and is public
  */
 export const configureGCS = async (): Promise<void> => {
   try {
@@ -18,32 +18,43 @@ export const configureGCS = async (): Promise<void> => {
     if (!exists) {
       logger.info(`🏗️ Creating GCS bucket: ${bucket.name}`);
       await bucket.create({
-        location: 'US', // You can change this to 'ASIA' or 'EU' based on your preference
+        location: 'ASIA', // Optimized for India (JHARSGUDA context)
         storageClass: 'STANDARD',
       });
-      
-      // Make the bucket public (allUsers can read)
-      await bucket.makePublic();
-      logger.info(`✅ GCS bucket ${bucket.name} created and made public`);
-    } else {
-      logger.info(`✅ GCS bucket ${bucket.name} already exists`);
+      logger.info(`✅ GCS bucket ${bucket.name} created`);
     }
 
-    // 🌐 Ensure CORS is configured for the portal
-    logger.info(`🌐 Configuring CORS for GCS bucket: ${bucket.name}`);
+    // Always ensure CORS configuration is set
+    logger.info(`⚙️ Configuring CORS for ${bucket.name}...`);
     await bucket.setCorsConfiguration([
       {
         maxAgeSeconds: 3600,
-        method: ['GET', 'HEAD', 'DELETE', 'PUT', 'POST'],
-        origin: ['*'], // In production, replace with your specific portal domain
-        responseHeader: ['Content-Type', 'Authorization', 'Content-Length', 'User-Agent', 'x-goog-resumable'],
+        method: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+        origin: ['*'], // Allow all origins for the portal dashboard
+        responseHeader: [
+          'Content-Type',
+          'Authorization',
+          'Content-Length',
+          'User-Agent',
+          'x-goog-resumable',
+          'ETag',
+        ],
       },
     ]);
-    logger.info(`✅ GCS CORS configuration applied`);
+
+    // Ensure the bucket has public read access for citizen media
+    // Note: If Uniform Bucket Level Access is enabled, makePublic() sets IAM roles.
+    // If Fine-grained access is enabled, it sets ACLs.
+    try {
+      await bucket.makePublic();
+      logger.info(`🔓 GCS bucket ${bucket.name} is now public (allUsers: Storage Object Viewer)`);
+    } catch (e: any) {
+      logger.warn(`⚠️ Could not make bucket public (might already be public or have IAM restrictions): ${e.message}`);
+    }
+
+    logger.info(`✅ GCS configuration completed for ${bucket.name}`);
   } catch (error: any) {
     logger.error('❌ Failed to configure GCS:', error.message);
-    // We don't throw here to avoid crashing the server if GCS is down, 
-    // but in production you might want to.
   }
 };
 

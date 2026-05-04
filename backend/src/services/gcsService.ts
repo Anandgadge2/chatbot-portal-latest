@@ -150,6 +150,8 @@ export async function uploadWhatsAppMediaToGCS(
  */
 export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 60): Promise<string> {
   try {
+    if (!urlOrPath) return '';
+    
     // Only attempt to sign if it's a GCS URL or a raw path
     const isGcsUrl = urlOrPath.includes('storage.googleapis.com') || urlOrPath.includes(bucket.name);
     const isRawPath = !urlOrPath.startsWith('http');
@@ -159,25 +161,29 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
       return urlOrPath;
     }
 
+    let filePath = urlOrPath;
     if (isGcsUrl) {
       // Extract path from public URL: https://storage.googleapis.com/bucket/path/to/file
-      const parts = urlOrPath.split(`${bucket.name}/`);
+      // We need to be careful with query parameters
+      const urlWithoutParams = urlOrPath.split('?')[0];
+      const parts = urlWithoutParams.split(`${bucket.name}/`);
+      
       if (parts.length > 1) {
-        urlOrPath = decodeURIComponent(parts[1]);
+        filePath = decodeURIComponent(parts[1]);
       } else {
         // If it's a GCS URL but doesn't have the bucket name in the expected format, 
         // try to extract after storage.googleapis.com/
-        const storageParts = urlOrPath.split('storage.googleapis.com/');
+        const storageParts = urlWithoutParams.split('storage.googleapis.com/');
         if (storageParts.length > 1) {
           const pathWithBucket = decodeURIComponent(storageParts[1]);
           const pathParts = pathWithBucket.split('/');
           pathParts.shift(); // Remove bucket name
-          urlOrPath = pathParts.join('/');
+          filePath = pathParts.join('/');
         }
       }
     }
 
-    const [signedUrl] = await bucket.file(urlOrPath).getSignedUrl({
+    const [signedUrl] = await bucket.file(filePath).getSignedUrl({
       version: 'v4',
       action: 'read',
       expires: Date.now() + expiresMinutes * 60 * 1000,
