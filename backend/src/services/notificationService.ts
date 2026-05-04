@@ -7,7 +7,10 @@ import CitizenProfile from '../models/CitizenProfile';
 import { sendEmail, getNotificationEmailContent, getNotificationWhatsAppMessage } from './emailService';
 import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from './whatsappService';
 import { 
-  triggerAdminTemplate
+  triggerAdminTemplate,
+  triggerGrievanceEvent,
+  triggerGrievanceNotifications,
+  triggerCitizenStatusTemplate
 } from './grievanceTemplateTriggerService';
 import { buildCitizenMessage, getCitizenStatusLabel } from './citizenMessageBuilder';
 import { normalizePhoneNumber } from '../utils/phoneUtils';
@@ -56,9 +59,10 @@ interface NotificationData {
   timeline?: Array<{
     action: string;
     details?: any;
-    performedBy?: any;
     timestamp: Date | string;
+    performedBy?: any;
   }>;
+  grievance?: any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -98,8 +102,7 @@ const getLocaleForLanguage = (lang: 'en' | 'hi' | 'or' | 'mr'): string => {
 
 const GRIEVANCE_CREATED_ADMIN_TEMPLATE_NAME =
   process.env.WHATSAPP_GRIEVANCE_CREATED_ADMIN_TEMPLATE || 'grievance_received_admin_v2';
-const GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME =
-  process.env.WHATSAPP_GRIEVANCE_CITIZEN_STATUS_TEMPLATE || 'grievance_status_inprogress_citizen_v2';
+
 const GRIEVANCE_TEMPLATE_LANGUAGE =
   (process.env.WHATSAPP_GRIEVANCE_TEMPLATE_LANGUAGE || 'en') as 'en' | 'hi' | 'or' | 'mr';
 
@@ -1072,7 +1075,7 @@ export async function notifyDepartmentAdminOnCreation(
         };
 
         const notificationTasks: Promise<any>[] = [];
-        const dashboardUrl = 'https://connect.pugarch.in/';
+        const dashboardUrl = 'https://sahaj.pugarch.in/';
         const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
         // 📧 Email
@@ -1101,7 +1104,23 @@ export async function notifyDepartmentAdminOnCreation(
             logger.info(`📢 Dispatching WhatsApp to admin: ${user.phone} (${user.getFullName()})`);
 
             if (data.type === 'grievance') {
-              logger.info(`ℹ️ Skipping legacy grievance admin WhatsApp send for ${user.phone}; Meta template trigger handles this path.`);
+              const media = (data.evidenceUrls || []).map(url => {
+                const ext = url.split('.').pop()?.toLowerCase() || '';
+                const type: 'image' | 'video' | 'document' = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'image' : 
+                             ['mp4', 'mov', 'avi'].includes(ext) ? 'video' : 'document';
+                return { url, type };
+              });
+
+              await triggerGrievanceEvent({
+                eventKey: 'GRIEVANCE_CREATED',
+                companyId: data.companyId,
+                grievance: data.grievance || { grievanceId: data.grievanceId },
+                recipientPhones: [user.phone],
+                citizenPhone: data.citizenPhone,
+                language: data.language,
+                media: media.length > 0 ? media : undefined,
+                buttonParam: dashboardUrl
+              });
               return;
             }
 
@@ -1167,7 +1186,7 @@ export async function notifyCompanyAdminsOnRevert(
 
     if (!companyAdmins.length) return;
 
-    const dashboardUrl = 'https://connect.pugarch.in/';
+    const dashboardUrl = 'https://sahaj.pugarch.in/';
     const adminCta = { title: 'Access Dashboard', url: dashboardUrl };
 
     await Promise.allSettled(companyAdmins.map(async (user) => {
@@ -1230,7 +1249,7 @@ export async function notifyUserOnAssignment(
     }
 
     const actionKey = wasReverted ? 'reassigned_admin' : 'assigned_admin';
-    const dashboardUrl = 'https://connect.pugarch.in/';
+    const dashboardUrl = 'https://sahaj.pugarch.in/';
     const adminCta = { title: "Access Dashboard", url: dashboardUrl };
     const citizenPhones = [
       data.citizenWhatsApp?.replace(/\D/g, ''),
@@ -1303,58 +1322,39 @@ export async function notifyCitizenOnResolution(
       }
     }
 
-    // 📱 WhatsApp — use DB template first, then fallback
-    let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
-    
-    if (!message) {
-      logger.error(`❌ Still no message found for ${data.type}_resolved even with defaults.`);
-      return;
-    }
+    // 📱 WhatsApp — use triggerCitizenStatusTemplate for grievances, fallback for others
     if (data.type === 'grievance') {
-      if (!(await hasCitizenNotificationConsent(data.companyId, data.citizenWhatsApp || data.citizenPhone))) {
-        return;
-      }
+      const media = (data.evidenceUrls || []).map(url => {
+        const ext = url.split('.').pop()?.toLowerCase() || '';
+        const type: 'image' | 'video' | 'document' = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'image' : 
+                     ['mp4', 'mov', 'avi'].includes(ext) ? 'video' : 'document';
+        return { url, type };
+      });
 
-      const templateParams = {
-        citizen_name: fullData.citizenName || '',
-        grievance_id: fullData.grievanceId || '',
-        department_name: fullData.departmentName || '',
-        sub_department_name: fullData.subDepartmentName || 'N/A',
-        grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
-        status: getCitizenStatusLabel('RESOLVED'),
-        dynamic_message: buildCitizenMessage({
-          status: 'RESOLVED',
-          resolvedByName: fullData.resolvedByName || data.resolvedByName,
-          formattedResolvedDate: fullData.formattedResolvedDate || '',
-          remarks: fullData.remarks || data.remarks || ''
-        })
-      };
-
-      await sendWhatsAppTemplateWithTextFallback(
-        company,
-        data.citizenWhatsApp || data.citizenPhone,
-        GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME,
-        templateParams,
-        message,
-        {
-          language: getNotificationLanguage({ ...fullData, language: data.language }),
-          contextLabel: 'grievance_resolved_citizen',
-          disableTextFallback: true
-        }
-      );
+      await triggerCitizenStatusTemplate({
+        companyId: data.companyId,
+        citizenPhone: data.citizenPhone,
+        citizenName: data.citizenName,
+        grievanceId: data.grievanceId!,
+        departmentName: fullData.departmentName || 'General',
+        subDepartmentName: fullData.subDepartmentName,
+        grievanceSummary: data.description,
+        status: 'RESOLVED',
+        resolvedByName: fullData.resolvedByName || data.resolvedByName,
+        remarks: data.remarks,
+        language: data.language,
+        media: media.length > 0 ? media : undefined,
+        requireNotificationConsent: true
+      });
     } else {
-      await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
-    }
-    if (data.type === 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
-      await sendMediaTemplatesToCitizen(
-        company,
-        data.citizenWhatsApp || data.citizenPhone,
-        fullData.citizenName || 'Citizen',
-        data.evidenceUrls,
-        getNotificationLanguage({ ...fullData, language: data.language })
-      );
-    } else if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
-      await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
+      let message = await getNotificationWhatsAppMessage(data.companyId, data.type, 'resolved', fullData);
+      if (message) {
+        await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
+      }
+      
+      if (data.evidenceUrls && data.evidenceUrls.length > 0) {
+        await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Resolution Support Documents');
+      }
     }
 
   } catch (error) {
@@ -1449,68 +1449,16 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
   try {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
-    if (!(await hasCitizenNotificationConsent(data.companyId, data.citizenWhatsApp || data.citizenPhone))) {
-      return;
-    }
-
-    // Use centralized data population (includes formattedDate for "Submitted On")
-    const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'status_update' });
-    
-    // Check for custom template in DB: grievance_status_{status}
-    const statusLower = data.newStatus.toLowerCase();
-    const statusKey = `status_${statusLower}`;
-    
-    // 🛡️ SECURITY: ONLY match explicit status_ keys or the generic status_update for citizens.
-    // NEVER match the naked status name (e.g. "assigned") as that matches the STAFF template.
-    const attemptActions = [statusKey, 'status_update'];
-    
-    let message = null;
-    for (const act of attemptActions) {
-      if (act.endsWith('_admin')) continue;
-      
-      message = await getNotificationWhatsAppMessage(data.companyId, 'grievance', act, fullData);
-      if (message) break;
-    }
-
-    if (!message) {
-      logger.warn(`⚠️ No WhatsApp text body found for grievance status update. Proceeding with media template fallback only.`);
-      message = `Your grievance ${fullData.grievanceId || data.grievanceId} status is now ${fullData.newStatus || data.newStatus}.`;
-    }
-
-    const templateParams = {
-      citizen_name: fullData.citizenName || '',
-      grievance_id: fullData.grievanceId || '',
-      department_name: fullData.departmentName || '',
-      sub_department_name: fullData.subDepartmentName || 'N/A',
-      grievance_summary: fullData.description || data.description || fullData.remarks || 'N/A',
-      status: getCitizenStatusLabel(fullData.newStatus || data.newStatus || ''),
-      dynamic_message: buildCitizenMessage({
-        status: fullData.newStatus || data.newStatus || '',
-        resolvedByName: fullData.resolvedByName,
-        formattedResolvedDate: fullData.formattedResolvedDate || '',
-        remarks: fullData.remarks || data.remarks || ''
-      })
-    };
-
-    await sendWhatsAppTemplateWithTextFallback(
-      company,
-      data.citizenWhatsApp || data.citizenPhone,
-      GRIEVANCE_CITIZEN_STATUS_TEMPLATE_NAME,
-      templateParams,
-      message,
-      {
-        language: getNotificationLanguage({ ...fullData, language: data.language }),
-        contextLabel: 'grievance_status_update_citizen',
-        disableTextFallback: false
-      }
-    );
 
     // 📧 Email
     if (data.citizenEmail) {
       try {
+        const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'status_update' });
+        const statusLower = data.newStatus.toLowerCase();
+        const statusKey = `status_${statusLower}`;
         const emailData = {
           ...fullData,
-          action: data.newStatus.toLowerCase()
+          action: statusLower
         };
 
         let email = await getNotificationEmailContent(data.companyId, 'grievance', statusKey, emailData, false);
@@ -1526,16 +1474,30 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
       }
     }
 
-    // ✅ WhatsApp Media (Template-based)
-    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
-      await sendMediaTemplatesToCitizen(
-        company,
-        data.citizenWhatsApp || data.citizenPhone,
-        fullData.citizenName || 'Citizen',
-        data.evidenceUrls,
-        getNotificationLanguage({ ...fullData, language: data.language })
-      );
-    }
+    // ✅ WhatsApp (Meta Template + Media via logical event key system)
+    const media = (data.evidenceUrls || []).map(url => {
+      const ext = url.split('.').pop()?.toLowerCase() || '';
+      const type: 'image' | 'video' | 'document' = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'image' : 
+                   ['mp4', 'mov', 'avi'].includes(ext) ? 'video' : 'document';
+      return { url, type };
+    });
+
+    await triggerCitizenStatusTemplate({
+      companyId: data.companyId,
+      citizenPhone: data.citizenPhone,
+      citizenName: data.citizenName,
+      grievanceId: data.grievanceId,
+      departmentName: data.departmentName || 'General',
+      subDepartmentName: data.subDepartmentName,
+      grievanceSummary: data.description,
+      status: data.newStatus,
+      resolvedByName: data.remarks ? 'Administrator' : undefined,
+      remarks: data.remarks,
+      language: data.language,
+      media: media.length > 0 ? media : undefined,
+      requireNotificationConsent: true
+    });
+
   } catch (error) {
     logger.error('❌ notifyCitizenOnGrievanceStatusChange failed:', error);
   }
@@ -1615,7 +1577,7 @@ export async function notifyHierarchyOnStatusChange(
         : (data.type === 'appointment' ? 'appointment_scheduled' : `${data.type}_assigned`);
     
     // Determine if we should use CTA button
-    const dashboardUrl = 'https://connect.pugarch.in/';
+    const dashboardUrl = 'https://sahaj.pugarch.in/';
     const adminCta = { title: "Access Dashboard", url: dashboardUrl };
 
     // ✅ CONCURRENT NOTIFICATIONS

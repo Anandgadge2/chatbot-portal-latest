@@ -105,6 +105,9 @@ export async function triggerGrievanceEvent(options: {
   previousDept?: string;
   newDept?: string;
   media?: any[];
+  buttonParam?: string;
+  department?: any;
+  subDept?: any;
 }) {
   try {
     const company = await getCompanyWithConfig(options.companyId);
@@ -117,7 +120,9 @@ export async function triggerGrievanceEvent(options: {
       companyName: company.name,
       language,
       previousDept: options.previousDept,
-      newDept: options.newDept
+      newDept: options.newDept,
+      department: options.department,
+      subDept: options.subDept
     });
 
     // 2. Resolve template
@@ -136,7 +141,7 @@ export async function triggerGrievanceEvent(options: {
     // 4. Send notifications
     const results = await Promise.allSettled(
       finalPhones.map(async (to) => {
-        return sendWhatsAppTemplate(company, to, templateName, values, language, undefined, undefined, {
+        return sendWhatsAppTemplate(company, to, templateName, values, language, undefined, options.buttonParam, {
           recipientType: 'ADMIN',
           citizenPhone: options.citizenPhone || options.grievance?.citizenPhone
         });
@@ -263,60 +268,61 @@ export async function triggerCitizenStatusTemplate(options: {
   language?: string;
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
   grievance?: any;
+  requireNotificationConsent?: boolean;
 }) {
-  const status = options.status.toUpperCase();
-  const language = normalizeLanguage(options.language);
-  
-  // 1. Map to specific Meta-approved templates (Locked to these 3 as per requirement)
-  let templateName = '';
-  if (status === 'IN_PROGRESS') {
-    templateName = `grievance_status_inprogress_citizen_v2`;
-  } else if (status === 'RESOLVED') {
-    templateName = `grievance_status_resolved_citizen_v2`;
-  } else if (status === 'REJECTED') {
-    templateName = `grievance_status_rejected_citizen_v2`;
-  } else {
-    logger.warn(`⚠️ No dedicated template for status: ${status}`);
-    return;
-  }
+  try {
+    const status = options.status.toUpperCase();
+    const eventKey = `GRIEVANCE_STATUS_${status}`;
+    const language = normalizeLanguage(options.language);
 
-  // 2. Prepare the precise 8-variable array (Matches Meta Template Variable Order)
-  const timezone = 'Asia/Kolkata';
-  const actionDate = moment().tz(timezone).format('DD MMMM YYYY [at] hh:mm:ss a');
-  
-  const values = [
-    options.citizenName || 'Citizen',                  // {{1}}
-    options.grievanceId,                               // {{2}}
-    options.departmentName || 'General',               // {{3}}
-    options.subDepartmentName || 'N/A',                // {{4}}
-    (options.grievanceSummary || '').substring(0, 400), // {{5}}
-    options.resolvedByName || 'Administrator',         // {{6}}
-    actionDate,                                        // {{7}}
-    (options.remarks || 'Status updated.').substring(0, 200) // {{8}}
-  ];
+    // 1. Build Context
+    const context = await NotificationContextService.buildGrievanceContext(options.grievance || {
+      grievanceId: options.grievanceId,
+      citizenName: options.citizenName,
+      citizenPhone: options.citizenPhone,
+      description: options.grievanceSummary,
+      status: options.status,
+      remarks: options.remarks
+    }, {
+      admin: { fullName: options.resolvedByName || 'Administrator' },
+      department: { name: options.departmentName },
+      subDept: { name: options.subDepartmentName },
+      remarks: options.remarks,
+      language
+    });
 
-  logger.info(`🚀 Sending status template: ${templateName} to ${options.citizenPhone}`);
+    // 2. Resolve Template and Values
+    const { templateName, values } = await TemplateResolverService.resolveTemplate(
+      options.companyId.toString(),
+      eventKey,
+      context
+    );
 
-  // 3. Send the Text Status Template
-  await triggerCitizenTemplate({
-    template: templateName,
-    companyId: options.companyId,
-    citizenPhone: options.citizenPhone,
-    language,
-    values
-  });
+    logger.info(`🚀 [Citizen Template] Resolved ${eventKey} -> ${templateName} for ${options.citizenPhone}`);
 
-  // 4. Handle Proof/Evidence (Identify type and use specialized media templates via sequential sender)
-  if (options.media && options.media.length > 0) {
-    logger.info(`📦 Sending ${options.media.length} proof attachments to citizen via sequential sender...`);
-    
-    const company = await getCompanyWithConfig(options.companyId);
-    await sendMediaSequentially(
-      company,
-      options.citizenPhone,
-      options.media,
-      options.citizenName || 'Citizen'
-    ).catch(err => logger.error(`❌ Media sequential send failed: ${err.message}`));
+    // 3. Send the Template
+    await triggerCitizenTemplate({
+      template: templateName,
+      companyId: options.companyId,
+      citizenPhone: options.citizenPhone,
+      language,
+      values,
+      requireNotificationConsent: options.requireNotificationConsent
+    });
+
+    // 4. Handle Media Proof (Sequential)
+    if (options.media && options.media.length > 0) {
+      const company = await getCompanyWithConfig(options.companyId);
+      await sendMediaSequentially(
+        company,
+        options.citizenPhone,
+        options.media,
+        options.citizenName || 'Citizen'
+      ).catch(err => logger.error(`❌ [Citizen Media] Sequential send failed: ${err.message}`));
+    }
+  } catch (error: any) {
+    logger.error(`❌ triggerCitizenStatusTemplate failed: ${error.message}`);
+    throw error;
   }
 }
 
@@ -334,46 +340,32 @@ export async function triggerGrievanceNotifications(options: {
   companyAdmins?: any[];
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
   grievance?: any;
+  buttonParam?: string;
 }) {
-  if (options.grievance) {
-    return triggerGrievanceEvent({
-      eventKey: 'GRIEVANCE_CREATED',
-      companyId: options.companyId,
-      grievance: options.grievance,
-      citizenPhone: options.citizenPhone,
-      language: options.language,
-      media: options.media
-    });
-  }
+  const recipientPhones = (options.assignedAdmins || []).map(a => normalizePhoneNumber(a.phone)).filter(Boolean) as string[];
 
-  // Legacy fallback omitted for brevity or integrated above
-  const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
-  const company = await getCompanyWithConfig(options.companyId);
-  const formattedDate = formatTemplateDate();
-  const attachments: WhatsAppAttachment[] = (options.media || []).map((file) => ({
-    url: file.url,
-    type: file.type,
-    caption: file.caption,
-    filename: file.filename
-  }));
-  
-  const adminRecipients = (options.assignedAdmins || []).map(a => normalizePhoneNumber(a.phone)).filter(Boolean);
-  
-  if (adminRecipients.length > 0) {
-    await Promise.allSettled(adminRecipients.map(to => sendGrievanceToAdmin(to!, {
-      adminName: 'Administrator',
-      referenceId: options.grievanceId,
+  return triggerGrievanceEvent({
+    eventKey: 'GRIEVANCE_CREATED',
+    companyId: options.companyId,
+    grievance: options.grievance || {
+      grievanceId: options.grievanceId,
       citizenName: options.citizenName,
-      department: options.category,
-      office: options.subDepartmentName || 'N/A',
-      description: safeDescription,
-      createdAt: formattedDate
-    }, attachments, company)));
-  }
+      citizenPhone: options.citizenPhone,
+      description: options.description,
+      status: options.status,
+    },
+    recipientPhones: recipientPhones.length > 0 ? recipientPhones : undefined,
+    citizenPhone: options.citizenPhone,
+    language: options.language,
+    media: options.media,
+    buttonParam: options.buttonParam,
+    department: { name: options.category },
+    subDept: { name: options.subDepartmentName }
+  });
 }
 
 export async function triggerAdminAssignmentNotification(options: {
-  event: 'grievance_assigned_admin_v2' | 'grievance_reassigned_admin_v2' | 'grievance_reverted_company_v2';
+  event: 'grievance_assigned_admin_v2' | 'grievance_reassigned_admin_v2' | 'grievance_reverted_company_v2' | string;
   companyId: any;
   grievanceId: string;
   citizenName: string;
@@ -392,74 +384,31 @@ export async function triggerAdminAssignmentNotification(options: {
   originalOfficeName?: string;
   media?: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>;
   grievance?: any;
+  buttonParam?: string;
 }) {
-  const eventKey = options.event.toUpperCase();
-  
-  if (options.grievance) {
-    return triggerGrievanceEvent({
-      eventKey,
-      companyId: options.companyId,
-      grievance: options.grievance,
-      recipientPhones: options.recipientPhones,
-      language: options.language,
-      remarks: options.remarks,
-      previousDept: options.originalDepartmentName,
-      newDept: options.category,
-      media: options.media
-    });
-  }
+  // Convert physical template name to logical key if possible
+  let eventKey = options.event.toUpperCase();
+  if (eventKey === 'GRIEVANCE_ASSIGNED_ADMIN_V2') eventKey = 'GRIEVANCE_ASSIGNED';
+  if (eventKey === 'GRIEVANCE_REASSIGNED_ADMIN_V2') eventKey = 'GRIEVANCE_REASSIGNED';
+  if (eventKey === 'GRIEVANCE_REVERTED_COMPANY_V2') eventKey = 'GRIEVANCE_REVERTED';
 
-  const company = await getCompanyWithConfig(options.companyId);
-  const language = normalizeLanguage(options.language);
-  const safeDescription = sanitizeGrievanceDetailsForTemplate(options.description || 'N/A');
-  const safeRemarks = sanitizeRemarks(options.remarks || options.description || 'N/A');
-  const dateStr = formatTemplateDate();
-  const submittedOnDate = options.submittedOn ? new Date(options.submittedOn) : new Date();
-  const reassignedOnDate = options.reassignedOn ? new Date(options.reassignedOn) : new Date();
-  const submittedOnStr = formatTemplateDate(submittedOnDate);
-  const reassignedOnStr = formatTemplateDate(reassignedOnDate);
-
-  const recipientProfiles = await User.find({
+  return triggerGrievanceEvent({
+    eventKey,
     companyId: options.companyId,
-    phone: { $in: options.recipientPhones }
-  }).select('phone firstName lastName').lean();
-  const nameByPhone = new Map<string, string>();
-  for (const profile of recipientProfiles as any[]) {
-    const normalized = normalizePhoneNumber(profile.phone);
-    if (!normalized) continue;
-    const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-    if (fullName) nameByPhone.set(normalized, fullName);
-  }
-
-  await Promise.allSettled(
-    options.recipientPhones.map(async (to) => {
-      const normalizedTo = normalizePhoneNumber(to);
-      const recipientName = (normalizedTo && nameByPhone.get(normalizedTo)) || 'Administrator';
-
-      await sendWhatsAppTemplate(company, to, options.event, {
-        admin_name: sanitizeText(recipientName, 60),
-        grievance_id: sanitizeText(options.grievanceId, 30),
-        citizen_name: sanitizeText(options.citizenName, 60),
-        department_name: sanitizeText(options.category, 60),
-        office_name: sanitizeText(options.subDepartmentName || 'N/A', 60),
-        description: safeDescription,
-        assigned_by: sanitizeText(options.assignedByName || 'Admin', 60),
-        assigned_on: dateStr,
-        reassigned_by: sanitizeText(options.reassignedByName || options.assignedByName || 'Admin', 60),
-        reassigned_on: reassignedOnStr,
-        reverted_by: sanitizeText(options.revertedByName || 'Admin', 60),
-        reverted_on: dateStr,
-        remarks: safeRemarks,
-        submitted_on: submittedOnStr,
-        original_department: sanitizeText(options.originalDepartmentName || 'N/A', 60),
-        original_office: sanitizeText(options.originalOfficeName || 'N/A', 60)
-      }, language, undefined, undefined, {
-        recipientType: 'ADMIN'
-      });
-
-      if (options.media && options.media.length > 0) {
-        await sendMediaSequentially(company, to, options.media, recipientName);
-      }
-    })
-  );
+    grievance: options.grievance || {
+      grievanceId: options.grievanceId,
+      citizenName: options.citizenName,
+      description: options.description,
+    },
+    recipientPhones: options.recipientPhones,
+    language: options.language,
+    remarks: options.remarks,
+    admin: { fullName: options.reassignedByName || options.assignedByName || options.revertedByName || 'Administrator' },
+    previousDept: options.originalDepartmentName,
+    newDept: options.category,
+    media: options.media,
+    buttonParam: options.buttonParam,
+    department: { name: options.category },
+    subDept: { name: options.subDepartmentName }
+  });
 }

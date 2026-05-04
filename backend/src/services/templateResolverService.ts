@@ -24,9 +24,9 @@ export class TemplateResolverService {
     'grievance_received_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'created_at'],
     'grievance_assigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
     'grievance_reassigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks', 'previous_dept', 'new_dept'],
-    'grievance_status_resolved_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'status', 'remarks'],
-    'grievance_status_rejected_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'status', 'remarks'],
-    'grievance_status_inprogress_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'status', 'remarks'],
+    'grievance_status_resolved_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_rejected_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_inprogress_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
     'grievance_reminder_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'remarks', 'created_at']
   };
 

@@ -381,7 +381,8 @@ export class ActionService {
         timeline: grievance.timeline,
         type: 'grievance' as const,
         action: 'confirmation' as const,
-        citizenEmail: session.data.citizenEmail
+        citizenEmail: session.data.citizenEmail,
+        grievance
       };
 
       const createdAt = grievance.createdAt || new Date();
@@ -420,7 +421,8 @@ export class ActionService {
           status: grievance.status,
           language: session.language || 'en',
           assignedAdmins,
-          media: sanitizedMedia
+          media: sanitizedMedia,
+          buttonParam: 'https://sahaj.pugarch.in/'
         })
       );
 

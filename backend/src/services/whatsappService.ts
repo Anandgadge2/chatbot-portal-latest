@@ -1323,7 +1323,9 @@ export async function sendMediaSequentially(
                 {
                   type: headerTypeForPayload,
                   [headerTypeForPayload]: { 
-                    link: item.url,
+                    ...(String(item.url || '').match(/^\d+$/) 
+                      ? { id: item.url } 
+                      : { link: item.url }),
                     ...(headerTypeForPayload === 'document' ? { filename: item.filename || 'attachment' } : {})
                   }
                 }

@@ -66,7 +66,10 @@ export class NotificationContextService {
       current_date: moment().tz(timezone).format('DD MMM YYYY'),
       priority: grievance.priority || 'NORMAL',
       previous_dept: options.previousDept || 'N/A',
-      new_dept: options.newDept || 'N/A'
+      new_dept: options.newDept || 'N/A',
+      assigned_by: options.admin?.fullName || options.admin?.firstName ? `${options.admin.firstName} ${options.admin.lastName || ''}` : 'Administrator',
+      reassigned_by: options.admin?.fullName || options.admin?.firstName ? `${options.admin.firstName} ${options.admin.lastName || ''}` : 'Administrator',
+      reverted_by: options.admin?.fullName || options.admin?.firstName ? `${options.admin.firstName} ${options.admin.lastName || ''}` : 'Administrator'
     };
   }
 

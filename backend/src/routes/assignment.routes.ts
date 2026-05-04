@@ -240,7 +240,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
     // useReassignedTemplate: company admin / super admin doing a cross-dept reassignment
     // otherwise: dept admin delegating within dept → use assigned template
     triggerAdminAssignmentNotification({
-      event: useReassignedTemplate ? 'grievance_reassigned_admin_v2' : 'grievance_assigned_admin_v2',
+      event: useReassignedTemplate ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
@@ -255,6 +255,7 @@ router.put('/grievance/:id/assign', requirePermission(Permission.UPDATE_GRIEVANC
       remarks: (req.body as any).remarks || (req.body as any).reason || 'Administrative Reassignment',
       submittedOn: grievance.createdAt,
       reassignedOn: new Date(),
+      buttonParam: 'https://sahaj.pugarch.in/',
       // Old dept (where it came from) — captured BEFORE save
       originalDepartmentName: previousDepartmentName,
       originalOfficeName: previousOfficeName,

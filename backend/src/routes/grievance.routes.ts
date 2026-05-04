@@ -453,7 +453,8 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
           : 'N/A',
         language: grievance.language,
         assignedAdmins: targetAdmin ? [targetAdmin] : [],
-        media: sanitizedMedia
+        media: sanitizedMedia,
+        buttonParam: 'https://sahaj.pugarch.in/'
       }).catch(err => console.error('Grievance template flow failed:', err)),
       notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err)),
       // 📢 Send confirmation to citizen
@@ -669,7 +670,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
     ]);
 
     await triggerAdminAssignmentNotification({
-      event: 'grievance_reverted_company_v2',
+      event: 'GRIEVANCE_REVERTED',
       companyId: grievance.companyId,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
@@ -681,6 +682,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       revertedByName: currentUser.getFullName(),
       remarks: remarks.trim(),
       submittedOn: grievance.createdAt,
+      buttonParam: 'https://sahaj.pugarch.in/',
       originalDepartmentName: prevDept?.name || previousDepartmentName,
       originalOfficeName: prevSubDept?.name || 'N/A',
       media: (grievance.media || []).map((file: any) => ({
@@ -1360,7 +1362,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
           await triggerAdminAssignmentNotification({
             // useReassignedTemplate: company admin / super admin cross-dept reassignment
             // grievance_assigned_admin_v2: dept admin delegating within dept
-            event: useReassignedTemplate ? 'grievance_reassigned_admin_v2' : 'grievance_assigned_admin_v2',
+            event: useReassignedTemplate ? 'GRIEVANCE_REASSIGNED' : 'GRIEVANCE_ASSIGNED',
             companyId: grievance.companyId,
             grievanceId: grievance.grievanceId,
             citizenName: grievance.citizenName,
