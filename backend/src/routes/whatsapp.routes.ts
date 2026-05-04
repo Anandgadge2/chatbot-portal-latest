@@ -11,6 +11,11 @@ import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappS
 import { verifyWebhookSignature as verifyWebhookSignatureDigest } from '../utils/verifyWebhookSignature';
 import { authenticate } from '../middleware/auth';
 import ProcessedWhatsAppMessage from '../models/ProcessedWhatsAppMessage';
+import {
+  logWhatsAppEvent,
+  summarizeMetaWebhookMessage,
+  summarizeWhatsAppStatus
+} from '../utils/whatsappLogUtils';
 
 const router = express.Router();
 type WebhookRequest = Request & { rawBody?: Buffer };
@@ -147,6 +152,20 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
         const value = change.value;
         const metadata = value?.metadata;
 
+        if (Array.isArray(value?.statuses) && value.statuses.length > 0) {
+          for (const status of value.statuses) {
+            const severity = ['failed', 'undelivered'].includes(String(status?.status || '').toLowerCase())
+              ? 'error'
+              : 'info';
+            logWhatsAppEvent('delivery_status', {
+              companyId: verifiedWebhookContext.config.companyId?.toString?.(),
+              phoneNumberId: metadata?.phone_number_id,
+              displayPhoneNumber: metadata?.display_phone_number,
+              status: summarizeWhatsAppStatus(status)
+            }, severity as 'info' | 'error');
+          }
+        }
+
         if (!value?.messages) {
           continue;
         }
@@ -170,6 +189,13 @@ router.post('/', requireDatabaseConnection, async (req: Request, res: Response) 
             }
 
             const messageId = message.id;
+            logWhatsAppEvent('inbound_message_received', {
+              companyId: company?._id?.toString?.(),
+              companyName: company?.name,
+              phoneNumberId: metadata?.phone_number_id,
+              displayPhoneNumber: metadata?.display_phone_number,
+              message: summarizeMetaWebhookMessage(message)
+            });
 
             // IDEMPOTENCY CHECK
             if (await isMessageProcessed(messageId)) {
@@ -305,6 +331,17 @@ async function handleIncomingMessage(message: any, metadata: any, resolvedCompan
     console.log(
       `📨 Message from ${from} → Company: ${company.name} (ID: ${company.companyId})`
     );
+
+    logWhatsAppEvent('inbound_message_dispatch', {
+      companyId: company?._id?.toString?.(),
+      companyName: company?.name,
+      messageId,
+      from,
+      messageType,
+      messageText: messageText || undefined,
+      mediaId: mediaUrl || undefined,
+      buttonId: buttonId || undefined
+    });
 
     // 1. Update interaction timestamp immediately to open the 24h window
     await CitizenProfile.updateOne(
@@ -514,6 +551,15 @@ async function handleInteractiveMessage(message: any, metadata: any, resolvedCom
     if (!buttonId) return;
 
     console.log(`🔘 Button "${buttonId}" clicked by ${from}`);
+
+    logWhatsAppEvent('interactive_message_dispatch', {
+      companyId: company?._id?.toString?.(),
+      companyName: company?.name,
+      messageId,
+      from,
+      buttonId,
+      messageText
+    });
 
     await CitizenProfile.updateOne(
       { companyId: company._id, phone_number: from },

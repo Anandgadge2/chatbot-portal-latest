@@ -1666,6 +1666,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     showOnlySubDepartmentsInMainSelect={
                                       isDepartmentAdminRole
                                     }
+                                    alwaysEnableSubDept={isCompanyAdminRole || isSuperAdminUser}
                                     className="w-full md:w-auto"
                                   />
                                 )}
@@ -2834,6 +2835,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                                     showOnlySubDepartmentsInMainSelect={
                                       isDepartmentAdminRole
                                     }
+                                    alwaysEnableSubDept={isCompanyAdminRole || isSuperAdminUser}
                                     className="w-full md:w-auto"
                                   />
                                 )}
@@ -3699,6 +3701,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
                               showOnlySubDepartmentsInMainSelect={
                                 isDepartmentAdminRole
                               }
+                              alwaysEnableSubDept={isCompanyAdminRole || isSuperAdminUser}
                               className="w-full md:w-auto"
                             />
                           )}

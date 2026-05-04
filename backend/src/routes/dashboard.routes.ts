@@ -55,9 +55,13 @@ router.get('/superadmin', authenticate, requireSuperAdminDashboard, async (req: 
 // Company Admin Dashboard - SuperAdmin and CompanyAdmin can access
 router.get('/company-admin', authenticate, requireCompanyAdminDashboard, async (req: Request, res: Response) => {
   try {
-    let companyFilter = {};
+    let companyFilter: any = {};
     if (!req.user?.isSuperAdmin) {
-      companyFilter = { companyId: req.user?.companyId };
+      const companyId = req.user?.companyId;
+      if (!companyId) {
+        throw new Error('Company ID missing from user profile');
+      }
+      companyFilter = { companyId: new (require('mongoose')).Types.ObjectId(companyId.toString()) };
     }
 
     const stats = {

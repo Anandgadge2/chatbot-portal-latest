@@ -1,21 +1,52 @@
 import winston from 'winston';
 
-const { combine, timestamp, printf, colorize, errors } = winston.format;
+const { combine, timestamp, printf, colorize, errors, splat, json } = winston.format;
 
-// Custom log format
-const logFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}]: ${stack || message}`;
+function safeStringify(value: unknown): string {
+  const seen = new WeakSet<object>();
+
+  try {
+    return JSON.stringify(value, (_, currentValue) => {
+      if (typeof currentValue === 'object' && currentValue !== null) {
+        if (seen.has(currentValue)) {
+          return '[Circular]';
+        }
+        seen.add(currentValue);
+      }
+      return currentValue;
+    });
+  } catch {
+    return '[Unserializable metadata]';
+  }
+}
+
+const logFormat = printf((info) => {
+  const {
+    level,
+    message,
+    timestamp: logTimestamp,
+    stack,
+    ...meta
+  } = info;
+
+  const metaString = Object.keys(meta).length > 0 ? ` ${safeStringify(meta)}` : '';
+  return `${logTimestamp} [${level}]: ${stack || message}${metaString}`;
 });
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
+const baseFormat = combine(
+  errors({ stack: true }),
+  splat(),
+  timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })
+);
+
 // Define transports
 const transports: winston.transport[] = [
   new winston.transports.Console({
-    format: combine(
-      !isProduction ? colorize() : winston.format.uncolorize(),
-      logFormat
-    )
+    format: isProduction
+      ? combine(baseFormat, json())
+      : combine(baseFormat, colorize(), logFormat)
   })
 ];
 
@@ -39,11 +70,9 @@ if (!isProduction) {
 // Create logger instance
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
-  format: combine(
-    errors({ stack: true }),
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    logFormat
-  ),
+  format: isProduction
+    ? combine(baseFormat, json())
+    : combine(baseFormat, logFormat),
   transports,
   exceptionHandlers: isProduction ? [] : [
     new winston.transports.File({ filename: 'logs/exceptions.log' })

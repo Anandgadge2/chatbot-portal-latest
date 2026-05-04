@@ -16,9 +16,97 @@ import { formatTemplateDateTime } from '../utils/templateDateTime';
 import { NotificationContextService } from './notificationContextService';
 import { TemplateResolverService } from './templateResolverService';
 import { logger } from '../config/logger';
+import { logWhatsAppEvent } from '../utils/whatsappLogUtils';
+import Grievance from '../models/Grievance';
+import { notifyCompanyAdmins, notifyDepartmentAdmins } from './inAppNotificationService';
 
 export function formatTemplateDate(date: Date = new Date()): string {
   return formatTemplateDateTime(date, 'en-IN');
+}
+
+async function recordCitizenWhatsAppOutcome(options: {
+  companyId: any;
+  grievanceId: string;
+  citizenPhone: string;
+  templateName: string;
+  status: string;
+  outcome: 'SKIPPED' | 'FAILED';
+  reason: string;
+  details?: Record<string, any>;
+}): Promise<void> {
+  try {
+    const grievance = await Grievance.findOne({
+      companyId: options.companyId,
+      grievanceId: options.grievanceId
+    }).select('_id grievanceId companyId departmentId subDepartmentId timeline').lean();
+
+    if (!grievance) {
+      logger.warn(`⚠️ Could not record WhatsApp outcome. Grievance ${options.grievanceId} not found.`);
+      return;
+    }
+
+    const action =
+      options.outcome === 'SKIPPED'
+        ? 'WHATSAPP_NOTIFICATION_SKIPPED'
+        : 'WHATSAPP_NOTIFICATION_FAILED';
+
+    const details = {
+      channel: 'WHATSAPP',
+      target: 'CITIZEN',
+      templateName: options.templateName,
+      citizenPhone: options.citizenPhone,
+      grievanceStatus: options.status,
+      outcome: options.outcome,
+      reason: options.reason,
+      remarks: `Citizen WhatsApp ${options.outcome.toLowerCase()}: ${options.reason}`,
+      ...options.details
+    };
+
+    await Grievance.updateOne(
+      { _id: grievance._id },
+      {
+        $push: {
+          timeline: {
+            action,
+            details,
+            timestamp: new Date()
+          }
+        }
+      }
+    );
+
+    const notificationPayload = {
+      companyId: grievance.companyId,
+      eventType: 'WHATSAPP_DELIVERY_ISSUE' as const,
+      title: `WhatsApp update ${options.outcome.toLowerCase()} for ${grievance.grievanceId}`,
+      message: `Citizen WhatsApp status template was ${options.outcome.toLowerCase()} for grievance ${grievance.grievanceId}. Reason: ${options.reason}`,
+      grievanceId: grievance.grievanceId,
+      grievanceObjectId: grievance._id,
+      meta: details
+    };
+
+    const targetDepartmentId = grievance.subDepartmentId || grievance.departmentId;
+
+    if (targetDepartmentId) {
+      await notifyDepartmentAdmins({
+        ...notificationPayload,
+        departmentId: targetDepartmentId
+      });
+    } else {
+      await notifyCompanyAdmins(notificationPayload);
+    }
+
+    logWhatsAppEvent('citizen_whatsapp_outcome_recorded', {
+      companyId: String(options.companyId),
+      grievanceId: options.grievanceId,
+      citizenPhone: options.citizenPhone,
+      templateName: options.templateName,
+      outcome: options.outcome,
+      reason: options.reason
+    });
+  } catch (error: any) {
+    logger.error(`❌ Failed to record citizen WhatsApp outcome for grievance ${options.grievanceId}: ${error.message}`);
+  }
 }
 
 function sanitizeTemplateDataValue(key: string, value: string): string {
@@ -134,6 +222,18 @@ export async function triggerGrievanceEvent(options: {
       : await getAdminRecipients(options.companyId);
 
     // 4. Send notifications
+    logWhatsAppEvent('grievance_event_trigger', {
+      companyId: options.companyId?.toString?.() || String(options.companyId),
+      companyName: company?.name,
+      eventKey: options.eventKey,
+      grievanceId: options.grievance?.grievanceId || options.grievance?._id?.toString?.(),
+      citizenPhone: options.citizenPhone || options.grievance?.citizenPhone,
+      recipientPhones: finalPhones,
+      templateName,
+      language,
+      mediaCount: options.media?.length || 0
+    });
+
     const results = await Promise.allSettled(
       finalPhones.map(async (to) => {
         return sendWhatsAppTemplate(company, to, templateName, values, language, undefined, undefined, {
@@ -147,6 +247,18 @@ export async function triggerGrievanceEvent(options: {
     if (options.media && options.media.length > 0) {
       await Promise.all(finalPhones.map(to => sendMediaSequentially(company, to, options.media!, 'Administrator')));
     }
+
+    logWhatsAppEvent('grievance_event_complete', {
+      companyId: options.companyId?.toString?.() || String(options.companyId),
+      companyName: company?.name,
+      eventKey: options.eventKey,
+      grievanceId: options.grievance?.grievanceId || options.grievance?._id?.toString?.(),
+      results: results.map((result) =>
+        result.status === 'fulfilled'
+          ? { status: 'fulfilled', value: result.value }
+          : { status: 'rejected', reason: result.reason?.message || String(result.reason) }
+      )
+    });
 
     return results;
   } catch (error: any) {
@@ -226,15 +338,33 @@ export async function triggerCitizenTemplate(options: {
       { phoneNumber: normalizedPhone },
       { phoneNumber: rawPhone }
     ]
-  }).select('notification_consent notificationConsent').lean();
+  }).select('notification_consent notificationConsent opt_out isSubscribed').lean();
 
   const hasNotificationConsent = Boolean(
     citizenProfile?.notification_consent ?? citizenProfile?.notificationConsent
   );
+  const isOptedOut = Boolean(citizenProfile?.opt_out || citizenProfile?.isSubscribed === false);
+
+  if (isOptedOut) {
+    logWhatsAppEvent('citizen_template_skipped_unsubscribed', {
+      companyId: options.companyId?.toString?.() || String(options.companyId),
+      templateName: options.template,
+      recipientPhone: normalizedPhone
+    });
+
+    return {
+      success: false,
+      skipped: true,
+      skipReason: 'recipient_unsubscribed',
+      error: 'Recipient has unsubscribed from WhatsApp notifications.'
+    };
+  }
 
   if (options.requireNotificationConsent && !hasNotificationConsent) {
     return {
       success: false,
+      skipped: true,
+      skipReason: 'notification_consent_missing',
       error: 'Citizen notification consent missing.'
     };
   }
@@ -298,7 +428,7 @@ export async function triggerCitizenStatusTemplate(options: {
   logger.info(`🚀 Sending status template: ${templateName} to ${options.citizenPhone}`);
 
   // 3. Send the Text Status Template
-  await triggerCitizenTemplate({
+  const citizenTemplateResult = await triggerCitizenTemplate({
     template: templateName,
     companyId: options.companyId,
     citizenPhone: options.citizenPhone,
@@ -306,9 +436,36 @@ export async function triggerCitizenStatusTemplate(options: {
     values
   });
 
+  if (citizenTemplateResult?.skipped) {
+    logger.info(`ℹ️ Citizen status template skipped for ${options.grievanceId}: ${citizenTemplateResult.skipReason}`);
+    await recordCitizenWhatsAppOutcome({
+      companyId: options.companyId,
+      grievanceId: options.grievanceId,
+      citizenPhone: options.citizenPhone,
+      templateName,
+      status,
+      outcome: 'SKIPPED',
+      reason: citizenTemplateResult.error || citizenTemplateResult.skipReason || 'Citizen WhatsApp notification skipped.'
+    });
+    return citizenTemplateResult;
+  }
+
+  if (!citizenTemplateResult?.success) {
+    await recordCitizenWhatsAppOutcome({
+      companyId: options.companyId,
+      grievanceId: options.grievanceId,
+      citizenPhone: options.citizenPhone,
+      templateName,
+      status,
+      outcome: 'FAILED',
+      reason: citizenTemplateResult?.error || 'Citizen WhatsApp notification failed.'
+    });
+    return citizenTemplateResult;
+  }
+
   // 4. Handle Proof/Evidence (Identify type and use specialized media templates via sequential sender)
   if (options.media && options.media.length > 0) {
-    logger.info(`📦 Sending ${options.media.length} proof attachments to citizen via sequential sender...`);
+    logger.info(`📦 [Notification] Sending ${options.media.length} proof attachments for grievance ${options.grievanceId} to citizen ${options.citizenPhone}`);
     
     const company = await getCompanyWithConfig(options.companyId);
     await sendMediaSequentially(
@@ -316,8 +473,16 @@ export async function triggerCitizenStatusTemplate(options: {
       options.citizenPhone,
       options.media,
       options.citizenName || 'Citizen'
-    ).catch(err => logger.error(`❌ Media sequential send failed: ${err.message}`));
+    ).then((results: Array<{ success: boolean }>) => {
+      const successCount = results.filter((r) => r.success).length;
+      logger.info(`✅ [Notification] Proof media send complete for ${options.grievanceId}: ${successCount}/${options.media!.length} delivered.`);
+    }).catch((err: any) => {
+      logger.error(`❌ [Notification] Proof media delivery failed for ${options.grievanceId}: ${err.message}`);
+    });
+  } else {
+    logger.info(`ℹ️ [Notification] No proof media found to send for grievance ${options.grievanceId}`);
   }
+  return citizenTemplateResult;
 }
 
 export async function triggerGrievanceNotifications(options: {
@@ -458,7 +623,15 @@ export async function triggerAdminAssignmentNotification(options: {
       });
 
       if (options.media && options.media.length > 0) {
-        await sendMediaSequentially(company, to, options.media, recipientName);
+        logger.info(`📦 [Assignment] Sending ${options.media.length} attachments for grievance ${options.grievanceId} to admin ${to}`);
+        await sendMediaSequentially(company, to, options.media, recipientName)
+          .then((results: Array<{ success: boolean }>) => {
+            const successCount = results.filter((r) => r.success).length;
+            logger.info(`✅ [Assignment] Attachments delivery complete for admin ${to}: ${successCount}/${options.media!.length} delivered.`);
+          })
+          .catch((err: any) => logger.error(`❌ [Assignment] Attachments delivery failed for admin ${to}: ${err.message}`));
+      } else {
+        logger.info(`ℹ️ [Assignment] No media attachments to send for admin ${to}`);
       }
     })
   );

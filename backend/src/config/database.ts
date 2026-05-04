@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { logger } from './logger';
-import { installDatabaseSafetyGuards } from '../utils/databaseSafety';
 
 const MAX_CONNECTION_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
@@ -65,7 +64,6 @@ export const connectDatabase = async (attempt = 1): Promise<void> => {
 
   connectionPromise = mongoose.connect(mongoUri, CONNECTION_OPTIONS)
     .then(() => {
-      installDatabaseSafetyGuards(mongoose.connection);
       logger.info('MongoDB connection established successfully');
       connectionPromise = null;
     })

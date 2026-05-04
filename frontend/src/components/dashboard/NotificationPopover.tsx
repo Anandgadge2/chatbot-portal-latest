@@ -51,6 +51,8 @@ export function NotificationPopover({
         return <Check className="w-4 h-4 text-emerald-500" />;
       case "GRIEVANCE_REMINDER":
         return <Clock className="w-4 h-4 text-rose-500" />;
+      case "WHATSAPP_DELIVERY_ISSUE":
+        return <MessageSquare className="w-4 h-4 text-amber-600" />;
       default:
         return <Bell className="w-4 h-4 text-slate-500" />;
     }
@@ -69,6 +71,8 @@ export function NotificationPopover({
         return "bg-emerald-500/10";
       case "GRIEVANCE_REMINDER":
         return "bg-rose-500/10";
+      case "WHATSAPP_DELIVERY_ISSUE":
+        return "bg-amber-500/10";
       default:
         return "bg-slate-500/10";
     }

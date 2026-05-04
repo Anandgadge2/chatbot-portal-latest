@@ -18,6 +18,7 @@ interface DepartmentFiltersProps {
   className?: string;
   mainPlaceholder?: string;
   subPlaceholder?: string;
+  alwaysEnableSubDept?: boolean;
 }
 
 export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
@@ -31,6 +32,7 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
   className = "",
   mainPlaceholder = "🏢 Main Depts",
   subPlaceholder = "📍 Sub Depts",
+  alwaysEnableSubDept = false,
 }) => {
   const mainDeptOptions = [
     {
@@ -56,7 +58,13 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
   const subDeptOptions = [
     { value: "", label: "📍 All Sub Depts" },
     ...allDepartments
-      .filter((d) => getParentDepartmentId(d) === currentFilters.mainDeptId)
+      .filter((d) => {
+        const parentId = getParentDepartmentId(d);
+        if (!currentFilters.mainDeptId) {
+          return !!parentId; // If no main dept selected, show all sub depts if always enabled
+        }
+        return parentId === currentFilters.mainDeptId;
+      })
       .map((dept) => ({
         value: dept._id,
         label: dept.name,
@@ -85,7 +93,7 @@ export const DashboardDepartmentFilters: React.FC<DepartmentFiltersProps> = ({
             onValueChange={(val) =>
               onFiltersChange({ ...currentFilters, subDeptId: val })
             }
-            disabled={!currentFilters.mainDeptId}
+            disabled={!alwaysEnableSubDept && !currentFilters.mainDeptId}
             placeholder={subPlaceholder}
             className="w-full"
             triggerClassName="h-8 px-3 group-hover:border-indigo-300 transition-all text-xs max-w-[150px] whitespace-normal break-words leading-tight flex items-center justify-between"

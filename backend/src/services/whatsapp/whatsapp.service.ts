@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logWhatsAppEvent, summarizeWhatsAppPayload } from '../../utils/whatsappLogUtils';
 
 export function isWithin24Hours(lastUserMessageTimestamp?: Date | string | null): boolean {
   if (!lastUserMessageTimestamp) return false;
@@ -57,19 +58,32 @@ export async function sendTemplateRequest(options: {
 
   while (true) {
     try {
+      logWhatsAppEvent('api_request', {
+        attempt: attempt + 1,
+        maxAttempts: retryCount + 1,
+        context: options.logContext,
+        payload: summarizeWhatsAppPayload(options.payload)
+      });
+
       const response = await axios.post(options.url, options.payload, { headers: options.headers });
-      
-      // ✅ SUCCESS LOGGING: Clear visibility for production monitoring
-      console.log(`[WhatsApp Success] ✅ Template "${options.logContext.templateName}" sent to ${options.logContext.to} (${options.logContext.company || 'System'})`);
-      
+
+      logWhatsAppEvent('api_success', {
+        attempt: attempt + 1,
+        context: options.logContext,
+        payload: summarizeWhatsAppPayload(options.payload),
+        messageId: response.data.messages?.[0]?.id,
+        contacts: response.data.contacts
+      });
+
       return response;
     } catch (error: any) {
       const parsed = parseWhatsAppApiError(error);
       const status = attempt >= retryCount ? 'FAILED' : 'RETRYING';
 
-      console.error('❌ WhatsApp API Error', {
-        ...options.logContext,
-        payload: options.payload,
+      logWhatsAppEvent('api_error', {
+        attempt: attempt + 1,
+        context: options.logContext,
+        payload: summarizeWhatsAppPayload(options.payload),
         status,
         error: {
           statusCode: parsed.status || null,
@@ -78,7 +92,7 @@ export async function sendTemplateRequest(options: {
           details: parsed.details || null,
           fbtraceId: parsed.fbtraceId || null
         }
-      });
+      }, status === 'FAILED' ? 'error' : 'warn');
 
       if (!parsed.shouldRetry || attempt >= retryCount) {
         throw error;

@@ -7,7 +7,8 @@ export type NotificationEventType =
   | 'GRIEVANCE_ASSIGNED'
   | 'GRIEVANCE_REASSIGNED'
   | 'GRIEVANCE_STATUS_UPGRADED'
-  | 'GRIEVANCE_REOPENED';
+  | 'GRIEVANCE_REOPENED'
+  | 'WHATSAPP_DELIVERY_ISSUE';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
@@ -40,6 +41,7 @@ const NotificationSchema = new Schema<INotification>(
         'GRIEVANCE_REASSIGNED',
         'GRIEVANCE_STATUS_UPGRADED',
         'GRIEVANCE_REOPENED',
+        'WHATSAPP_DELIVERY_ISSUE',
       ],
       required: true,
       index: true,

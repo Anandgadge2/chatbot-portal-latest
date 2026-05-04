@@ -25,6 +25,7 @@ import {
   triggerGrievanceNotifications,
   formatTemplateDate
 } from './grievanceTemplateTriggerService';
+import { logWhatsAppEvent } from '../utils/whatsappLogUtils';
 
 interface CreateActionOptions {
   sendCitizenConfirmation?: boolean;
@@ -301,6 +302,26 @@ export class ActionService {
       
       await updateSession(session);
 
+      logWhatsAppEvent('grievance_flow_initiated', {
+        companyId: company?._id?.toString?.(),
+        companyName: company?.name,
+        grievanceId: grievance.grievanceId,
+        grievanceObjectId: grievance._id?.toString?.(),
+        initiatedByPhone: userPhone,
+        citizenName,
+        departmentId: departmentId?.toString?.(),
+        subDepartmentId: subDepartmentId?.toString?.(),
+        departmentName: session.data.departmentName,
+        subDepartmentName: session.data.subDepartmentName,
+        language: session.language || 'en',
+        mediaCount: sanitizedMedia.length,
+        media: sanitizedMedia.map((item: any) => ({
+          url: item?.url,
+          type: item?.type,
+          filename: item?.filename
+        }))
+      });
+
       // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
       let autoAssigned = false;
       let assignedAdmins: any[] = [];
@@ -426,6 +447,17 @@ export class ActionService {
 
       Promise.allSettled(notifications)
         .then((notificationResults) => {
+          logWhatsAppEvent('grievance_flow_notifications_settled', {
+            companyId: company?._id?.toString?.(),
+            companyName: company?.name,
+            grievanceId: grievance.grievanceId,
+            results: notificationResults.map((result) =>
+              result.status === 'fulfilled'
+                ? { status: 'fulfilled' }
+                : { status: 'rejected', reason: result.reason?.message || String(result.reason) }
+            )
+          });
+
           const failedNotifications = notificationResults.filter(
             (result) => result.status === 'rejected'
           ) as PromiseRejectedResult[];

@@ -189,6 +189,12 @@ const GrievanceSchema: Schema = new Schema(
         enum: ['image', 'document', 'video'],
         required: true
       },
+      filename: {
+        type: String
+      },
+      caption: {
+        type: String
+      },
       uploadedAt: {
         type: Date,
         default: Date.now

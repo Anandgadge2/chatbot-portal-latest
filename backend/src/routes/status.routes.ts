@@ -240,11 +240,17 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             String(grievance.companyId._id || grievance.companyId),
           );
           if (!cloudUrl) return null;
+          
+          let mediaType: 'image' | 'video' | 'document' = 'document';
+          if (file.mimetype.startsWith('image/')) mediaType = 'image';
+          else if (file.mimetype.startsWith('video/')) mediaType = 'video';
+
           return {
             cloudUrl,
             mediaEntry: {
               url: cloudUrl,
-              type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+              type: mediaType,
+              filename: file.originalname,
               uploadedAt: new Date(),
               uploadedBy: currentUser._id
             } as any

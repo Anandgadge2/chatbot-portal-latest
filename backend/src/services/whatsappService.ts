@@ -18,6 +18,7 @@ import { validateTemplate } from './whatsapp/validator.service';
 import { isWithin24Hours, parseWhatsAppApiError, sendTemplateRequest } from './whatsapp/whatsapp.service';
 import { syncTemplatesForCompany } from './whatsappTemplateSyncService';
 import { sanitizeText } from '../utils/sanitize';
+import { logWhatsAppEvent, summarizeWhatsAppPayload } from '../utils/whatsappLogUtils';
 
 /**
  * WhatsApp Business API limits are enforced here and in flow builder.
@@ -366,14 +367,22 @@ function logMetaError(error: any, context: Record<string, any>) {
   const metaError = error?.response?.data?.error;
   const hasMetaPayload = Boolean(metaError);
 
-  console.error(hasMetaPayload ? '❌ WhatsApp API Error' : '❌ WhatsApp Error', {
+  logWhatsAppEvent(hasMetaPayload ? 'meta_api_error' : 'runtime_error', {
     ...context,
     metaCode: metaError?.code,
     metaMessage: metaError?.message,
     fbtraceId: metaError?.fbtrace_id,
     message: hasMetaPayload ? undefined : error?.message,
     code: hasMetaPayload ? undefined : error?.code
-  });
+  }, 'error');
+}
+
+function normalizedPhoneNumberOrOriginal(phone: string): string {
+  try {
+    return normalizePhoneNumber(phone);
+  } catch {
+    return phone;
+  }
 }
 
 function normalizeTemplateButtonType(value?: string): string {
@@ -612,10 +621,22 @@ export async function sendWhatsAppMessage(
       }
     };
 
+    logWhatsAppEvent('send_text_attempt', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      payload: summarizeWhatsAppPayload(payload)
+    });
+
     const response = await axios.post(url, payload, { headers });
 
-    console.log(`✅ [WhatsApp API] Text message sent to ${to} (${company.name})`);
-    console.log(`   Message ID: ${response.data.messages?.[0]?.id || 'N/A'}`);
+    logWhatsAppEvent('send_text_success', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
+    });
     
     // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, composedMessage, 'text');
@@ -628,7 +649,7 @@ export async function sendWhatsAppMessage(
   } catch (error: any) {
     const errorDetails = {
       action: 'send_text',
-      to,
+      to: normalizedPhoneNumberOrOriginal(to),
       company: company?.name,
       phoneNumberId: company?.whatsappConfig?.phoneNumberId
     };
@@ -637,35 +658,24 @@ export async function sendWhatsAppMessage(
     
     // CRITICAL: Log detailed error for debugging
     if (error.response) {
-      console.error('❌ WhatsApp API Error Details:', {
+      logWhatsAppEvent('send_text_failure', {
         status: error.response.status,
         statusText: error.response.statusText,
-        data: JSON.stringify(error.response.data, null, 2),
+        data: error.response.data,
         errorCode: error.response.data?.error?.code,
         errorMessage: error.response.data?.error?.message,
         errorType: error.response.data?.error?.type,
         errorSubcode: error.response.data?.error?.error_subcode,
         fbtraceId: error.response.data?.error?.fbtrace_id,
-        ...errorDetails
-      });
-      
-      // Specifically log the payload that was sent
-      console.error('📦 Payload sent that failed:', JSON.stringify(error.config?.data, null, 2));
-      
-      // Specific error code handling
-      if (error.response.data?.error?.code === 190) {
-        console.error('   ⚠️ Error 190: Invalid or expired access token');
-      } else if (error.response.data?.error?.code === 100) {
-        console.error('   ⚠️ Error 100: Invalid parameter (check phone number ID)');
-      } else if (error.response.data?.error?.code === 131047) {
-        console.error('   ⚠️ Error 131047: Message template required (24-hour window expired)');
-      }
+        ...errorDetails,
+        payload: error.config?.data
+      }, 'error');
     } else {
-      console.error('❌ WhatsApp Network Error:', {
+      logWhatsAppEvent('send_text_failure', {
         message: error.message,
         code: error.code,
         ...errorDetails
-      });
+      }, 'error');
     }
 
     return {
@@ -704,9 +714,22 @@ export async function sendWhatsAppTemplate(
     if (!companyId) {
       throw new Error('Company ID missing for template compliance validation.');
     }
+
     const normalizedTo = normalizePhoneNumber(to);
     const recipientType = options?.recipientType || resolveTemplateAudience(templateName);
     const compliance = await getSessionComplianceContext(company, normalizedTo);
+
+    logWhatsAppEvent('send_template_precheck', {
+      companyId: companyId?.toString?.(),
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      recipientType,
+      templateName,
+      within24hWindow: compliance.within24hWindow,
+      consentGiven: compliance.consentGiven,
+      isSubscribed: compliance.isSubscribed,
+      optedOut: compliance.optedOut
+    });
 
     if (
       recipientType === 'CITIZEN' &&
@@ -749,24 +772,21 @@ export async function sendWhatsAppTemplate(
       }
     }
 
-    if (!resolvedTemplate && TEMPLATE_DEFINITIONS[templateName]) {
-      resolvedTemplate = buildVirtualResolvedTemplate(templateName, normalizedLanguage);
+    if (!resolvedTemplate) {
+      throw new Error(`Failed to resolve template ${templateName} for dispatch.`);
     }
 
     let components: any[] = [];
     const expectedVariableCount = Number(resolvedTemplate.template?.body?.variables || 0);
+
     if (Array.isArray(parameters)) {
-      try {
-        await assertTemplateApproved({
-          companyId,
-          templateName,
-          language: resolvedTemplate.resolvedLanguage
-        });
-      } catch (approvalErr: any) {
-        if (!TEMPLATE_DEFINITIONS[templateName] || approvalErr?.code !== 'TEMPLATE_INVALID') {
-          throw approvalErr;
-        }
-      }
+      // Strict approval check
+      await assertTemplateApproved({
+        companyId,
+        templateName,
+        language: resolvedTemplate.resolvedLanguage
+      });
+
       components = buildArrayTemplateComponents({
         templateName,
         template: resolvedTemplate.template,
@@ -775,45 +795,22 @@ export async function sendWhatsAppTemplate(
         buttonParam
       });
     } else {
-      let normalizedData: Record<string, any> = {};
-      if (Array.isArray(parameters)) {
-        const definition = TEMPLATE_DEFINITIONS[templateName];
-        if (definition) {
-          parameters.forEach((val, idx) => {
-            const key = definition.body[idx]?.key || `param_${idx + 1}`;
-            normalizedData[key] = val;
-          });
-        } else {
-          parameters.forEach((val, idx) => {
-            normalizedData[`param_${idx + 1}`] = val;
-          });
-        }
-      } else {
-        normalizedData = { ...parameters };
-      }
+      let normalizedData: Record<string, any>;
+      normalizedData = { ...parameters };
 
       if (headerParam) normalizedData.header_url = headerParam;
       if (buttonParam) normalizedData.button_url = buttonParam;
 
-
       if (TEMPLATE_DEFINITIONS[templateName]) {
-        // ✅ PRIORITIZE CODE-BASED PAYLOAD BUILDER:
-        // For whitelisted whitelisted templates, use the logic defined in payload.builder.ts
-        // which uses whitelisted keys and aliases to find the real live values from the code.
-        try {
-          await assertTemplateApproved({
-            companyId,
-            templateName,
-            language: resolvedTemplate.resolvedLanguage
-          });
-        } catch (approvalErr: any) {
-          if (approvalErr?.code !== 'TEMPLATE_INVALID') {
-            throw approvalErr;
-          }
-        }
+        // Strict approval check
+        await assertTemplateApproved({
+          companyId,
+          templateName,
+          language: resolvedTemplate.resolvedLanguage
+        });
+
         components = buildTemplatePayload(templateName, normalizedData).components;
       } else {
-        // Fallback to database-managed mappings for custom/unknown templates
         const mappedComponents = await buildMappedComponentsFromSavedTemplateMapping({
           companyId,
           templateName,
@@ -849,6 +846,16 @@ export async function sendWhatsAppTemplate(
       }
     };
 
+    logWhatsAppEvent('send_template_attempt', {
+      companyId: companyId?.toString?.(),
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      recipientType,
+      templateName,
+      language: resolvedTemplate.resolvedLanguage,
+      payload: summarizeWhatsAppPayload(payload)
+    });
+
     const response = await sendTemplateRequest({
       url,
       headers,
@@ -863,15 +870,15 @@ export async function sendWhatsAppTemplate(
       }
     });
 
-    console.log('✅ WhatsApp template sent', {
-      action: 'send_template',
+    logWhatsAppEvent('send_template_success', {
       templateName,
+      companyId: companyId?.toString?.(),
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      recipientType,
       language: resolvedTemplate.resolvedLanguage,
-      to: normalizedTo,
-      company: company?.name,
-      payload,
-      status: 'SUCCESS',
-      error: null
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
     });
     await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template', templateName);
 
@@ -879,17 +886,15 @@ export async function sendWhatsAppTemplate(
       success: true,
       messageId: response.data.messages?.[0]?.id
     };
-
   } catch (error: any) {
     const parsed = parseWhatsAppApiError(error);
-    console.error('❌ WhatsApp template failed', {
-      action: 'send_template',
+    logWhatsAppEvent('send_template_failure', {
       templateName,
+      companyId: company?._id?.toString?.(),
+      companyName: company?.name,
       language,
-      to: normalizePhoneNumber(to),
-      company: company?.name,
+      recipientPhone: normalizedPhoneNumberOrOriginal(to),
       payload: error?.config?.data || null,
-      status: 'FAILED',
       error: {
         statusCode: parsed.status || null,
         metaCode: parsed.code || null,
@@ -897,7 +902,7 @@ export async function sendWhatsAppTemplate(
         details: parsed.details || null,
         fbtraceId: parsed.fbtraceId || null
       }
-    });
+    }, 'error');
 
     return {
       success: false,
@@ -906,11 +911,6 @@ export async function sendWhatsAppTemplate(
   }
 }
 
-/**
- * ============================================================
- * SEND BUTTON MESSAGE (MAX 3 BUTTONS)
- * ============================================================
- */
 export async function sendWhatsAppButtons(
   company: any,
   to: string,
@@ -937,7 +937,7 @@ export async function sendWhatsAppButtons(
       .filter((btn) => Boolean(btn.reply.title));
 
     if (sanitizedButtons.length === 0) {
-      return sendWhatsAppMessage(company, to, applyComplianceFooter(message, options?.includeComplianceFooter));
+      return sendWhatsAppMessage(company, to, composedMessage, options);
     }
 
     const payload = {
@@ -947,7 +947,6 @@ export async function sendWhatsAppButtons(
       interactive: {
         type: 'button',
         body: {
-          // Meta interactive button body text supports up to 1024 chars.
           text: safeText(composedMessage, 1024)
         },
         action: {
@@ -956,46 +955,49 @@ export async function sendWhatsAppButtons(
       }
     };
 
+    logWhatsAppEvent('send_buttons_attempt', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      payload: summarizeWhatsAppPayload(payload)
+    });
+
     const response = await axios.post(url, payload, { headers });
+    logWhatsAppEvent('send_buttons_success', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
+    });
 
-    console.log(`✅ [WhatsApp API] Buttons sent to ${to} (${company.name})`);
-
-    // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, composedMessage, 'buttons');
-
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
     };
-
   } catch (error: any) {
     logMetaError(error, {
       action: 'send_buttons',
-      to,
+      to: normalizedPhoneNumberOrOriginal(to),
       company: company?.name
     });
 
-    // Fallback to plain text
     const fallbackText =
       applyComplianceFooter(message, options?.includeComplianceFooter) +
       '\n\n' +
-      buttons.map((b, i) => `${i + 1}. ${b.title}`).join('\n');
+      buttons.map((button, index) => `${index + 1}. ${button.title}`).join('\n');
 
     return sendWhatsAppMessage(company, to, fallbackText);
   }
 }
 
-/**
- * ============================================================
- * SEND CTA URL BUTTON (1 ACTION BUTTON)
- * ============================================================
- */
 export async function sendWhatsAppCTA(
   company: any,
   to: string,
   message: string,
   buttonTitle: string,
-  url: string,
+  ctaUrl: string,
   headerText?: string,
   footerText?: string,
   options?: { includeComplianceFooter?: boolean }
@@ -1003,7 +1005,7 @@ export async function sendWhatsAppCTA(
   try {
     await enforceMessagingPolicy(company, to, 'freeform');
     await enforceRateLimit(company, to);
-    const { url: apiURL, headers } = getWhatsAppConfig(company);
+    const { url, headers } = getWhatsAppConfig(company);
 
     const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter, 1024);
     const normalizedTo = normalizePhoneNumber(to);
@@ -1021,7 +1023,7 @@ export async function sendWhatsAppCTA(
           name: 'cta_url',
           parameters: {
             display_text: buttonTitle.slice(0, 20),
-            url: url
+            url: ctaUrl
           }
         }
       }
@@ -1040,38 +1042,43 @@ export async function sendWhatsAppCTA(
       };
     }
 
-    const response = await axios.post(apiURL, payload, { headers });
+    logWhatsAppEvent('send_cta_attempt', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      buttonTitle,
+      payload: summarizeWhatsAppPayload(payload)
+    });
 
-    console.log(`✅ WhatsApp CTA sent → ${to} (Button: ${buttonTitle})`);
+    const response = await axios.post(url, payload, { headers });
+    logWhatsAppEvent('send_cta_success', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      buttonTitle,
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
+    });
 
-    // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, composedMessage, 'cta_url');
-
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
     };
-
   } catch (error: any) {
     logMetaError(error, {
       action: 'send_cta_url',
-      to,
+      to: normalizedPhoneNumberOrOriginal(to),
       company: company?.name,
       buttonTitle,
-      url
+      ctaUrl
     });
 
-    // Fallback to text
-    const fallbackText = `${applyComplianceFooter(message, options?.includeComplianceFooter)}\n\n🔗 ${buttonTitle}: ${url}`;
+    const fallbackText = `${applyComplianceFooter(message, options?.includeComplianceFooter)}\n\nLink: ${buttonTitle}: ${ctaUrl}`;
     return sendWhatsAppMessage(company, to, fallbackText);
   }
 }
 
-/**
- * ============================================================
- * SEND LIST MESSAGE
- * ============================================================
- */
 export async function sendWhatsAppList(
   company: any,
   to: string,
@@ -1089,14 +1096,13 @@ export async function sendWhatsAppList(
     const { url, headers } = getWhatsAppConfig(company);
 
     const composedMessage = applyComplianceFooter(message, options?.includeComplianceFooter, 1024);
-    // Enforce WhatsApp list limits (max 1 section, 10 rows, 24/72 chars)
     const validatedSections = sections
       .slice(0, WHATSAPP_LIMITS_LIST.MAX_SECTIONS_PER_LIST)
-      .map(section => ({
+      .map((section) => ({
         title: (section.title || '').slice(0, WHATSAPP_LIMITS_LIST.SECTION_TITLE_MAX_LENGTH),
         rows: section.rows
           .slice(0, WHATSAPP_LIMITS_LIST.MAX_ROWS_PER_SECTION)
-          .map(row => ({
+          .map((row) => ({
             id: (row.id || '').slice(0, 200),
             title: (row.title || '').slice(0, WHATSAPP_LIMITS_LIST.ROW_TITLE_MAX_LENGTH),
             description: row.description
@@ -1113,7 +1119,7 @@ export async function sendWhatsAppList(
       interactive: {
         type: 'list',
         body: {
-          text: composedMessage // Max 1024 chars for body
+          text: composedMessage
         },
         action: {
           button: (buttonText || 'Select').slice(0, WHATSAPP_LIMITS_BUTTONS.BUTTON_TITLE_MAX_LENGTH),
@@ -1122,44 +1128,42 @@ export async function sendWhatsAppList(
       }
     };
 
-    console.log('📋 Sending WhatsApp list:', {
-      to,
+    logWhatsAppEvent('send_list_attempt', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
       sectionsCount: validatedSections.length,
-      totalRows: validatedSections.reduce((sum, s) => sum + s.rows.length, 0)
+      totalRows: validatedSections.reduce((sum, section) => sum + section.rows.length, 0),
+      payload: summarizeWhatsAppPayload(payload)
     });
 
     const response = await axios.post(url, payload, { headers });
+    logWhatsAppEvent('send_list_success', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
+    });
 
-    console.log(`✅ [WhatsApp API] List sent to ${to} (${company.name})`);
-
-    // Log to audit for SuperAdmin terminal
     await logOutgoingMessage(company, to, composedMessage, 'list');
-
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
     };
-
   } catch (error: any) {
-    console.error('❌ WhatsApp list error:', {
-      message: error?.response?.data?.error?.message,
-      code: error?.response?.data?.error?.code
-    });
-    
     logMetaError(error, {
       action: 'send_list',
-      to,
+      to: normalizedPhoneNumberOrOriginal(to),
       company: company?.name
     });
 
-    // Fallback to text
     const fallbackText =
       applyComplianceFooter(message, options?.includeComplianceFooter) +
       '\n\n' +
       sections
-        .map(section =>
-          `${section.title}\n` +
-          section.rows.map((r, i) => `${i + 1}. ${r.title}`).join('\n')
+        .map((section) =>
+          `${section.title}\n${section.rows.map((row, index) => `${index + 1}. ${row.title}`).join('\n')}`
         )
         .join('\n\n');
 
@@ -1167,11 +1171,6 @@ export async function sendWhatsAppList(
   }
 }
 
-/**
- * ============================================================
- * SEND MEDIA MESSAGE (IMAGE, DOCUMENT, VIDEO, AUDIO)
- * ============================================================
- */
 export async function sendWhatsAppMedia(
   company: any,
   to: string,
@@ -1203,34 +1202,44 @@ export async function sendWhatsAppMedia(
       payload[mediaType].filename = filename;
     }
 
+    logWhatsAppEvent('send_media_attempt', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      mediaType,
+      payload: summarizeWhatsAppPayload(payload)
+    });
+
     const response = await axios.post(url, payload, { headers });
+    logWhatsAppEvent('send_media_success', {
+      companyId: company?._id?.toString?.() || company?.companyId,
+      companyName: company?.name,
+      recipientPhone: normalizedTo,
+      mediaType,
+      messageId: response.data.messages?.[0]?.id,
+      payload: summarizeWhatsAppPayload(payload)
+    });
 
-    console.log(`✅ [WhatsApp API] Media (${mediaType}) sent to ${to} (${company.name})`);
-    
-    // Log to audit
     await logOutgoingMessage(company, to, `Media (${mediaType}): ${mediaUrl}`, 'media');
-
     return {
       success: true,
       messageId: response.data.messages?.[0]?.id
     };
-
   } catch (error: any) {
     logMetaError(error, {
       action: 'send_media',
       mediaType,
-      to,
+      to: normalizedPhoneNumberOrOriginal(to),
       company: company?.name
     });
 
-    // Fallback to text only if free-form is actually allowed for this recipient.
     try {
       const compliance = await getSessionComplianceContext(company, to);
       if (compliance.within24hWindow) {
-        return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}🔗 Attachment: ${mediaUrl}`);
+        return sendWhatsAppMessage(company, to, `${caption ? caption + '\n\n' : ''}Attachment: ${mediaUrl}`);
       }
     } catch {
-      // swallow fallback policy-check errors and return original failure below
+      // no-op
     }
 
     return {
@@ -1240,13 +1249,6 @@ export async function sendWhatsAppMedia(
   }
 }
 
-/**
- * ============================================================
- * SEND MEDIA SEQUENTIALLY (PRODUCTION STYLE)
- * ============================================================
- * Sends multiple media items one by one with a delay to ensure order
- * and satisfy Meta's rate limits/compliance.
- */
 export async function sendMediaSequentially(
   company: any,
   to: string,
@@ -1255,7 +1257,12 @@ export async function sendMediaSequentially(
 ): Promise<any[]> {
   if (!media || !media.length) return [];
 
-  console.log(`🚀 [Media Send] Starting sequential media send to ${to} (${media.length} items)`);
+  logWhatsAppEvent('media_sequence_start', {
+    companyId: company?._id?.toString?.() || company?.companyId,
+    companyName: company?.name,
+    recipientPhone: normalizedPhoneNumberOrOriginal(to),
+    totalItems: media.length
+  });
 
   const templateMap: Record<'image' | 'video' | 'document', string> = {
     image: 'media_image_v1',
@@ -1270,45 +1277,89 @@ export async function sendMediaSequentially(
     return 'document';
   };
 
-  const results: any[] = [];
+  const normalizedTo = normalizePhoneNumber(to);
+  const results = [];
+  logWhatsAppEvent('media_sequence_start_detail', {
+    companyId: company?._id?.toString?.() || company?.companyId,
+    companyName: company?.name,
+    recipientPhone: normalizedTo,
+    recipientName,
+    totalItems: media.length
+  });
+
   for (let i = 0; i < media.length; i++) {
     const item = media[i];
     try {
-      // Small safety delay (500ms) to maintain order in WhatsApp UI
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const detectedType = item.type || detectType(item.url);
       const templateName = templateMap[detectedType];
-
+      
+      logWhatsAppEvent('media_sequence_item_resolved', {
+        companyId: company?._id?.toString?.() || company?.companyId,
+        companyName: company?.name,
+        recipientPhone: normalizedTo,
+        itemIndex: i + 1,
+        totalItems: media.length,
+        mediaType: detectedType,
+        templateName,
+        mediaUrl: item.url
+      });
       if (!templateName) {
         throw new Error(`No media template mapped for type ${detectedType}`);
       }
 
       const companyId = company?._id;
-      if (!companyId) throw new Error('Company ID missing for media template send.');
-      
-      const normalizedTo = normalizePhoneNumber(to);
+      if (!companyId) {
+        throw new Error('Company ID missing for media template send.');
+      }
+
       const resolvedTemplate = await resolveTemplateRecord({
         companyId,
         templateName,
         requestedLanguage: 'en',
         companyDefaultLanguage: company?.whatsappConfig?.chatbotSettings?.defaultLanguage
       });
+      if (!resolvedTemplate) {
+        throw new Error(`Failed to resolve template ${templateName} for media send.`);
+      }
 
-      // If no DB record exists, use definition-based header type for the payload
-      const definition = TEMPLATE_DEFINITIONS[templateName];
-      const headerTypeForPayload = definition?.header?.type?.toLowerCase() || detectedType;
-
+      // Ensure the template is approved in the database (No bypass allowed)
       await assertTemplateApproved({
         companyId,
         templateName,
         language: resolvedTemplate.resolvedLanguage
       });
 
+      const definition = TEMPLATE_DEFINITIONS[templateName];
+      const headerTypeForPayload = definition?.header?.type?.toLowerCase() || detectedType;
+
       await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
       await enforceRateLimit(company, normalizedTo);
 
       const { url, headers } = getWhatsAppConfig(company);
+      // Extract a safe filename for document types to ensure Meta/WhatsApp correctly identifies the format (extension)
+      const getSafeFilename = (m: any): string => {
+        if (m.filename && m.filename.includes('.')) return m.filename;
+        // Fallback: extract from URL
+        try {
+          const urlObj = new URL(m.url);
+          const pathParts = urlObj.pathname.split('/');
+          const lastPart = decodeURIComponent(pathParts[pathParts.length - 1]);
+          // GCS often uses uuid_filename.ext pattern
+          if (lastPart.includes('_')) {
+            const potentialName = lastPart.split('_').slice(1).join('_');
+            if (potentialName.includes('.')) return potentialName;
+          }
+          if (lastPart.includes('.')) return lastPart;
+        } catch (e) {
+          // Fallback to basic split if URL parsing fails
+        }
+        
+        // Final fallbacks based on detected type
+        if (detectedType === 'image') return 'image.jpg';
+        if (detectedType === 'video') return 'video.mp4';
+        return 'document.pdf';
+      };
+
       const payload: any = {
         messaging_product: 'whatsapp',
         to: normalizedTo,
@@ -1322,9 +1373,9 @@ export async function sendMediaSequentially(
               parameters: [
                 {
                   type: headerTypeForPayload,
-                  [headerTypeForPayload]: { 
+                  [headerTypeForPayload]: {
                     link: item.url,
-                    ...(headerTypeForPayload === 'document' ? { filename: item.filename || 'attachment' } : {})
+                    ...(headerTypeForPayload === 'document' ? { filename: getSafeFilename(item) } : {})
                   }
                 }
               ]
@@ -1342,7 +1393,20 @@ export async function sendMediaSequentially(
         }
       };
 
-      await sendTemplateRequest({
+      logWhatsAppEvent('media_sequence_item_attempt', {
+        companyId: company?._id?.toString?.() || company?.companyId,
+        companyName: company?.name,
+        recipientPhone: normalizedTo,
+        itemIndex: i + 1,
+        totalItems: media.length,
+        templateName,
+        mediaType: detectedType,
+        mediaUrl: item.url,
+        filename: item.filename,
+        payload: summarizeWhatsAppPayload(payload)
+      });
+
+      const response = await sendTemplateRequest({
         url,
         headers,
         payload,
@@ -1355,14 +1419,52 @@ export async function sendMediaSequentially(
         }
       });
 
-      console.log(`✅ [Media Send] Item ${i + 1}/${media.length} sent successfully to ${to} (Type: ${detectedType})`);
+      logWhatsAppEvent('media_sequence_item_success', {
+        companyId: company?._id?.toString?.() || company?.companyId,
+        companyName: company?.name,
+        recipientPhone: normalizedTo,
+        itemIndex: i + 1,
+        totalItems: media.length,
+        templateName,
+        mediaType: detectedType,
+        mediaUrl: item.url,
+        filename: item.filename,
+        messageId: response.data.messages?.[0]?.id
+      });
       results.push({ success: true, url: item.url, type: detectedType });
     } catch (err: any) {
-      console.error(`❌ [Media Send] Item ${i + 1}/${media.length} failed for ${to} (${item.url}):`, err.message);
-      results.push({ success: false, url: item.url, error: err.message });
+      logWhatsAppEvent('media_sequence_item_failure', {
+        companyId: company?._id?.toString?.() || company?.companyId,
+        companyName: company?.name,
+        recipientPhone: normalizedPhoneNumberOrOriginal(to),
+        itemIndex: i + 1,
+        totalItems: media.length,
+        mediaType: item.type,
+        mediaUrl: item.url,
+        filename: item.filename,
+        error: err?.message || String(err)
+      }, 'error');
+      results.push({ success: false, url: item.url, error: err?.message || 'Unknown error' });
     }
   }
 
-  console.log(`🏁 [Media Send] Completed sequential send to ${to}. Success: ${results.filter(r => r.success).length}/${media.length}`);
+  const successCount = results.filter((item) => item.success).length;
+  logWhatsAppEvent('media_sequence_summary', {
+    companyId: company?._id?.toString?.() || company?.companyId,
+    companyName: company?.name,
+    recipientPhone: normalizedTo,
+    successCount,
+    totalItems: media.length
+  });
+
+  logWhatsAppEvent('media_sequence_complete', {
+    companyId: company?._id?.toString?.() || company?.companyId,
+    companyName: company?.name,
+    recipientPhone: normalizedTo,
+    totalItems: media.length,
+    successCount,
+    failureCount: results.filter((item) => !item.success).length
+  });
+
   return results;
 }

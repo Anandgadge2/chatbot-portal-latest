@@ -87,7 +87,12 @@ const getAnalyticsBaseQuery = async (req: any, companyId?: any, departmentId?: a
       ];
     }
   } else {
-    query.companyId = currentUser.companyId;
+    // 🏢 SECURITY & TYPE SAFETY: Ensure companyId is a proper ObjectId for aggregation matches
+    if (!currentUser.companyId) {
+      query._id = { $in: [] };
+      return query;
+    }
+    query.companyId = new mongoose.Types.ObjectId(currentUser.companyId.toString());
 
     const userLevel = resolveUserHierarchyLevel(currentUser);
     const assignedDeptIds = (currentUser.departmentIds && currentUser.departmentIds.length > 0)
@@ -350,10 +355,51 @@ export const dashboard = async (req: Request, res: Response) => {
               {
                 $project: {
                   deptIds: {
-                    $filter: {
-                      input: ["$departmentId", "$subDepartmentId"],
-                      as: "id",
-                      cond: { $ne: ["$$id", null] }
+                    $let: {
+                      vars: {
+                        rawIds: {
+                          $filter: {
+                            input: ["$departmentId", "$subDepartmentId"],
+                            as: "id",
+                            cond: { $ne: ["$$id", null] }
+                          }
+                        },
+                        authorizedIds: { $ifNull: [authorizedMongoDeptIds, []] }
+                      },
+                      in: {
+                        $let: {
+                          vars: {
+                            matchingIds: {
+                              $filter: {
+                                input: "$$rawIds",
+                                as: "rid",
+                                cond: { $in: ["$$rid", "$$authorizedIds"] }
+                              }
+                            }
+                          },
+                          in: {
+                            $cond: [
+                              // If any of the grievance's departments are in our authorized list, use them
+                              { $gt: [{ $size: "$$matchingIds" }, 0] },
+                              "$$matchingIds",
+                              // Otherwise, if it's assigned to us and we have authorized units, attribute it to our primary unit
+                              {
+                                $cond: [
+                                  {
+                                    $and: [
+                                      { $eq: ["$assignedTo", new mongoose.Types.ObjectId(currentUser._id.toString())] },
+                                      { $gt: [{ $size: "$$authorizedIds" }, 0] }
+                                    ]
+                                  },
+                                  [{ $arrayElemAt: ["$$authorizedIds", 0] }],
+                                  // For company admins (no authorizedIds), fall back to raw grievance departments
+                                  "$$rawIds"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
                     }
                   },
                   status: 1
@@ -447,15 +493,15 @@ export const dashboard = async (req: Request, res: Response) => {
       ]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }) : Promise.resolve([{ byRole: [], total: [{count:0}], active: [{count:0}] }]),
 
       // 4. Existing scoping counts & Hierarchical counts
-      targetCompanyId ? User.aggregate([{ $match: { companyId: new mongoose.Types.ObjectId(targetCompanyId.toString()), ...userScopeFilter } }, { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }) : Promise.resolve([]),
-      Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter }).maxTimeMS(ANALYTICS_MAX_TIME_MS),
-      isHierarchicalEnabled ? Department.countDocuments({
-        companyId: targetCompanyId,
+      targetCompanyId ? User.aggregate([{ $match: { companyId: normalizedCompanyId, ...userScopeFilter } }, { $unwind: { path: "$departmentIds", preserveNullAndEmptyArrays: true } }, { $group: { _id: { $ifNull: ["$departmentIds", "$departmentId"] }, count: { $sum: 1 } } }]).option({ maxTimeMS: ANALYTICS_MAX_TIME_MS }) : Promise.resolve([]),
+      targetCompanyId ? Department.countDocuments({ companyId: normalizedCompanyId, ...scopeFilter }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
+      (isHierarchicalEnabled && targetCompanyId) ? Department.countDocuments({
+        companyId: normalizedCompanyId,
         ...(scopeFilter.$or
           ? { $and: [scopeFilter, { $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }] }
           : { ...scopeFilter, $or: [{ parentDepartmentId: null }, { parentDepartmentId: { $exists: false } }] }),
       }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
-      isHierarchicalEnabled ? Department.countDocuments({ companyId: targetCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
+      (isHierarchicalEnabled && targetCompanyId) ? Department.countDocuments({ companyId: normalizedCompanyId, ...scopeFilter, parentDepartmentId: { $ne: null } }).maxTimeMS(ANALYTICS_MAX_TIME_MS) : Promise.resolve(0),
     ]);
 
     // Parse Aggregation Results
@@ -695,17 +741,71 @@ export const dashboardKpis = async (req: Request, res: Response) => {
 
 export const grievancesByDepartment = async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
     const { companyId } = req.query;
+    // 🏢 HIERARCHICAL: For the breakdown, we need the authorized departments for this user
+    const userLevel = resolveUserHierarchyLevel(req.user);
+    const assignedDeptIds = (req.user.departmentIds && req.user.departmentIds.length > 0)
+      ? req.user.departmentIds.map((id: string | mongoose.Types.ObjectId) => id.toString())
+      : (req.user.departmentId ? [req.user.departmentId.toString()] : []);
+
+    let authorizedDeptIds: string[] = [];
+    if (userLevel === 1) {
+      // Company Admin: no restriction within company
+    } else if (userLevel === 2) {
+      authorizedDeptIds = await getDepartmentHierarchyIds(assignedDeptIds);
+    } else if (userLevel === 3) {
+      authorizedDeptIds = [...assignedDeptIds];
+    }
+    const authorizedMongoDeptIds = authorizedDeptIds.map(id => new mongoose.Types.ObjectId(id));
     const matchQuery = await getAnalyticsBaseQuery(req, companyId);
+
     const distribution = await Grievance.aggregate([
       { $match: matchQuery },
       {
         $project: {
           deptIds: {
-            $filter: {
-              input: ["$departmentId", "$subDepartmentId"],
-              as: "id",
-              cond: { $ne: ["$$id", null] }
+            $let: {
+              vars: {
+                rawIds: {
+                  $filter: {
+                    input: ["$departmentId", "$subDepartmentId"],
+                    as: "id",
+                    cond: { $ne: ["$$id", null] }
+                  }
+                },
+                authorizedIds: { $ifNull: [authorizedMongoDeptIds, []] }
+              },
+              in: {
+                $let: {
+                  vars: {
+                    matchingIds: {
+                      $filter: {
+                        input: "$$rawIds",
+                        as: "rid",
+                        cond: { $in: ["$$rid", "$$authorizedIds"] }
+                      }
+                    }
+                  },
+                  in: {
+                    $cond: [
+                      // If it has IDs that are in our authorized list (or we are company admin), use them
+                      { $or: [{ $gt: [{ $size: "$$matchingIds" }, 0] }, { $eq: [{ $size: "$$authorizedIds" }, 0] }] },
+                      { $cond: [{ $gt: [{ $size: "$$matchingIds" }, 0] }, "$$matchingIds", "$$rawIds"] },
+                      // Else, if it's assigned to us, attribute it to our primary unit
+                      {
+                        $cond: [
+                          { $eq: ["$assignedTo", new mongoose.Types.ObjectId((req.user as any)._id.toString())] },
+                          [{ $arrayElemAt: ["$$authorizedIds", 0] }],
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
             }
           },
           status: 1

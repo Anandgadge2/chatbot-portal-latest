@@ -9,7 +9,8 @@ export interface InAppNotification {
     | 'GRIEVANCE_REVERTED'
     | 'GRIEVANCE_ASSIGNED'
     | 'GRIEVANCE_REASSIGNED'
-    | 'GRIEVANCE_STATUS_UPGRADED';
+    | 'GRIEVANCE_STATUS_UPGRADED'
+    | 'WHATSAPP_DELIVERY_ISSUE';
   title: string;
   message: string;
   meta?: Record<string, any>;

@@ -35,6 +35,7 @@ import {
   ArrowRight,
   FileType,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -913,6 +914,32 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           : "",
                       ].filter(Boolean);
                       desc = transferLines.join("\n");
+                    } else if (
+                      event.action === "WHATSAPP_NOTIFICATION_SKIPPED" ||
+                      event.action === "WHATSAPP_NOTIFICATION_FAILED"
+                    ) {
+                      c = {
+                        bg: "bg-amber-50",
+                        ring: "ring-amber-100",
+                        text: "text-amber-700",
+                        i: <MessageSquare className="w-3 h-3" />,
+                      };
+                      title =
+                        event.action === "WHATSAPP_NOTIFICATION_SKIPPED"
+                          ? "WhatsApp Update Skipped"
+                          : "WhatsApp Update Failed";
+                      const messageLines = [
+                        event.details?.templateName
+                          ? `Template: ${event.details.templateName}`
+                          : "",
+                        event.details?.citizenPhone
+                          ? `Phone: ${event.details.citizenPhone}`
+                          : "",
+                        event.details?.reason
+                          ? `Reason: ${event.details.reason}`
+                          : "",
+                      ].filter(Boolean);
+                      desc = messageLines.join("\n");
                     }
 
                     const perf =

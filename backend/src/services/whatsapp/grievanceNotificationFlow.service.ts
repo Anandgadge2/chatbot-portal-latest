@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { sendMediaSequentially, sendWhatsAppTemplate } from '../whatsappService';
+import { logWhatsAppEvent } from '../../utils/whatsappLogUtils';
 
 export type WhatsAppMediaType = 'image' | 'video' | 'document';
 
@@ -212,6 +213,20 @@ export async function sendTemplateAndAttachments(options: {
     company,
     grievanceId
   } = options;
+
+  logWhatsAppEvent('template_and_attachments_start', {
+    companyName: (company as any)?.name,
+    grievanceId,
+    recipientPhone,
+    templateName,
+    languageCode,
+    attachmentCount: attachments.length,
+    attachments: attachments.map((file) => ({
+      url: file.url,
+      type: file.type,
+      filename: file.filename
+    }))
+  });
 
   // Always send template first.
   await sendTemplateMessage({
