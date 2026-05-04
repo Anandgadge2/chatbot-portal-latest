@@ -10,7 +10,7 @@ import Company from '../models/Company';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
-import { uploadBufferToGCS } from '../services/gcsService';
+import { uploadBufferToGCS, getSignedUrl } from '../services/gcsService';
 import User from '../models/User';
 import { formatTemplateDate } from '../services/grievanceTemplateTriggerService';
 
@@ -378,10 +378,20 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       }
     ).catch(err => console.error('[StatusUpdate] Audit log failed:', err));
 
+    const grievanceObj = grievance.toObject();
+    if (grievanceObj.media && grievanceObj.media.length > 0) {
+      grievanceObj.media = await Promise.all(
+        grievanceObj.media.map(async (m: any) => ({
+          ...m,
+          url: await getSignedUrl(m.url)
+        }))
+      );
+    }
+
     res.json({
       success: true,
       message: 'Grievance status updated successfully. Citizen has been notified via WhatsApp.',
-      data: { grievance }
+      data: { grievance: grievanceObj }
     });
   } catch (error: any) {
     res.status(500).json({

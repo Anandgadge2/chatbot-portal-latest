@@ -52,14 +52,18 @@ const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
 // Helper: treat as image if type is image or URL looks like an image
 
 const isImageMedia = (media: { type?: string; url?: string }) => {
-  const url = (media.url || "").toLowerCase().split('?')[0];
+  const rawUrl = media.url || "";
+  if (!rawUrl.startsWith("http") && !rawUrl.startsWith("blob:") && !rawUrl.startsWith("data:")) return false;
+  const url = rawUrl.toLowerCase().split('?')[0];
   const isExtensionImage = /\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(url);
   const isPathImage = url.includes("image") || url.includes("/images/") || url.includes("photo");
   return media.type === "image" || isExtensionImage || isPathImage;
 };
 
 const isVideoMedia = (media: { type?: string; url?: string }) => {
-  const url = (media.url || "").toLowerCase().split('?')[0];
+  const rawUrl = media.url || "";
+  if (!rawUrl.startsWith("http") && !rawUrl.startsWith("blob:") && !rawUrl.startsWith("data:")) return false;
+  const url = rawUrl.toLowerCase().split('?')[0];
   const isExtensionVideo = /\.(mp4|mov|avi|3gp|m4v|webm|mkv)$/i.test(url);
   const isPathVideo = url.includes("video") || url.includes("/videos/") || url.includes("movie");
   return media.type === "video" || isExtensionVideo || isPathVideo;
@@ -758,18 +762,26 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             ) : (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setFullScreenMedia({
-                                    url: media.url,
-                                    alt: getDocumentLabel(media),
-                                    type: "document",
-                                  })
-                                }
-                                className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-slate-100 transition-colors"
+                                onClick={() => {
+                                  if (media.url?.startsWith("http")) {
+                                    setFullScreenMedia({
+                                      url: media.url,
+                                      alt: getDocumentLabel(media),
+                                      type: "document",
+                                    });
+                                  }
+                                }}
+                                className={`w-full h-full flex flex-col items-center justify-center gap-1.5 transition-colors ${
+                                  media.url?.startsWith("http")
+                                    ? "hover:bg-slate-100"
+                                    : "opacity-50 cursor-not-allowed"
+                                }`}
                               >
                                 <FileType className="w-5 h-5 text-indigo-500" />
                                 <span className="text-[15px] font-bold text-slate-700 px-2 text-center line-clamp-1">
-                                  {getDocumentLabel(media)}
+                                  {media.url?.startsWith("http")
+                                    ? getDocumentLabel(media)
+                                    : "Unavailable"}
                                 </span>
                               </button>
                             )}
@@ -850,18 +862,26 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             ) : (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setFullScreenMedia({
-                                    url: media.url,
-                                    alt: getDocumentLabel(media),
-                                    type: "document",
-                                  })
-                                }
-                                className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
+                                onClick={() => {
+                                  if (media.url?.startsWith("http")) {
+                                    setFullScreenMedia({
+                                      url: media.url,
+                                      alt: getDocumentLabel(media),
+                                      type: "document",
+                                    });
+                                  }
+                                }}
+                                className={`w-full h-full flex flex-col items-center justify-center gap-1.5 transition-colors ${
+                                  media.url?.startsWith("http")
+                                    ? "hover:bg-emerald-100"
+                                    : "opacity-50 cursor-not-allowed"
+                                }`}
                               >
                                 <FileType className="w-5 h-5 text-emerald-600" />
                                 <span className="text-[15px] font-bold text-emerald-800 px-2 text-center line-clamp-1">
-                                  {getDocumentLabel(media)}
+                                  {media.url?.startsWith("http")
+                                    ? getDocumentLabel(media)
+                                    : "Unavailable"}
                                 </span>
                               </button>
                             )}
@@ -1020,15 +1040,22 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 {event.details.media.map((url: string, mIdx: number) => {
                                   const isImg = isImageMedia({ url });
                                   const isVid = isVideoMedia({ url });
+                                  const isValid = url?.startsWith("http") || url?.startsWith("blob:");
                                   return (
                                     <div 
                                       key={mIdx} 
-                                      className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm hover:border-blue-400 transition-all cursor-pointer"
-                                      onClick={() => setFullScreenMedia({ 
-                                        url, 
-                                        type: isImg ? 'image' : isVid ? 'video' : 'document',
-                                        alt: `Attachment ${mIdx + 1}`
-                                      })}
+                                      className={`relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm transition-all ${
+                                        isValid ? "hover:border-blue-400 cursor-pointer" : "opacity-50 cursor-not-allowed"
+                                      }`}
+                                      onClick={() => {
+                                        if (isValid) {
+                                          setFullScreenMedia({ 
+                                            url, 
+                                            type: isImg ? 'image' : isVid ? 'video' : 'document',
+                                            alt: `Attachment ${mIdx + 1}`
+                                          });
+                                        }
+                                      }}
                                     >
                                       {isImg ? (
                                         <>

@@ -154,25 +154,25 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
     
     // Only attempt to sign if it's a GCS URL or a raw path
     const isGcsUrl = urlOrPath.includes('storage.googleapis.com') || urlOrPath.includes(bucket.name);
-    const isRawPath = !urlOrPath.startsWith('http');
+    const isRawPath = !urlOrPath.startsWith('http') && (urlOrPath.includes('/') || urlOrPath.includes('.')); // Raw paths should have folders or extensions
 
     if (!isGcsUrl && !isRawPath) {
-      // It's likely a legacy Cloudinary URL or something else, return as is
+      // It's likely a legacy Cloudinary URL, a WhatsApp media ID (raw digits), or something else.
+      // We return as is, but if it's just digits, the frontend might try to load it relatively.
+      // logger.debug(`ℹ️ Skipping signing for non-GCS URL/path: ${urlOrPath}`);
       return urlOrPath;
     }
 
     let filePath = urlOrPath;
     if (isGcsUrl) {
       // Extract path from public URL: https://storage.googleapis.com/bucket/path/to/file
-      // We need to be careful with query parameters
       const urlWithoutParams = urlOrPath.split('?')[0];
       const parts = urlWithoutParams.split(`${bucket.name}/`);
       
       if (parts.length > 1) {
         filePath = decodeURIComponent(parts[1]);
       } else {
-        // If it's a GCS URL but doesn't have the bucket name in the expected format, 
-        // try to extract after storage.googleapis.com/
+        // Fallback for storage.googleapis.com/bucket-name/path
         const storageParts = urlWithoutParams.split('storage.googleapis.com/');
         if (storageParts.length > 1) {
           const pathWithBucket = decodeURIComponent(storageParts[1]);
@@ -181,6 +181,11 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
           filePath = pathParts.join('/');
         }
       }
+    }
+
+    // Final safety check: if filePath is still a URL or looks like a WhatsApp ID, don't sign it
+    if (filePath.startsWith('http') || (!filePath.includes('/') && !filePath.includes('.'))) {
+       return urlOrPath;
     }
 
     const [signedUrl] = await bucket.file(filePath).getSignedUrl({
