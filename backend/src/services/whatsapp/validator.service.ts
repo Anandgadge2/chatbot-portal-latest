@@ -25,15 +25,16 @@ export function validateTemplate(options: {
     throw error;
   }
 
-  if (
-    options.recipientType === 'ADMIN' &&
-    options.citizenPhone &&
-    normalizePhoneNumber(options.citizenPhone) === normalizePhoneNumber(options.to)
-  ) {
-    const error: any = new Error(`Admin template ${options.templateName} cannot be sent to the citizen number.`);
-    error.code = 'TEMPLATE_ROUTE_INVALID';
-    throw error;
-  }
+  // Removed: Admin template block that prevented self-notifications
+  // if (
+  //   options.recipientType === 'ADMIN' &&
+  //   options.citizenPhone &&
+  //   normalizePhoneNumber(options.citizenPhone) === normalizePhoneNumber(options.to)
+  // ) {
+  //   const error: any = new Error(`Admin template ${options.templateName} cannot be sent to the citizen number.`);
+  //   error.code = 'TEMPLATE_ROUTE_INVALID';
+  //   throw error;
+  // }
 
   const expectedVariableCount = Number(options.template?.body?.variables || 0);
   const bodyComponent = options.components.find((component: any) => component.type === 'body');

@@ -19,7 +19,7 @@ export interface IUser extends Document {
   rawPassword?: string; // For administrator visibility
   resetPasswordOtpHash?: string;
   resetPasswordOtpExpires?: Date;
-  resetPasswordOtpChannel?: 'email' | 'whatsapp' | 'sms';
+  resetPasswordOtpChannel?: 'email' | 'whatsapp';
   resetPasswordOtpAttempts?: number;
   lastLogin?: Date;
   createdBy?: mongoose.Types.ObjectId; // Track who created this user for hierarchical rights
@@ -124,7 +124,7 @@ const UserSchema: Schema = new Schema(
     },
     resetPasswordOtpChannel: {
       type: String,
-      enum: ['email', 'whatsapp', 'sms'],
+      enum: ['email', 'whatsapp'],
       select: false
     },
     resetPasswordOtpAttempts: {

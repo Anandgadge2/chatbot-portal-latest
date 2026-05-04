@@ -1,6 +1,5 @@
 import mongoose, { Connection, Query } from 'mongoose';
 import { logger } from '../config/logger';
-import { runMongoBackup } from './databaseBackup';
 
 type SupportedWriteOperation =
   | 'deleteMany'
@@ -89,10 +88,13 @@ const assertWriteIsSafe = ({ collectionName, operation, query }: RiskyOperationC
 };
 
 const guardRiskyWriteOperation = async (context: RiskyOperationContext): Promise<void> => {
-  // logWriteAttempt(context); // 🔕 Disabled to improve performance and reduce log noise
+  // 🔍 ENHANCED AUDIT: Log all write attempts to help identify who is clearing the database
+  logWriteAttempt(context); 
+
   assertWriteIsSafe(context);
 
   if (isBulkOperation(context.operation)) {
+    logger.info(`🚨 BULK OPERATION DETECTED: [${context.operation}] on collection [${context.collectionName}] with query: ${JSON.stringify(context.query)}`);
     // await runMongoBackup(); // Disabled to improve performance
   }
 };

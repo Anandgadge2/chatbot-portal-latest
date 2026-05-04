@@ -856,18 +856,6 @@ export function generateNotificationEmail(
       flex: 1;
       font-size: 14px;
     }
-    .priority-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    .priority-urgent { background: #fee; color: #c00; }
-    .priority-high { background: #ffeaa7; color: #d63031; }
-    .priority-medium { background: #dfe6e9; color: #2d3436; }
-    .priority-low { background: #e8f5e9; color: #27ae60; }
     .remarks-box { 
       background: #e8f5e9; 
       padding: 18px; 

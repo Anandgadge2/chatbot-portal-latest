@@ -39,7 +39,7 @@ router.use(authenticate);
 // @access  Private
 router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, priority, search, slaStatus } = req.query;
+    const { page = 1, limit = 20, status, companyId, departmentId, assignedTo, search, slaStatus } = req.query;
     const currentUser = req.user!;
     const targetCompanyId = currentUser.isSuperAdmin ? companyId : currentUser.companyId;
 
@@ -98,7 +98,7 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       } else {
         query.status = status;
       }
-    } else if (!status && !search && !departmentId && !assignedTo && !priority) {
+    } else if (!status && !search && !departmentId && !assignedTo) {
       // 🛡️ DEFAULT VIEW: If no status, search, or metadata filters are applied,
       // exclude RESOLVED and REJECTED to keep the main list actionable.
       query.status = { $nin: [GrievanceStatus.RESOLVED, GrievanceStatus.REJECTED] };
@@ -124,7 +124,6 @@ router.get('/', requirePermission(Permission.READ_GRIEVANCE), async (req: Reques
       else if (assignedTo === 'ANY') query.assignedTo = { $ne: null };
       else query.assignedTo = assignedTo;
     }
-    if (priority) query.priority = priority;
 
     if (slaStatus) {
       const activeStatuses = [
@@ -275,7 +274,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       citizenWhatsApp,
       description,
       category,
-      priority,
       location,
       media
     } = req.body;
@@ -306,7 +304,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       description: safeDescription,
       message: safeDescription,
       category,
-      priority: priority || 'MEDIUM',
       location,
       media: media || [],
       status: GrievanceStatus.PENDING,
@@ -327,7 +324,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     );
 
     // ✅ AUTO-ASSIGNMENT (Designated Officer / Dept Admin)
-    const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation, notifyCitizenOnCreation } = await import('../services/notificationService');
+    const { getHierarchicalDepartmentAdmins, notifyUserOnAssignment, notifyDepartmentAdminOnCreation } = await import('../services/notificationService');
     const targetDeptId = (grievance as any).subDepartmentId || departmentId;
     
     let targetAdmin = null;
@@ -418,7 +415,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       meta: {
         citizenName: grievance.citizenName,
         category: grievance.category,
-        priority: grievance.priority,
       },
     });
 
@@ -457,12 +453,6 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
         buttonParam: 'https://sahaj.pugarch.in/'
       }).catch(err => console.error('Grievance template flow failed:', err)),
       notifyDepartmentAdminOnCreation(notificationPayload).catch(err => console.error('❌ Admin Notification failed:', err)),
-      // 📢 Send confirmation to citizen
-      notifyCitizenOnCreation({
-        ...notificationPayload,
-        description: grievance.description || description || 'N/A',
-        action: 'confirmation'
-      }).catch(err => console.error('❌ Citizen Confirmation failed:', err))
     ]);
 
     res.status(201).json({

@@ -236,7 +236,6 @@ export class ActionService {
         } : undefined,
         status: GrievanceStatus.PENDING,
         admin_consent: false,
-        priority: 'MEDIUM',
         language: session.language || 'en'
       };
       
@@ -414,20 +413,6 @@ export class ActionService {
         action: 'created',
       }));
 
-      notifications.push(
-        triggerCitizenStatusTemplate({
-          companyId: company._id,
-          citizenPhone: userPhone,
-          citizenName,
-          grievanceId: grievance.grievanceId,
-          departmentName: dept?.name || session.data.category || 'General',
-          subDepartmentName: subDept?.name || 'N/A',
-          grievanceSummary: storedDescription,
-          status: 'SUBMITTED',
-          grievance,
-          media: sanitizedMedia
-        })
-      );
 
 
       Promise.allSettled(notifications)

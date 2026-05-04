@@ -34,7 +34,6 @@ router.get('/default-template', authenticate, requireSuperAdmin, async (req: Req
       purpose: '{purpose}',
       category: '{category}',
       location: '{location}',
-      priority: 'MEDIUM',
       assignedByName: '{assignedByName}',
       resolvedByName: '{resolvedByName}',
       remarks: '{remarks}',

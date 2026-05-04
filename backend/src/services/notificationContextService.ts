@@ -20,7 +20,6 @@ export interface INotificationContext {
   remarks: string;
   company_name: string;
   current_date: string;
-  priority: string;
   previous_dept?: string;
   new_dept?: string;
   [key: string]: any;
@@ -81,7 +80,6 @@ export class NotificationContextService {
       remarks: this.sanitizeText(options.remarks || grievance.remarks || '', 200),
       company_name: options.companyName || this.DEFAULT_PORTAL_NAME,
       current_date: moment().tz(timezone).format('DD MMM YYYY, hh:mm A'),
-      priority: grievance.priority || 'NORMAL',
       previous_dept: options.previousDept || 'N/A',
       new_dept: options.newDept || 'N/A',
       assigned_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),

@@ -1287,25 +1287,6 @@ export async function notifyCitizenOnResolution(
     // date formatting, and resolution time computation — no duplicates here.
     const fullData = await populateNotificationData(data);
 
-    // 📧 Email for appointments if citizen email is available
-    if (data.type === 'appointment' && (data as any).citizenEmail) {
-      try {
-        const emailPayload = {
-          ...fullData,
-          appointmentDate: (data as any).appointmentDate,
-          appointmentTime: (data as any).appointmentTime
-        };
-        const email = await getNotificationEmailContent(data.companyId, 'appointment', 'resolved', emailPayload);
-        if (email) {
-          const result = await sendEmail((data as any).citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-          if (result.success) {
-            logger.info(`✅ Email sent to citizen ${data.citizenName} (${(data as any).citizenEmail})`);
-          }
-        }
-      } catch (error) {
-        logger.error(`❌ Error sending email to citizen:`, error);
-      }
-    }
 
     // 📱 WhatsApp — use triggerCitizenStatusTemplate for grievances, fallback for others
     if (data.type === 'grievance') {
@@ -1363,25 +1344,13 @@ export async function notifyCitizenOnCreation(
 
     const fullData = await populateNotificationData(data);
 
-    // 📧 Email
-    if (data.citizenEmail) {
-      try {
-        const email = await getNotificationEmailContent(data.companyId, data.type, 'confirmation', fullData, false);
-        if (email) {
-          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-          logger.info(`✅ Confirmation email sent to citizen: ${data.citizenEmail}`);
-        }
-      } catch (e) {
-        logger.error('❌ Error sending confirmation email to citizen:', e);
-      }
-    }
 
     // 📱 WhatsApp
     const actionKey = data.action || 'confirmation';
     const phoneToNotify = data.citizenWhatsApp || data.citizenPhone;
-    const canSendCitizenTemplate = true;
 
-    if (phoneToNotify && canSendCitizenTemplate && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
+    if (phoneToNotify && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
+      // Fallback for appointments or other types (grievances are handled by early return)
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
       if (message) {
         await safeSendWhatsApp(company, phoneToNotify, message);
@@ -1424,29 +1393,6 @@ export async function notifyCitizenOnGrievanceStatusChange(data: {
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
-    // 📧 Email
-    if (data.citizenEmail) {
-      try {
-        const fullData = await populateNotificationData({ ...data, type: 'grievance', action: 'status_update' });
-        const statusLower = data.newStatus.toLowerCase();
-        const statusKey = `status_${statusLower}`;
-        const emailData = {
-          ...fullData,
-          action: statusLower
-        };
-
-        let email = await getNotificationEmailContent(data.companyId, 'grievance', statusKey, emailData, false);
-        if (!email) {
-          email = await getNotificationEmailContent(data.companyId, 'grievance', 'status_update', emailData, false);
-        }
-
-        if (email) {
-          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-        }
-      } catch (err) {
-        logger.error(`❌ Error sending status email to citizen:`, err);
-      }
-    }
 
     // ✅ WhatsApp (Meta Template + Media via logical event key system)
     const media = (data.evidenceUrls || []).map(url => {
@@ -1731,26 +1677,6 @@ export async function notifyCitizenOnAppointmentStatusChange(data: {
 
     await safeSendWhatsApp(company, data.citizenWhatsApp || data.citizenPhone, message);
 
-    // 📧 Email
-    if (data.citizenEmail) {
-      try {
-        const emailData = {
-          ...fullData,
-          action: statusLower
-        };
-
-        let email = await getNotificationEmailContent(data.companyId, 'appointment', statusKey, emailData, false);
-        if (!email) {
-          email = await getNotificationEmailContent(data.companyId, 'appointment', 'status_update', emailData, false);
-        }
-
-        if (email) {
-          await sendEmail(data.citizenEmail, email.subject, email.html, email.text, { companyId: data.companyId });
-        }
-      } catch (err) {
-        logger.error(`❌ Error sending status email to citizen:`, err);
-      }
-    }
   } catch (error) {
     logger.error('❌ notifyCitizenOnAppointmentStatusChange failed:', error);
   }

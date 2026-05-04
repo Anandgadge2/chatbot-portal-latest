@@ -12,10 +12,7 @@
     "seed:superadmin": "ts-node src/scripts/seedSuperAdmin.ts",
     "seed:modules": "ts-node src/scripts/seedModules.ts",
     "sync:system": "ts-node src/scripts/syncSystem.ts",
-    "cleanup:templates": "node cleanup_with_log.mjs",
-    "patch:grievance-flow": "ts-node src/scripts/patchGrievanceConsentFlow.ts",
-    "test": "jest",
-    "export:migration": "ts-node src/scripts/exportMigrationBundle.ts"
+    "test": "jest"
   },
   "keywords": [
     "whatsapp",

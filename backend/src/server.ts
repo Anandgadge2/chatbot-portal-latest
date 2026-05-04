@@ -283,7 +283,9 @@ const init = async () => {
     logger.error('CRITICAL: users collection is empty at startup');
   }
 
-  // ✅ Production safety: ensure indexes match current schemas (ONLY in development/CI, not on every Vercel request)
+  // 🚫 PRODUCTION SAFETY: Do NOT run syncIndexes on every serverless request.
+  // This causes extreme overhead and connection timeouts on Vercel.
+  /*
   if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     try {
       const Counter = (await import('./models/Counter')).default;
@@ -302,6 +304,7 @@ const init = async () => {
       logger.warn('⚠️ Index sync failed (will continue):', error.message);
     }
   }
+  */
 
   // Connect to Redis (optional)
   try {

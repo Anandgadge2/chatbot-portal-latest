@@ -15,7 +15,6 @@ export interface IGrievance extends Document {
   description: string;
   message: string;
   category?: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   status: GrievanceStatus;
   admin_consent: boolean;
   admin_consent_timestamp?: Date;
@@ -122,12 +121,6 @@ const GrievanceSchema: Schema = new Schema(
     category: {
       type: String,
       trim: true
-    },
-    priority: {
-      type: String,
-      enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
-      default: 'MEDIUM',
-      index: true
     },
     status: {
       type: String,

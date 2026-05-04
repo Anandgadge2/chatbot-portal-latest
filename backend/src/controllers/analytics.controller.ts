@@ -289,8 +289,6 @@ export const dashboard = async (req: Request, res: Response) => {
                   last7Days: { $sum: { $cond: [{ $gte: ['$createdAt', sevenDaysAgo] }, 1, 0] } },
                   last30Days: { $sum: { $cond: [{ $gte: ['$createdAt', thirtyDaysAgo] }, 1, 0] } },
                   resolvedToday: { $sum: { $cond: [{ $and: [{ $in: ['$status', [GrievanceStatus.RESOLVED, 'CLOSED']] }, { $gte: ['$resolvedAt', new Date(new Date().setHours(0,0,0,0))] }] }, 1, 0] } },
-                  highPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'HIGH'] }] }, 1, 0] } },
-                  urgentPriority: { $sum: { $cond: [{ $and: [{ $ne: ['$status', GrievanceStatus.RESOLVED] }, { $eq: ['$priority', 'URGENT'] }] }, 1, 0] } },
                   slaBreached: { 
                     $sum: { 
                       $cond: [
@@ -331,10 +329,6 @@ export const dashboard = async (req: Request, res: Response) => {
                   }
                 }
               }
-            ],
-            byPriority: [
-              { $group: { _id: '$priority', count: { $sum: 1 } } },
-              { $sort: { count: -1 } }
             ],
             daily: [
               { $match: { createdAt: { $gte: sevenDaysAgo } } },
@@ -476,8 +470,6 @@ export const dashboard = async (req: Request, res: Response) => {
     const grievancesLast7Days = gCounts.last7Days || 0;
     const grievancesLast30Days = gCounts.last30Days || 0;
     const resolvedToday = gCounts.resolvedToday || 0;
-    const highPriorityPending = gCounts.highPriority || 0;
-    const urgentPriorityPending = gCounts.urgentPriority || 0;
     const slaBreachedGrievancesCount = gCounts.slaBreached || 0;
 
     const totalAppointments = aCounts.total || 0;
@@ -517,7 +509,6 @@ export const dashboard = async (req: Request, res: Response) => {
           pendingOverdue: gCounts.pendingOverdue || 0,
           slaComplianceRate: parseFloat(slaComplianceRate),
           avgResolutionDays: g.avgResolution?.[0] ? parseFloat(g.avgResolution[0].avgDays.toFixed(1)) : 0,
-          byPriority: g.byPriority.map((pr: any) => ({ priority: pr._id || 'MEDIUM', count: pr.count })),
           daily: g.daily.map((d: any) => ({ date: d._id, count: d.count })),
           monthly: g.monthly.map((m: any) => ({ month: m._id, count: m.count, resolved: m.resolved })),
           byDepartment: g.byDepartment.map((d: any) => ({
@@ -562,7 +553,6 @@ export const dashboard = async (req: Request, res: Response) => {
         users: userCount,
         activeUsers: activeUsersCount,
         resolvedToday,
-        highPriorityPending: highPriorityPending + urgentPriorityPending,
         isHierarchicalEnabled: !!isHierarchicalEnabled,
         deptCounts: deptCountsArr,
         usersByRole: u.byRole.reduce((acc: any[], current: any) => {

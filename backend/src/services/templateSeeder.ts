@@ -12,34 +12,7 @@ export async function seedDefaultTemplates(company: any): Promise<void> {
   const companyName = company.name;
 
   try {
-    // 1. WhatsApp Templates
-    const whatsappTemplates = [
-      {
-        templateKey: 'grievance_created',
-        label: 'New Grievance Created (Admin)',
-        message: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📋 *NEW GRIEVANCE RECEIVED*\n\nRespected {recipientName},\n\nGrievance Details:\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen Name:* {citizenName}\n📞 *Contact Number:* {citizenPhone}\n🏢 *Department:* {departmentName}\n🏢 *Sub-Dept:* {subDepartmentName}\n📝 *Description:*\n{description}\n📅 *Received On:* {formattedDate}\n\n*Action Required:*\nPlease review this grievance at your earliest convenience.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDigital System`
-      },
-      {
-        templateKey: 'grievance_assigned',
-        label: 'Grievance Assigned (Admin)',
-        message: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *GRIEVANCE ASSIGNED TO YOU*\n\nRespected {recipientName},\n\nAssignment Details:\n🎫 *Reference ID:* {grievanceId}\n👤 *Citizen Name:* {citizenName}\n📞 *Contact Number:* {citizenPhone}\n🏢 *Department:* {departmentName}\n🏢 *Sub-Dept:* {subDepartmentName}\n📝 *Description:*\n{description}\n\n👨‍💼 *Assigned By:* {assignedByName}\n📅 *Assigned On:* {formattedDate}\n\nPlease investigate and take required action.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDigital System`
-      },
-      {
-        templateKey: 'grievance_status_change',
-        label: 'Grievance Status Updated (Citizen)',
-        message: `*{companyName}*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔄 *STATUS UPDATE*\n\nDear {citizenName},\n\nYour grievance status has been updated.\n\n🎫 *ID:* {grievanceId}\n📊 *New Status:* {newStatus}\n💬 *Remarks:* {remarks}\n\nThank you for your patience.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDigital System`
-      }
-    ];
-
-    for (const t of whatsappTemplates) {
-      await CompanyWhatsAppTemplate.findOneAndUpdate(
-        { companyId, templateKey: t.templateKey },
-        { ...t, companyId, isActive: true },
-        { upsert: true, new: true }
-      );
-    }
-
-    // 2. Email Templates
+    // 1. Email Templates (Keep these as they are still used for admin alerts)
     const emailTemplates = [
       {
         templateKey: 'grievance_created',
