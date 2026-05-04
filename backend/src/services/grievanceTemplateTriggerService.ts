@@ -147,7 +147,11 @@ export async function triggerGrievanceEvent(options: {
     
     // Normalize recipients to objects if they are strings
     const recipients: Array<{ phone: string; name: string }> = (finalPhones as any[]).map(p => {
-      if (typeof p === 'string') return { phone: p, name: options.admin?.fullName || 'Concerned Official' };
+      if (typeof p === 'string') {
+        const adminName = options.admin?.fullName || 
+                         (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : null);
+        return { phone: p, name: adminName || 'Officer' };
+      }
       return p as { phone: string; name: string };
     });
 

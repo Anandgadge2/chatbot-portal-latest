@@ -429,24 +429,6 @@ export class ActionService {
         })
       );
 
-      notifications.push(
-        triggerGrievanceNotifications({
-          companyId: company._id,
-          grievanceId: grievance.grievanceId,
-          citizenName,
-          citizenPhone: userPhone,
-          // Use real live department name (main dept) as 'department' in the template
-          category: dept?.name || session.data.category || 'General',
-          // Use real live sub-department name as 'office' in the template
-          subDepartmentName: subDept?.name || 'N/A',
-          description: storedDescription,
-          status: grievance.status,
-          language: session.language || 'en',
-          assignedAdmins,
-          media: sanitizedMedia,
-          buttonParam: 'https://sahaj.pugarch.in/'
-        })
-      );
 
       Promise.allSettled(notifications)
         .then((notificationResults) => {

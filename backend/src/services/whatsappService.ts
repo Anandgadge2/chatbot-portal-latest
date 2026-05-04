@@ -1240,9 +1240,17 @@ export async function sendMediaSequentially(
   };
 
   const detectType = (url: string): 'image' | 'video' | 'document' => {
-    const normalized = String(url || '').toLowerCase().split('?')[0].replace(/\/$/, '');
-    if (normalized.match(/\.(jpg|jpeg|png|webp|heic)$/)) return 'image';
-    if (normalized.match(/\.(mp4|mov|avi|3gp|m4v)$/)) return 'video';
+    // Handle URLs with query params by stripping them first
+    const cleanUrl = String(url || '').toLowerCase().split('?')[0].replace(/\/$/, '');
+    const extension = cleanUrl.split('.').pop() || '';
+    
+    if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(extension)) return 'image';
+    if (['mp4', 'mov', 'avi', '3gp', 'm4v'].includes(extension)) return 'video';
+    
+    // Fallback detection for common patterns in signed URLs
+    if (cleanUrl.includes('image') || cleanUrl.includes('photo')) return 'image';
+    if (cleanUrl.includes('video') || cleanUrl.includes('movie')) return 'video';
+    
     return 'document';
   };
 

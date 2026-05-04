@@ -1032,23 +1032,8 @@ export async function notifyDepartmentAdminOnCreation(
       deptAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'DEPT_ADMIN' }));
     }
 
-    // 2. Get Company Admins (Top Level) - they are at the peak level of the hierarchy
-    const companyAdmins = await User.find({
-      companyId,
-      $or: [
-        { isSuperAdmin: true },
-        { 
-          customRoleId: { 
-            $in: await (await import('../models/Role')).default.find({ 
-              companyId, 
-              key: { $in: ['COMPANY_ADMIN', 'ADMIN', 'COMPANY_HEAD', 'SUPER_ADMIN'] } 
-            }).distinct('_id') 
-          } 
-        }
-      ],
-      isActive: true
-    }).populate('customRoleId');
-    companyAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' }));
+    // 2. Step 2 (Company Admins) is REMOVED as per request: only notify the "designated admin" of the department.
+    // companyAdmins.forEach(admin => adminsToNotify.push({ user: admin, type: 'COMPANY_ADMIN' }));
 
     // 3. Deduplicate (Prevent multiple notifications if user is both Dept and Company admin)
     const uniqueAdminsStore = new Map<string, any>();
@@ -1105,9 +1090,10 @@ export async function notifyDepartmentAdminOnCreation(
 
             if (data.type === 'grievance') {
               const media = (data.evidenceUrls || []).map(url => {
-                const ext = url.split('.').pop()?.toLowerCase() || '';
-                const type: 'image' | 'video' | 'document' = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'image' : 
-                             ['mp4', 'mov', 'avi'].includes(ext) ? 'video' : 'document';
+                const cleanUrl = String(url || '').toLowerCase().split('?')[0];
+                const ext = cleanUrl.split('.').pop() || '';
+                const type: 'image' | 'video' | 'document' = ['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext) ? 'image' : 
+                             ['mp4', 'mov', 'avi', '3gp', 'm4v'].includes(ext) ? 'video' : 'document';
                 return { url, type };
               });
 
@@ -1116,6 +1102,7 @@ export async function notifyDepartmentAdminOnCreation(
                 companyId: data.companyId,
                 grievance: data.grievance || { grievanceId: data.grievanceId },
                 recipientPhones: [user.phone],
+                admin: user, // 👈 Pass the real user object for personalization
                 citizenPhone: data.citizenPhone,
                 language: data.language,
                 media: media.length > 0 ? media : undefined,
