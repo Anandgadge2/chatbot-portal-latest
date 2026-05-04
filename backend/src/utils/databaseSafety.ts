@@ -89,7 +89,9 @@ const assertWriteIsSafe = ({ collectionName, operation, query }: RiskyOperationC
 };
 
 const guardRiskyWriteOperation = async (context: RiskyOperationContext): Promise<void> => {
-  // logWriteAttempt(context); // 🔕 Disabled to improve performance and reduce log noise
+  if (context.operation === 'deleteMany' || context.operation === 'deleteOne' || context.operation === 'findOneAndDelete') {
+    logWriteAttempt(context);
+  }
   assertWriteIsSafe(context);
 
   if (isBulkOperation(context.operation)) {
