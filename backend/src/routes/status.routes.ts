@@ -11,6 +11,7 @@ import { logUserAction } from '../utils/auditLogger';
 import { AuditAction } from '../config/constants';
 import { sendWhatsAppMessage } from '../services/whatsappService';
 import { uploadBufferToGCS } from '../services/gcsService';
+import User from '../models/User';
 import { formatTemplateDate } from '../services/grievanceTemplateTriggerService';
 
 const router = express.Router();
@@ -321,22 +322,30 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             timeline: grievance.timeline
           }, oldStatus, status));
 
+          const { getLocalizedDepartmentName } = await import('../services/notificationService');
+          const lang = (grievance.language || 'en') as any;
+          
+          // Get the actual admin who performed the action
+          const adminUser = await User.findById(currentUser._id).select('firstName lastName').lean();
+          const adminName = adminUser ? `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim() : 'Administrator';
+
           notificationTasks.push(triggerCitizenStatusTemplate({
             companyId: resolvedCompanyId,
             grievanceId: grievance.grievanceId,
             citizenName: grievance.citizenName,
             citizenPhone: grievance.citizenPhone,
             language: grievance.language,
-            departmentName,
-            subDepartmentName: (grievance.subDepartmentId as any)?.name || 'N/A',
+            departmentName: grievance.departmentId ? getLocalizedDepartmentName(grievance.departmentId, lang) : 'General',
+            subDepartmentName: grievance.subDepartmentId ? getLocalizedDepartmentName(grievance.subDepartmentId, lang) : 'N/A',
             grievanceSummary: grievance.description,
             status,
             remarks: remarks || undefined,
-            resolvedByName: currentUser.getFullName(),
+            resolvedByName: adminName || 'Administrator',
             formattedResolvedDate: formatTemplateDate(),
             media: uploadedDocumentUrls.map((url) => {
               const normalized = String(url || '').toLowerCase();
-              const type = normalized.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/) ? 'image' : normalized.match(/\.(mp4|mov|avi)(\?.*)?$/) ? 'video' : 'document';
+              const type = normalized.match(/\.(jpg|jpeg|png|webp|heic)(\?.*)?$/) ? 'image' : 
+                           normalized.match(/\.(mp4|mov|avi|3gp|m4v)(\?.*)?$/) ? 'video' : 'document';
               return { url, type: type as 'image' | 'video' | 'document' };
             })
           }));
