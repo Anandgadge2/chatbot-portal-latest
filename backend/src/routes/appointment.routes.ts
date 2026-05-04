@@ -7,6 +7,7 @@ import { requireDatabaseConnection } from '../middleware/dbConnection';
 import { buildNameSearchQuery, escapeRegExp } from '../utils/searchUtils';
 import { logUserAction } from '../utils/auditLogger';
 import { AuditAction, Permission, UserRole, AppointmentStatus } from '../config/constants';
+import { invalidateDashboardCache } from '../controllers/analytics.controller';
 
 const router = express.Router();
 
@@ -222,6 +223,7 @@ router.post('/', async (req: Request, res: Response) => {
       }).catch(err => console.error('❌ Citizen Appointment Confirmation failed:', err))
     ]);
 
+    invalidateDashboardCache();
     res.status(201).json({
       success: true,
       message: 'Appointment request submitted successfully',
@@ -455,6 +457,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_APPOINTMENT
       { oldStatus, newStatus: status, remarks }
     );
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Appointment status updated successfully. Citizen has been notified via WhatsApp.',
@@ -529,6 +532,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_APPOINTMENT), async (req:
       { updates: req.body }
     );
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Appointment updated successfully',
@@ -578,6 +582,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_APPOINTMENT), async (
       );
     }
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: `${result.deletedCount} appointment(s) deleted successfully`,
@@ -617,6 +622,7 @@ router.delete('/:id', requirePermission(Permission.DELETE_APPOINTMENT), async (r
       appointment._id.toString()
     );
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Appointment deleted successfully'

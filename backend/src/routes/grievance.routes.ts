@@ -26,6 +26,7 @@ import { normalizePhoneNumber } from '../utils/phoneUtils';
 import { sanitizeGrievanceDetails } from '../utils/sanitize';
 import { getHierarchicalDepartmentAdmins } from '../services/notificationService';
 import { notifyCompanyAdmins } from '../services/inAppNotificationService';
+import { invalidateDashboardCache } from '../controllers/analytics.controller';
 
 const router = express.Router();
 const JHARSUGUDA_COMPANY_ID = process.env.JHARSUGUDA_COMPANY_ID || '69ad4c6eb1ad8e405e6c0858';
@@ -464,6 +465,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       }).catch(err => console.error('❌ Citizen Confirmation failed:', err))
     ]);
 
+    invalidateDashboardCache();
     res.status(201).json({
       success: true,
       message: 'Grievance registered successfully',
@@ -714,6 +716,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       suggestedDepartmentId: suggestedDepartmentId || null
     });
 
+    invalidateDashboardCache();
     return res.json({ success: true, message: 'Grievance reverted to company admin successfully', data: { grievance } });
   } catch (error: any) {
     logger.error(`❌ Failed to send email:`, { 
@@ -1060,6 +1063,7 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
       { oldStatus: grievance.status, newStatus: status, remarks }
     );
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Grievance status updated successfully',
@@ -1484,6 +1488,7 @@ router.put('/:id/assign', requirePermission(Permission.ASSIGN_GRIEVANCE), async 
       }
     ).catch(err => logger.error('[Assignment] Audit log failed:', err));
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Grievance assigned successfully',
@@ -1810,6 +1815,7 @@ router.put('/:id', requirePermission(Permission.UPDATE_GRIEVANCE), async (req: R
       { updates: req.body }
     ).catch(err => logger.error('[Update] Audit log failed:', err));
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: 'Grievance updated successfully',
@@ -1870,6 +1876,7 @@ router.delete('/bulk', requirePermission(Permission.DELETE_GRIEVANCE), async (re
       );
     }
 
+    invalidateDashboardCache();
     res.json({
       success: true,
       message: `${grievances.length} grievance(s) deleted successfully`,
@@ -1944,6 +1951,7 @@ router.put('/:id/reopen', requirePermission(Permission.UPDATE_GRIEVANCE), async 
       });
     }
 
+    invalidateDashboardCache();
     res.json({ success: true, message: 'Grievance reopened successfully', data: { grievance } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to reopen grievance', error: error.message });

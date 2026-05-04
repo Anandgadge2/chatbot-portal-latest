@@ -47,6 +47,14 @@ const setCachedDashboardPayload = (key: string, payload: any) => {
   });
 };
 
+export const invalidateDashboardCache = () => {
+  dashboardResponseCache.clear();
+  dashboardKpiResponseCache.clear();
+  dashboardInFlight.clear();
+  dashboardKpiInFlight.clear();
+  console.log('🧹 Dashboard cache invalidated due to data update');
+};
+
 const resolveUserHierarchyLevel = (user: any): number => {
   if (user?.isSuperAdmin) return 0;
   if (typeof user?.level === 'number') return user.level;
