@@ -245,8 +245,13 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             cloudUrl,
             mediaEntry: {
               url: cloudUrl,
-              type: file.mimetype.startsWith('image/') ? 'image' : 
-                    file.mimetype.startsWith('video/') ? 'video' : 'document',
+              type: ((): 'image' | 'video' | 'document' => {
+                const mimeType = file.mimetype.toLowerCase();
+                const fileName = file.originalname.toLowerCase();
+                if (mimeType.startsWith('image/') || /\.(jpg|jpeg|png|webp|heic)$/.test(fileName)) return 'image';
+                if (mimeType.startsWith('video/') || /\.(mp4|mov|avi|3gp|m4v|webm|mkv)$/.test(fileName)) return 'video';
+                return 'document';
+              })(),
               mimeType: file.mimetype,
               originalName: file.originalname,
               uploadedByRole: 'admin',
@@ -344,8 +349,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             formattedResolvedDate: formatTemplateDate(),
             media: uploadedDocumentUrls.map((url) => {
               const normalized = String(url || '').toLowerCase();
-              const type = normalized.match(/\.(jpg|jpeg|png|webp|heic)(\?.*)?$/) ? 'image' : 
-                           normalized.match(/\.(mp4|mov|avi|3gp|m4v)(\?.*)?$/) ? 'video' : 'document';
+              const type = normalized.match(/\.(jpg|jpeg|png|webp|heic|bmp|svg)(\?.*)?$/) ? 'image' : 
+                           normalized.match(/\.(mp4|mov|avi|3gp|m4v|webm|mkv)(\?.*)?$/) ? 'video' : 'document';
               return { url, type: type as 'image' | 'video' | 'document' };
             })
           }));

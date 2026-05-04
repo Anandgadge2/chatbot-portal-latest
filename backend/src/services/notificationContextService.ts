@@ -46,10 +46,25 @@ export class NotificationContextService {
       language?: string;
       previousDept?: string;
       newDept?: string;
+      submittedOn?: Date | string;
+      reassignedOn?: Date | string;
     } = {}
   ): Promise<INotificationContext> {
     const lang = options.language || 'en';
     const timezone = 'Asia/Kolkata';
+
+    const formatDate = (date?: Date | string) => {
+      if (!date) return null;
+      return moment(date).tz(timezone).format('DD MMM YYYY, hh:mm A');
+    };
+
+    const createdAt = formatDate(options.submittedOn) || 
+                      formatDate(grievance.createdAt) || 
+                      formatDate(grievance.timeline?.[0]?.timestamp) || 
+                      formatDate(grievance.statusHistory?.[0]?.changedAt) || 
+                      moment().tz(timezone).format('DD MMM YYYY, hh:mm A');
+
+    const reassignedOn = formatDate(options.reassignedOn) || moment().tz(timezone).format('DD MMM YYYY, hh:mm A');
 
     return {
       id: grievance.grievanceId || 'N/A',
@@ -59,7 +74,9 @@ export class NotificationContextService {
       department: options.department?.name || options.department || 'General',
       office: options.subDept?.name || options.subDept || 'N/A',
       description: this.sanitizeText(grievance.description || '', 400),
-      created_at: moment(grievance.createdAt || (grievance.timeline?.[0]?.timestamp) || (grievance.statusHistory?.[0]?.changedAt) || new Date()).tz(timezone).format('DD MMM YYYY, hh:mm A'),
+      created_at: createdAt,
+      submitted_on: createdAt,
+      reassigned_on: reassignedOn,
       admin_name: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),
       remarks: this.sanitizeText(options.remarks || grievance.remarks || '', 200),
       company_name: options.companyName || this.DEFAULT_PORTAL_NAME,

@@ -59,7 +59,7 @@ export async function uploadBufferToGCS(
         },
       });
 
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
       logger.info(`✅ GCS upload success: ${publicUrl}`);
       return publicUrl;
     } catch (error: any) {

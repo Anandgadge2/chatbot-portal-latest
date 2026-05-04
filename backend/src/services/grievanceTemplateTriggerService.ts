@@ -108,6 +108,8 @@ export async function triggerGrievanceEvent(options: {
   buttonParam?: string;
   department?: any;
   subDept?: any;
+  submittedOn?: Date | string;
+  reassignedOn?: Date | string;
 }) {
   try {
     const companyIdStr = (options.companyId && typeof options.companyId === 'object' && options.companyId._id)
@@ -126,7 +128,9 @@ export async function triggerGrievanceEvent(options: {
       previousDept: options.previousDept,
       newDept: options.newDept,
       department: options.department,
-      subDept: options.subDept
+      subDept: options.subDept,
+      submittedOn: options.submittedOn,
+      reassignedOn: options.reassignedOn
     });
 
     // 2. Resolve template
@@ -445,6 +449,8 @@ export async function triggerAdminAssignmentNotification(options: {
     media: options.media,
     buttonParam: options.buttonParam,
     department: { name: options.category },
-    subDept: { name: options.subDepartmentName }
+    subDept: { name: options.subDepartmentName },
+    submittedOn: options.submittedOn,
+    reassignedOn: options.reassignedOn
   });
 }

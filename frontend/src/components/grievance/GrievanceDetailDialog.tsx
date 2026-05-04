@@ -53,21 +53,17 @@ const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
 // Helper: treat as image if type is image or URL looks like an image
 
 const isImageMedia = (media: { type?: string; url?: string }) => {
-  if (media.type === "image") return true;
-  const url = (media.url || "").toLowerCase();
-  // Check common image extensions and GCS/Meta image patterns
-  return /\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(url) || 
-         url.includes("image") || 
-         url.includes("/images/");
+  const url = (media.url || "").toLowerCase().split('?')[0];
+  const isExtensionImage = /\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(url);
+  const isPathImage = url.includes("image") || url.includes("/images/") || url.includes("photo");
+  return media.type === "image" || isExtensionImage || isPathImage;
 };
 
 const isVideoMedia = (media: { type?: string; url?: string }) => {
-  if (media.type === "video") return true;
-  const url = (media.url || "").toLowerCase();
-  // Check common video extensions and GCS/Meta video patterns
-  return /\.(mp4|mov|avi|3gp|m4v|webm|mkv)(\?|$)/i.test(url) || 
-         url.includes("video") || 
-         url.includes("/videos/");
+  const url = (media.url || "").toLowerCase().split('?')[0];
+  const isExtensionVideo = /\.(mp4|mov|avi|3gp|m4v|webm|mkv)$/i.test(url);
+  const isPathVideo = url.includes("video") || url.includes("/videos/") || url.includes("movie");
+  return media.type === "video" || isExtensionVideo || isPathVideo;
 };
 
 const getDocumentLabel = (media: { url: string; type?: string }) => {
@@ -1020,7 +1016,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
         >
           <div className="absolute top-6 right-6 z-[210] flex items-center gap-3">
             <a
-              href={fullScreenMedia.url}
+              href={fullScreenMedia.url.includes('%') ? fullScreenMedia.url : fullScreenMedia.url.split('/').map(segment => segment.startsWith('http') ? segment : encodeURIComponent(segment)).join('/').replace('https:/', 'https://').replace('http:/', 'http://')}
               download
               target="_blank"
               rel="noopener noreferrer"
@@ -1042,28 +1038,43 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             className="relative w-full h-full flex items-center justify-center p-4 sm:p-12"
             onClick={(e) => e.stopPropagation()}
           >
-            {fullScreenMedia.type === "image" ? (
-              <div className="relative w-full h-full max-w-5xl max-h-screen">
-                <Image
-                  src={fullScreenMedia.url}
-                  alt={fullScreenMedia.alt || "Proof"}
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
-              </div>
-            ) : fullScreenMedia.type === "video" ? (
-              <div className="w-full h-full max-w-5xl flex items-center justify-center">
-                <video
-                  src={fullScreenMedia.url}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-full rounded-xl shadow-2xl border border-white/10"
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            ) : (
+            {(() => {
+              // Ensure URL is properly encoded (handles historical data with spaces/special chars)
+              const rawUrl = fullScreenMedia.url || "";
+              const encodedUrl = rawUrl.includes('%') ? rawUrl : rawUrl.split('/').map(segment => {
+                if (segment.startsWith('http')) return segment; // Don't encode protocol
+                return encodeURIComponent(segment);
+              }).join('/').replace('https:/', 'https://').replace('http:/', 'http://');
+              
+              if (fullScreenMedia.type === "image") {
+                return (
+                  <div className="relative w-full h-full max-w-5xl max-h-screen">
+                    <Image
+                      src={encodedUrl}
+                      alt={fullScreenMedia.alt || "Proof"}
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                );
+              } else if (fullScreenMedia.type === "video") {
+                return (
+                  <div className="w-full h-full max-w-5xl flex items-center justify-center">
+                    <video
+                      src={encodedUrl}
+                      controls
+                      autoPlay
+                      className="max-w-full max-h-full rounded-xl shadow-2xl border border-white/10"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            {fullScreenMedia.type === "document" && (
               <div className="bg-white p-8 rounded-2xl max-w-lg w-full text-center shadow-2xl relative">
                 <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner ring-1 ring-indigo-100">
                   <FileType className="w-10 h-10 text-indigo-500" />
