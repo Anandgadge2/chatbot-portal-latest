@@ -28,6 +28,18 @@ export const configureGCS = async (): Promise<void> => {
     } else {
       logger.info(`✅ GCS bucket ${bucket.name} already exists`);
     }
+
+    // 🌐 Ensure CORS is configured for the portal
+    logger.info(`🌐 Configuring CORS for GCS bucket: ${bucket.name}`);
+    await bucket.setCorsConfiguration([
+      {
+        maxAgeSeconds: 3600,
+        method: ['GET', 'HEAD', 'DELETE', 'PUT', 'POST'],
+        origin: ['*'], // In production, replace with your specific portal domain
+        responseHeader: ['Content-Type', 'Authorization', 'Content-Length', 'User-Agent', 'x-goog-resumable'],
+      },
+    ]);
+    logger.info(`✅ GCS CORS configuration applied`);
   } catch (error: any) {
     logger.error('❌ Failed to configure GCS:', error.message);
     // We don't throw here to avoid crashing the server if GCS is down, 
