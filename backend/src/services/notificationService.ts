@@ -1162,7 +1162,6 @@ export async function notifyCompanyAdminsOnRevert(
 ): Promise<void> {
   try {
     if (data.type === 'grievance') {
-      logger.info('ℹ️ Skipping legacy grievance revert WhatsApp; Meta template handles company-admin revert notifications.');
       return;
     }
 
@@ -1258,7 +1257,6 @@ export async function notifyUserOnAssignment(
     ].filter(Boolean);
 
     if (data.type === 'grievance') {
-      logger.info('ℹ️ Skipping legacy grievance assignment WhatsApp; Meta templates handle grievance assignee notifications.');
       return;
     }
 
@@ -1370,6 +1368,9 @@ export async function notifyCitizenOnCreation(
   data: NotificationData
 ): Promise<void> {
   try {
+    if (data.type === 'grievance') {
+      return;
+    }
     const company = await getCompanyWithWhatsAppConfig(data.companyId);
     if (!company) return;
 
@@ -1394,27 +1395,13 @@ export async function notifyCitizenOnCreation(
     const canSendCitizenTemplate = true;
 
     if (phoneToNotify && canSendCitizenTemplate && canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)) {
-      logger.info(`📢 [Citizen Notify] Preparing WhatsApp confirmation for citizen: ${data.citizenName} (${phoneToNotify}) (Action: ${actionKey})`);
-      
-      // Check if there's a custom template in the database first
       let message = await getNotificationWhatsAppMessage(data.companyId, data.type, actionKey, fullData);
-
-      if (!message) {
-        logger.error(`❌ Still no WhatsApp message found for citizen ${data.type}_${actionKey} even with defaults.`);
-        return;
-      }
-
-      if (data.type === 'grievance' && actionKey === 'confirmation') {
-        // User requested to stop using Meta template for confirmation, falling back to text message from flow
-        await safeSendWhatsApp(company, phoneToNotify, message);
-      } else {
+      if (message) {
         await safeSendWhatsApp(company, phoneToNotify, message);
       }
-    } else {
-      logger.info(`ℹ️ Skipping citizen WhatsApp: phone=${phoneToNotify}, action=${actionKey}, canNotify=${canNotify(company, null, 'whatsapp', `${data.type}_${actionKey}`)}, consent=${canSendCitizenTemplate}`);
     }
 
-    if (data.type !== 'grievance' && data.evidenceUrls && data.evidenceUrls.length > 0) {
+    if (data.evidenceUrls && data.evidenceUrls.length > 0) {
       await sendMediaIfAvailable(company, data.citizenWhatsApp || data.citizenPhone, data.evidenceUrls, 'Submission Evidence');
     }
 
@@ -1660,7 +1647,7 @@ export async function notifyHierarchyOnStatusChange(
         } else if (isCitizenPhone) {
           logger.warn(`⚠️ Skipping WhatsApp for ${user.email} — phone matches citizen's phone (avoiding duplicate).`);
         } else if (data.type === 'grievance') {
-          logger.info(`ℹ️ Skipping legacy grievance hierarchy WhatsApp for ${user.email}; grievance templates handle targeted recipients only.`);
+          return;
         } else if (canNotify(company, user, 'whatsapp', statusControlKey)) {
           tasks.push(safeSendWhatsApp(company, user.phone as string, hierarchyMessage, adminCta));
           if (data.evidenceUrls && data.evidenceUrls.length > 0) {

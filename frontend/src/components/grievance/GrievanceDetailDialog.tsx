@@ -35,6 +35,7 @@ import {
   ArrowRight,
   FileType,
   Settings,
+  Video,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -53,25 +54,20 @@ const GrievanceMapDialog = dynamic(() => import("./GrievanceMapDialog"), {
 
 const isImageMedia = (media: { type?: string; url?: string }) => {
   if (media.type === "image") return true;
-  if (media.type === "document") return false;
+  const url = (media.url || "").toLowerCase();
+  // Check common image extensions and GCS/Meta image patterns
+  return /\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(url) || 
+         url.includes("image") || 
+         url.includes("/images/");
+};
 
-  const url = media.url || "";
-  // Strict extension check
-  if (/\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(url)) return true;
-
-
-  if (/\/image\/upload\//i.test(url)) {
-    // If it has document extensions or /raw/, it's not an image
-    if (
-      /\.(pdf|docx?|xlsx?|txt|csv)$/i.test(url) ||
-      /\/raw\/upload\//i.test(url)
-    ) {
-      return false;
-    }
-    return true;
-  }
-
-  return url.includes("image") && !url.includes("raw") && !url.includes("pdf");
+const isVideoMedia = (media: { type?: string; url?: string }) => {
+  if (media.type === "video") return true;
+  const url = (media.url || "").toLowerCase();
+  // Check common video extensions and GCS/Meta video patterns
+  return /\.(mp4|mov|avi|3gp|m4v|webm|mkv)(\?|$)/i.test(url) || 
+         url.includes("video") || 
+         url.includes("/videos/");
 };
 
 const getDocumentLabel = (media: { url: string; type?: string }) => {
@@ -133,7 +129,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
   const [fullScreenMedia, setFullScreenMedia] = useState<{
     url: string;
     alt?: string;
-    isImage?: boolean;
+    type: "image" | "video" | "document";
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -686,7 +682,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   setFullScreenMedia({
                                     url: media.url,
                                     alt: `Evidence ${index + 1}`,
-                                    isImage: true,
+                                    type: "image",
                                   })
                                 }
                                 className="block w-full h-full relative"
@@ -704,6 +700,23 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   </span>
                                 </div>
                               </button>
+                            ) : isVideoMedia(media) ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFullScreenMedia({
+                                    url: media.url,
+                                    alt: `Video Evidence ${index + 1}`,
+                                    type: "video",
+                                  })
+                                }
+                                className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-slate-100 transition-colors bg-slate-900"
+                              >
+                                <Video className="w-6 h-6 text-white" />
+                                <span className="text-[14px] font-black text-white/90 px-2 text-center uppercase tracking-widest">
+                                  Play Video
+                                </span>
+                              </button>
                             ) : (
                               <button
                                 type="button"
@@ -711,7 +724,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   setFullScreenMedia({
                                     url: media.url,
                                     alt: getDocumentLabel(media),
-                                    isImage: false,
+                                    type: "document",
                                   })
                                 }
                                 className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-slate-100 transition-colors"
@@ -743,6 +756,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {officerMedia.map((media: any, index: number) => {
                         const isImage = isImageMedia(media);
+                        const isVideo = isVideoMedia(media);
                         const oName =
                           typeof media.uploadedBy === "object"
                             ? `${media.uploadedBy.firstName}`
@@ -759,7 +773,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   setFullScreenMedia({
                                     url: media.url,
                                     alt: `Officer Doc ${index + 1}`,
-                                    isImage: true,
+                                    type: "image",
                                   })
                                 }
                                 className="block w-full h-full relative"
@@ -777,6 +791,23 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   </p>
                                 </div>
                               </button>
+                            ) : isVideo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFullScreenMedia({
+                                    url: media.url,
+                                    alt: `Officer Video ${index + 1}`,
+                                    type: "video",
+                                  })
+                                }
+                                className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors bg-slate-900"
+                              >
+                                <Video className="w-6 h-6 text-white" />
+                                <span className="text-[14px] font-black text-white/90 px-2 text-center uppercase tracking-widest">
+                                  Play Video
+                                </span>
+                              </button>
                             ) : (
                               <button
                                 type="button"
@@ -784,7 +815,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                   setFullScreenMedia({
                                     url: media.url,
                                     alt: getDocumentLabel(media),
-                                    isImage: false,
+                                    type: "document",
                                   })
                                 }
                                 className="w-full h-full flex flex-col items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
@@ -1011,7 +1042,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             className="relative w-full h-full flex items-center justify-center p-4 sm:p-12"
             onClick={(e) => e.stopPropagation()}
           >
-            {fullScreenMedia.isImage ? (
+            {fullScreenMedia.type === "image" ? (
               <div className="relative w-full h-full max-w-5xl max-h-screen">
                 <Image
                   src={fullScreenMedia.url}
@@ -1020,6 +1051,17 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   className="object-contain"
                   unoptimized
                 />
+              </div>
+            ) : fullScreenMedia.type === "video" ? (
+              <div className="w-full h-full max-w-5xl flex items-center justify-center">
+                <video
+                  src={fullScreenMedia.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full rounded-xl shadow-2xl border border-white/10"
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
             ) : (
               <div className="bg-white p-8 rounded-2xl max-w-lg w-full text-center shadow-2xl relative">

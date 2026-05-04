@@ -82,8 +82,8 @@ export const TEMPLATE_DEFINITIONS: Record<string, TemplateDefinition> = {
       { key: 'office_name', aliases: ['office_name', 'officeName', 'sub_department_name', 'subDepartmentName'], maxLength: 60 },
       { key: 'description', aliases: ['description', 'grievance_details', 'grievanceDetails'], maxLength: 400, mode: 'summary' },
       { key: 'reverted_by', aliases: ['reverted_by', 'revertedBy', 'revertedByName'], maxLength: 60 },
-      { key: 'remarks', aliases: ['remarks', 'note', 'revert_reason', 'revert_note'], maxLength: 100 },
-      { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'revertedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 }
+      { key: 'reverted_on', aliases: ['reverted_on', 'revertedOn', 'revertedDate', 'formattedDate', 'formatted_date', 'date'], maxLength: 60 },
+      { key: 'remarks', aliases: ['remarks', 'note', 'revert_reason', 'revert_note'], maxLength: 100 }
     ]
   },
   number_admin_v1_: {
@@ -216,7 +216,7 @@ function resolveValue(data: TemplateInputData, spec: ParameterSpec, audience: Te
 
   // ⚠️ FALLBACK LOGIC: If a required parameter is missing, use a safe default 
   // instead of throwing to prevent complete notification failure.
-  const defaultValue = spec.key.includes('url') ? 'https://connect.pugarch.in/' : 'N/A';
+  const defaultValue = spec.key.includes('url') ? 'https://sahaj.pugarch.in/' : 'N/A';
   console.warn(`[TemplatePayloadBuilder] ⚠️ Missing parameter: ${spec.key}. Using fallback: ${defaultValue}`);
   
   return { value: defaultValue, alias: spec.key };

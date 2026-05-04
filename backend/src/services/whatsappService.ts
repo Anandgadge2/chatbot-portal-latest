@@ -863,16 +863,7 @@ export async function sendWhatsAppTemplate(
       }
     });
 
-    console.log('✅ WhatsApp template sent', {
-      action: 'send_template',
-      templateName,
-      language: resolvedTemplate.resolvedLanguage,
-      to: normalizedTo,
-      company: company?.name,
-      payload,
-      status: 'SUCCESS',
-      error: null
-    });
+    // Essential success log is handled in whatsapp.service.ts
     await logOutgoingMessage(company, to, `Template: ${templateName}`, 'template', templateName);
 
     return {
@@ -881,23 +872,8 @@ export async function sendWhatsAppTemplate(
     };
 
   } catch (error: any) {
+    // Essential failure log is handled in whatsapp.service.ts
     const parsed = parseWhatsAppApiError(error);
-    console.error('❌ WhatsApp template failed', {
-      action: 'send_template',
-      templateName,
-      language,
-      to: normalizePhoneNumber(to),
-      company: company?.name,
-      payload: error?.config?.data || null,
-      status: 'FAILED',
-      error: {
-        statusCode: parsed.status || null,
-        metaCode: parsed.code || null,
-        metaMessage: parsed.message,
-        details: parsed.details || null,
-        fbtraceId: parsed.fbtraceId || null
-      }
-    });
 
     return {
       success: false,
@@ -1250,8 +1226,8 @@ export async function sendWhatsAppMedia(
 export async function sendMediaSequentially(
   company: any,
   to: string,
-  media: Array<{ url: string; type: 'image' | 'video' | 'document'; caption?: string; filename?: string }>,
-  recipientName: string = 'Citizen'
+  media: Array<{ url: string; type?: 'image' | 'video' | 'document'; filename?: string }>,
+  caption: string = 'Reference ID'
 ): Promise<any[]> {
   if (!media || !media.length) return [];
 
@@ -1336,7 +1312,7 @@ export async function sendMediaSequentially(
               parameters: [
                 {
                   type: 'text',
-                  text: sanitizeText(recipientName, 60)
+                  text: sanitizeText(caption, 60)
                 }
               ]
             }

@@ -2,6 +2,7 @@ import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { NotificationContextService, INotificationContext } from './notificationContextService';
 import { logger } from '../config/logger';
+import { META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT } from '../constants/metaGrievanceTemplates';
 
 /**
  * Service to resolve dynamic template names and variable values.
@@ -15,35 +16,41 @@ export class TemplateResolverService {
     'GRIEVANCE_REASSIGNED': 'grievance_reassigned_admin_v2',
     'GRIEVANCE_REVERTED': 'grievance_reverted_company_v2',
     'GRIEVANCE_REMINDER': 'grievance_reminder_admin_v2',
-    'GRIEVANCE_STATUS_RESOLVED': 'grievance_status_resolved_v2',
-    'GRIEVANCE_STATUS_REJECTED': 'grievance_status_rejected_v1',
-    'GRIEVANCE_STATUS_IN_PROGRESS': 'grievance_status_inprogress_v1'
+    'GRIEVANCE_STATUS_RESOLVED': 'grievance_status_resolved_citizen_v2',
+    'GRIEVANCE_STATUS_REJECTED': 'grievance_status_rejected_citizen_v2',
+    'GRIEVANCE_STATUS_IN_PROGRESS': 'grievance_status_inprogress_citizen_v2'
   };
 
   private static LEGACY_VARIABLE_MAPS: Record<string, string[]> = {
     'grievance_received_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'created_at'],
-    'grievance_assigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_reassigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks', 'previous_dept', 'new_dept'],
-    'grievance_status_resolved_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_status_rejected_v1': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_status_inprogress_v1': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_reminder_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'remarks', 'created_at']
+    'grievance_assigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'assigned_by', 'current_date', 'remarks'],
+    'grievance_reassigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'created_at', 'reassigned_by', 'remarks', 'current_date', 'original_department', 'original_office'],
+    'grievance_reverted_company_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'reverted_by', 'remarks', 'current_date'],
+    'grievance_status_resolved_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_rejected_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_inprogress_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_reminder_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'remarks', 'created_at'],
+    'number_admin_v1_': ['id']
   };
 
   /**
    * Resolves the actual Meta template name and the ordered array of variable values.
    */
   static async resolveTemplate(
-    companyId: string,
+    companyId: any,
     eventKey: string,
     context: INotificationContext,
     fallbackTemplateName?: string
   ): Promise<{ templateName: string; values: string[] }> {
     try {
+      const idToUse = (companyId && typeof companyId === 'object' && (companyId as any)._id)
+        ? (companyId as any)._id.toString()
+        : companyId.toString();
+
       const upperKey = eventKey.toUpperCase();
       // 1. Fetch Company Config Mappings (Project only what we need for speed)
       const config = await CompanyWhatsAppConfig.findOne(
-        { companyId },
+        { companyId: idToUse },
         { templateMappings: 1 }
       ).lean();
 
@@ -85,6 +92,15 @@ export class TemplateResolverService {
       const values = variableMap.length > 0 
         ? variableMap.map(key => String(context[key] || ''))
         : [];
+
+      // ✅ VALIDATION: Check if variable count matches Meta's requirements
+      const expectedCount = META_GRIEVANCE_TEMPLATE_VARIABLE_COUNT[templateName];
+      if (expectedCount !== undefined && values.length !== expectedCount) {
+        logger.warn(`⚠️ [TemplateResolver] VARIABLE COUNT MISMATCH for "${templateName}": Expected ${expectedCount}, but mapped ${values.length}. This message will likely be REJECTED by Meta.`);
+        console.warn(`\x1b[33m%s\x1b[0m`, `⚠️ [TemplateResolver] VARIABLE COUNT MISMATCH for "${templateName}": Expected ${expectedCount}, but mapped ${values.length}.`);
+      } else {
+        logger.info(`✅ [TemplateResolver] Resolved "${templateName}" with ${values.length} variables for event: ${eventKey}`);
+      }
 
       return { templateName, values };
 

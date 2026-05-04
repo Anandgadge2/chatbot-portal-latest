@@ -59,26 +59,16 @@ export async function sendTemplateRequest(options: {
     try {
       const response = await axios.post(options.url, options.payload, { headers: options.headers });
       
-      // ✅ SUCCESS LOGGING: Clear visibility for production monitoring
-      console.log(`[WhatsApp Success] ✅ Template "${options.logContext.templateName}" sent to ${options.logContext.to} (${options.logContext.company || 'System'})`);
+      // ✅ Essential Success Log
+      console.log(`🚀 WhatsApp template "${options.logContext.templateName}" successfully sent to ${options.logContext.to} (${options.logContext.company || 'System'})`);
       
       return response;
     } catch (error: any) {
       const parsed = parseWhatsAppApiError(error);
-      const status = attempt >= retryCount ? 'FAILED' : 'RETRYING';
+      const isRetrying = attempt < retryCount && parsed.shouldRetry;
 
-      console.error('❌ WhatsApp API Error', {
-        ...options.logContext,
-        payload: options.payload,
-        status,
-        error: {
-          statusCode: parsed.status || null,
-          metaCode: parsed.code || null,
-          metaMessage: parsed.message,
-          details: parsed.details || null,
-          fbtraceId: parsed.fbtraceId || null
-        }
-      });
+      // ❌ Essential Error Log
+      console.error(`❌ WhatsApp template "${options.logContext.templateName}" FAILED for ${options.logContext.to}: ${parsed.message}${isRetrying ? ' (Retrying...)' : ''}`);
 
       if (!parsed.shouldRetry || attempt >= retryCount) {
         throw error;

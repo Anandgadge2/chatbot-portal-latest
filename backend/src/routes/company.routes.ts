@@ -32,8 +32,8 @@ router.put('/me', authenticate, companyController.updateMe);
 
 // @route   GET /api/companies/:id
 // @desc    Get company by ID
-// @access  Private/SuperAdmin
-router.get('/:id', requireSuperAdmin, companyController.getById);
+// @access  Private
+router.get('/:id', companyController.getById);
 
 // @route   PUT /api/companies/:id
 // @desc    Update company

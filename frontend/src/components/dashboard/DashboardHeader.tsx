@@ -29,6 +29,7 @@ type DashboardHeaderProps = {
   onRefresh?: () => void;
   onBackToDashboard?: () => void;
   isRefreshing?: boolean;
+  logoUrl?: string | null;
 };
 
 import { NotificationPopover } from "./NotificationPopover";
@@ -56,6 +57,7 @@ export const DashboardHeader = memo(function DashboardHeader({
   onRefresh,
   onBackToDashboard,
   isRefreshing = false,
+  logoUrl,
 }: DashboardHeaderProps) {
   return (
     <header className="bg-slate-900 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 transition-all duration-300 shadow-xl overflow-hidden">
@@ -76,20 +78,22 @@ export const DashboardHeader = memo(function DashboardHeader({
                 aria-label="Open sidebar navigation"
               >
                 <Image
-                  src="/assets/sahaj.png"
-                  alt="Sahaj Logo"
+                  src={logoUrl || "/assets/sahaj.png"}
+                  alt={companyName || "Company Logo"}
                   width={50}
                   height={50}
                   className="object-contain"
+                  unoptimized
                 />
               </button>
               <div className="hidden md:flex w-10 h-10 bg-white/5 backdrop-blur-sm rounded-xl items-center justify-center shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                 <Image
-                  src="/assets/sahaj.png"
-                  alt="Sahaj Logo"
+                  src={logoUrl || "/assets/sahaj.png"}
+                  alt={companyName || "Company Logo"}
                   width={50}
                   height={50}
                   className="object-contain"
+                  unoptimized
                 />
               </div>
               <div className="flex flex-col justify-center min-w-0">

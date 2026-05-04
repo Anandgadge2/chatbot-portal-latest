@@ -78,11 +78,19 @@ export async function resolveTemplateRecord(options: {
   const templates = await WhatsAppTemplate.find({
     companyId: options.companyId,
     name: options.templateName,
-    status: { $in: ['APPROVED', 'PENDING'] },
-    isActive: true
+    status: 'APPROVED'
   }).lean();
 
   if (!templates.length) {
+    const isStandardMediaTemplate = ['media_image_v1', 'media_video_v1', 'media_document_v1'].includes(options.templateName);
+    if (isStandardMediaTemplate) {
+      return {
+        template: { name: options.templateName, language: options.requestedLanguage || 'en_US' },
+        resolvedLanguage: options.requestedLanguage || 'en_US',
+        audience: 'CITIZEN',
+        supportedLanguages: ['en_US']
+      };
+    }
     const error: any = new Error(`Template ${options.templateName} is not approved/active (or status is not yet synced) for this company.`);
     error.code = 'TEMPLATE_INVALID';
     throw error;

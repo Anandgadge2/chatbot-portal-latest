@@ -3446,6 +3446,7 @@ function DashboardPageClientContent() {
         onRefresh={handleRefresh}
         onBackToDashboard={() => setDrilldownId(null)}
         isRefreshing={refreshing}
+        logoUrl={company?.theme?.logoUrl}
       />
 
       {/* Content wrapper */}

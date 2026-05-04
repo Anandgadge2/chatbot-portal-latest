@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { logger } from '../config/logger';
 import ChatbotFlow, { IFlowStep, IChatbotFlow } from "../models/ChatbotFlow";
 import Company from "../models/Company";
 import CompanyWhatsAppConfig from "../models/CompanyWhatsAppConfig";
@@ -1819,7 +1820,9 @@ export class DynamicFlowEngine {
       normalizedMessage === "thanks!" ||
       normalizedMessage === "thanks";
 
-    if (message && message.trim() && !isGenericThankYouOnly) {
+    const isGrievanceCreated = !!(this.session.data as any).grievanceId;
+
+    if (message && message.trim() && !isGenericThankYouOnly && !isGrievanceCreated) {
       await sendWhatsAppMessage(this.company, this.userPhone, message);
     }
 
@@ -4048,12 +4051,20 @@ async function handleMediaUpload(
         "chatbot"
       ).replace(/\s+/g, "_");
 
-      const isGrievanceFlow = session.data.flowId?.includes('grievance') || session.data.awaitingMedia?.saveToField === 'media';
+      const flowIdStr = String(session.data.flowId || '');
+      const isGrievanceFlow = flowIdStr.toLowerCase().includes('grievance') || 
+                             session.data.awaitingMedia?.saveToField === 'media' ||
+                             !!session.data.grievanceId;
       
       if (isGrievanceFlow) {
         if (!session.data.grievanceId) {
-          const { getNextGrievanceId } = await import('../utils/idGenerator');
-          session.data.grievanceId = await getNextGrievanceId(company._id);
+          try {
+            const { getNextGrievanceId } = await import('../utils/idGenerator');
+            session.data.grievanceId = await getNextGrievanceId(company._id);
+          } catch (idErr) {
+            logger.warn('⚠️ Could not generate grievanceId for media folder, using timestamp');
+            session.data.grievanceId = `GRV${Date.now()}`;
+          }
         }
         folder = `grievances/${session.data.grievanceId}/evidence`;
       }

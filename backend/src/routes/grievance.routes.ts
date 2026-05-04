@@ -693,6 +693,8 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       }))
     }).catch((err: Error) => logger.error('Failed to trigger grievance_reverted_company_v2 template', err));
 
+    // Legacy notification removed in favor of Meta-verified templates triggered above via triggerAdminAssignmentNotification
+    /*
     const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
     await notifyCompanyAdminsOnRevert({
       type: 'grievance',
@@ -708,6 +710,7 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
       remarks: remarks.trim(),
       timeline: grievance.timeline
     }).catch((err: Error) => logger.error('❌ Failed to notify company admins on revert:', err));
+    */
 
     await logUserAction(req, AuditAction.UPDATE, 'Grievance', grievance._id.toString(), {
       action: 'revert_to_company_admin',

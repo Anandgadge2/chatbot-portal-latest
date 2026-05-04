@@ -59,17 +59,19 @@ export class NotificationContextService {
       department: options.department?.name || options.department || 'General',
       office: options.subDept?.name || options.subDept || 'N/A',
       description: this.sanitizeText(grievance.description || '', 400),
-      created_at: moment(grievance.createdAt).tz(timezone).format('DD MMM YYYY, hh:mm A'),
-      admin_name: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Administrator'),
+      created_at: moment(grievance.createdAt || (grievance.timeline?.[0]?.timestamp) || (grievance.statusHistory?.[0]?.changedAt) || new Date()).tz(timezone).format('DD MMM YYYY, hh:mm A'),
+      admin_name: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),
       remarks: this.sanitizeText(options.remarks || grievance.remarks || '', 200),
       company_name: options.companyName || this.DEFAULT_PORTAL_NAME,
-      current_date: moment().tz(timezone).format('DD MMM YYYY'),
+      current_date: moment().tz(timezone).format('DD MMM YYYY, hh:mm A'),
       priority: grievance.priority || 'NORMAL',
       previous_dept: options.previousDept || 'N/A',
       new_dept: options.newDept || 'N/A',
-      assigned_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Administrator'),
-      reassigned_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Administrator'),
-      reverted_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Administrator')
+      assigned_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),
+      reassigned_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),
+      reverted_by: options.admin?.fullName || (options.admin?.firstName ? `${options.admin.firstName}${options.admin.lastName ? ' ' + options.admin.lastName : ''}` : 'Officer'),
+      original_department: options.previousDept || 'N/A',
+      original_office: options.newDept || 'N/A'
     };
   }
 

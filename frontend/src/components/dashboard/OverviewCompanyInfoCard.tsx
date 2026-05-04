@@ -1,6 +1,7 @@
 "use client";
 
 import { Building, Mail, Phone, User as UserIcon } from "lucide-react";
+import Image from "next/image";
 import type { Company } from "@/lib/api/company";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingDots } from "@/components/dashboard/DashboardPrimitives";
@@ -26,8 +27,19 @@ export function OverviewCompanyInfoCard({
       <div className="bg-slate-900 px-6 py-2">
         <div className="relative flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
-              <Building className="text-white w-8 h-8" />
+            <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg overflow-hidden">
+              {company?.theme?.logoUrl ? (
+                <Image
+                  src={company.theme.logoUrl}
+                  alt={company.name}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-contain"
+                  unoptimized
+                />
+              ) : (
+                <Building className="text-white w-8 h-8" />
+              )}
             </div>
             <div>
               <h3 className="text-xl font-bold text-white leading-tight">

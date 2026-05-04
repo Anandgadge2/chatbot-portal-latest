@@ -23,6 +23,7 @@ import { sanitizeGrievanceDetailsForStorage } from '../utils/sanitize';
 import {
   triggerAdminTemplate,
   triggerGrievanceNotifications,
+  triggerCitizenStatusTemplate,
   formatTemplateDate
 } from './grievanceTemplateTriggerService';
 
@@ -286,20 +287,6 @@ export class ActionService {
       session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
       session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-      // 📢 Send instant confirmation to citizen (Synchronous)
-      if (sendCitizenConfirmation) {
-        try {
-          const { sendWhatsAppMessage } = await import('./whatsappService');
-          await sendWhatsAppMessage(
-            company,
-            userPhone,
-            `✅ *Grievance Submitted Successfully!*\n\nRef ID: *${grievance.grievanceId}*\n\nYour grievance has been registered with ${company.name}. You will receive status updates as we process it.\n\nThank you for reaching out.`
-          );
-        } catch (confirmErr: any) {
-          logger.error('⚠️ Instant citizen confirmation failed:', confirmErr.message);
-        }
-      }
-      
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = subDepartmentId ? await Department.findById(subDepartmentId) : null;
       
@@ -426,6 +413,21 @@ export class ActionService {
         type: 'grievance',
         action: 'created',
       }));
+
+      notifications.push(
+        triggerCitizenStatusTemplate({
+          companyId: company._id,
+          citizenPhone: userPhone,
+          citizenName,
+          grievanceId: grievance.grievanceId,
+          departmentName: dept?.name || session.data.category || 'General',
+          subDepartmentName: subDept?.name || 'N/A',
+          grievanceSummary: storedDescription,
+          status: 'SUBMITTED',
+          grievance,
+          media: sanitizedMedia
+        })
+      );
 
       notifications.push(
         triggerGrievanceNotifications({

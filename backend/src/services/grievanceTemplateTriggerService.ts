@@ -56,7 +56,7 @@ async function getCompanyWithConfig(companyId: any): Promise<any> {
   };
 }
 
-export async function getAdminRecipients(companyId: any): Promise<string[]> {
+export async function getAdminRecipients(companyId: any): Promise<Array<{ phone: string; name: string }>> {
   const companyAdminRoleIds = await Role.find({
     companyId,
     $or: [
@@ -82,11 +82,11 @@ export async function getAdminRecipients(companyId: any): Promise<string[]> {
     if (!phone) continue;
     unique.set(phone, {
       phone,
-      name: `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator'
+      name: `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Officer'
     });
   }
 
-  return Array.from(unique.keys());
+  return Array.from(unique.values());
 }
 
 /**
@@ -110,7 +110,11 @@ export async function triggerGrievanceEvent(options: {
   subDept?: any;
 }) {
   try {
-    const company = await getCompanyWithConfig(options.companyId);
+    const companyIdStr = (options.companyId && typeof options.companyId === 'object' && options.companyId._id)
+      ? options.companyId._id.toString()
+      : options.companyId.toString();
+
+    const company = await getCompanyWithConfig(companyIdStr);
     const language = normalizeLanguage(options.language);
 
     // 1. Build context
@@ -127,7 +131,7 @@ export async function triggerGrievanceEvent(options: {
 
     // 2. Resolve template
     const { templateName, values } = await TemplateResolverService.resolveTemplate(
-      options.companyId.toString(),
+      companyIdStr,
       options.eventKey.toUpperCase(),
       context,
       options.eventKey.toLowerCase() // Use key as fallback name
@@ -136,22 +140,45 @@ export async function triggerGrievanceEvent(options: {
     // 3. Determine recipients
     const finalPhones = options.recipientPhones?.length 
       ? options.recipientPhones 
-      : await getAdminRecipients(options.companyId);
+      : await getAdminRecipients(companyIdStr);
 
     // 4. Send notifications
+    logger.info(`📢 [Admin Event] Sending "${templateName}" template to ${finalPhones.length} admins for event: ${options.eventKey}`);
+    
+    // Normalize recipients to objects if they are strings
+    const recipients: Array<{ phone: string; name: string }> = (finalPhones as any[]).map(p => {
+      if (typeof p === 'string') return { phone: p, name: options.admin?.fullName || 'Concerned Official' };
+      return p as { phone: string; name: string };
+    });
+
     const results = await Promise.allSettled(
-      finalPhones.map(async (to) => {
-        return sendWhatsAppTemplate(company, to, templateName, values, language, undefined, options.buttonParam, {
+      recipients.map(async (recipient) => {
+        // Update context with the REAL recipient name for this specific message
+        const personalizedContext = { ...context, admin_name: recipient.name };
+        
+        // Resolve values again with the personalized name
+        // (Note: this is efficient because resolveTemplate handles the heavy lifting once)
+        const { values: personalizedValues } = await TemplateResolverService.resolveTemplate(
+          companyIdStr,
+          options.eventKey.toUpperCase(),
+          personalizedContext,
+          options.eventKey.toLowerCase()
+        );
+
+        const sendResult = await sendWhatsAppTemplate(company, recipient.phone, templateName, personalizedValues, language, undefined, options.buttonParam, {
           recipientType: 'ADMIN',
           citizenPhone: options.citizenPhone || options.grievance?.citizenPhone
         });
+
+        // 5. Send Media if any
+        if (options.media && options.media.length > 0) {
+          // Use the REAL recipient name for the caption
+          await sendMediaSequentially(company, recipient.phone, options.media!, recipient.name);
+        }
+
+        return sendResult;
       })
     );
-
-    // 5. Send Media if any
-    if (options.media && options.media.length > 0) {
-      await Promise.all(finalPhones.map(to => sendMediaSequentially(company, to, options.media!, 'Administrator')));
-    }
 
     return results;
   } catch (error: any) {
@@ -188,14 +215,15 @@ export async function triggerAdminTemplate(options: {
 
   // Fallback to legacy behavior
   const company = await getCompanyWithConfig(options.companyId);
+  const rawRecipients = options.recipientPhones?.length ? options.recipientPhones : await getAdminRecipients(options.companyId);
   const recipients = Array.from(
     new Set(
-      (options.recipientPhones?.length ? options.recipientPhones : await getAdminRecipients(options.companyId))
-        .map((phone) => normalizePhoneNumber(phone))
+      rawRecipients
+        .map((p: any) => normalizePhoneNumber(typeof p === 'string' ? p : p.phone))
         .filter((phone) => !options.citizenPhone || phone !== normalizePhoneNumber(options.citizenPhone))
         .filter(Boolean)
     )
-  );
+  ) as string[];
   const language = normalizeLanguage(options.language);
   const safePayload = options.data || options.values || [];
 
@@ -271,6 +299,10 @@ export async function triggerCitizenStatusTemplate(options: {
   requireNotificationConsent?: boolean;
 }) {
   try {
+    const companyIdStr = (options.companyId && typeof options.companyId === 'object' && options.companyId._id)
+      ? options.companyId._id.toString()
+      : options.companyId.toString();
+
     const status = options.status.toUpperCase();
     const eventKey = `GRIEVANCE_STATUS_${status}`;
     const language = normalizeLanguage(options.language);
@@ -293,12 +325,12 @@ export async function triggerCitizenStatusTemplate(options: {
 
     // 2. Resolve Template and Values
     const { templateName, values } = await TemplateResolverService.resolveTemplate(
-      options.companyId.toString(),
+      companyIdStr,
       eventKey,
       context
     );
 
-    logger.info(`🚀 [Citizen Template] Resolved ${eventKey} -> ${templateName} for ${options.citizenPhone}`);
+    logger.info(`🚀 [Citizen Template] Using "${templateName}" for event: ${eventKey}. Recipient: ${options.citizenName} (${options.citizenPhone})`);
 
     // 3. Send the Template
     await triggerCitizenTemplate({
@@ -372,7 +404,7 @@ export async function triggerAdminAssignmentNotification(options: {
   category: string;
   subDepartmentName?: string;
   description?: string;
-  recipientPhones: string[];
+  recipientPhones: any[];
   language?: string;
   assignedByName?: string;
   reassignedByName?: string;

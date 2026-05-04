@@ -134,7 +134,11 @@ export async function uploadWhatsAppMediaToGCS(
       originalName: fileName
     } : null;
   } catch (error: any) {
-    logger.error('❌ WhatsApp media to GCS failed:', error.message);
+    if (error.response) {
+      logger.error(`❌ WhatsApp media to GCS failed (API Error): ${JSON.stringify(error.response.data)}`);
+    } else {
+      logger.error(`❌ WhatsApp media to GCS failed: ${error.message}`);
+    }
     return null;
   }
 }
