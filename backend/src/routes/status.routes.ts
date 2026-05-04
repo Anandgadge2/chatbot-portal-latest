@@ -244,7 +244,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             cloudUrl,
             mediaEntry: {
               url: cloudUrl,
-              type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+              type: file.mimetype.startsWith('image/') ? 'image' : 
+                    file.mimetype.startsWith('video/') ? 'video' : 'document',
+              mimeType: file.mimetype,
+              originalName: file.originalname,
+              uploadedByRole: 'admin',
               uploadedAt: new Date(),
               uploadedBy: currentUser._id
             } as any

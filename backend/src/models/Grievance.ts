@@ -36,6 +36,9 @@ export interface IGrievance extends Document {
   media: Array<{
     url: string;
     type: 'image' | 'document' | 'video';
+    mimeType?: string;
+    originalName?: string;
+    uploadedByRole?: 'citizen' | 'admin';
     uploadedAt: Date;
     uploadedBy?: mongoose.Types.ObjectId;
   }>;
@@ -188,6 +191,12 @@ const GrievanceSchema: Schema = new Schema(
         type: String,
         enum: ['image', 'document', 'video'],
         required: true
+      },
+      mimeType: String,
+      originalName: String,
+      uploadedByRole: {
+        type: String,
+        enum: ['citizen', 'admin']
       },
       uploadedAt: {
         type: Date,

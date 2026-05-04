@@ -15,18 +15,18 @@ export class TemplateResolverService {
     'GRIEVANCE_REASSIGNED': 'grievance_reassigned_admin_v2',
     'GRIEVANCE_REVERTED': 'grievance_reverted_company_v2',
     'GRIEVANCE_REMINDER': 'grievance_reminder_admin_v2',
-    'GRIEVANCE_STATUS_RESOLVED': 'grievance_status_resolved_citizen_v2',
-    'GRIEVANCE_STATUS_REJECTED': 'grievance_status_rejected_citizen_v2',
-    'GRIEVANCE_STATUS_IN_PROGRESS': 'grievance_status_inprogress_citizen_v2'
+    'GRIEVANCE_STATUS_RESOLVED': 'grievance_status_resolved_v2',
+    'GRIEVANCE_STATUS_REJECTED': 'grievance_status_rejected_v1',
+    'GRIEVANCE_STATUS_IN_PROGRESS': 'grievance_status_inprogress_v1'
   };
 
   private static LEGACY_VARIABLE_MAPS: Record<string, string[]> = {
     'grievance_received_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'created_at'],
     'grievance_assigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
     'grievance_reassigned_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks', 'previous_dept', 'new_dept'],
-    'grievance_status_resolved_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_status_rejected_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
-    'grievance_status_inprogress_citizen_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_resolved_v2': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_rejected_v1': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
+    'grievance_status_inprogress_v1': ['citizen_name', 'id', 'department', 'office', 'description', 'admin_name', 'current_date', 'remarks'],
     'grievance_reminder_admin_v2': ['admin_name', 'id', 'citizen_name', 'department', 'office', 'description', 'remarks', 'created_at']
   };
 

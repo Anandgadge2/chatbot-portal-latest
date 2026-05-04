@@ -213,8 +213,9 @@ export class ActionService {
         Math.abs(parsedLatitude) <= 90 &&
         Math.abs(parsedLongitude) <= 180;
       
-      const grievanceData = {
+      const grievanceData: any = {
         companyId: company._id,
+        grievanceId: session.data.grievanceId, // Use pre-generated ID from session if available
         departmentId: departmentId || undefined,
         subDepartmentId: subDepartmentId || undefined,
         citizenName,
@@ -252,6 +253,11 @@ export class ActionService {
         throw saveErr;
       }
 
+      // Ensure the generated ID is in session if not already
+      if (!session.data.grievanceId) {
+        session.data.grievanceId = grievance.grievanceId;
+      }
+
       await CitizenProfile.updateOne(
         { companyId: company._id, phone_number: userPhone },
         {
@@ -279,6 +285,20 @@ export class ActionService {
       session.data.status = 'PENDING';
       session.data.date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
       session.data.time = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+      // 📢 Send instant confirmation to citizen (Synchronous)
+      if (sendCitizenConfirmation) {
+        try {
+          const { sendWhatsAppMessage } = await import('./whatsappService');
+          await sendWhatsAppMessage(
+            company,
+            userPhone,
+            `✅ *Grievance Submitted Successfully!*\n\nRef ID: *${grievance.grievanceId}*\n\nYour grievance has been registered with ${company.name}. You will receive status updates as we process it.\n\nThank you for reaching out.`
+          );
+        } catch (confirmErr: any) {
+          logger.error('⚠️ Instant citizen confirmation failed:', confirmErr.message);
+        }
+      }
       
       const dept = departmentId ? await Department.findById(departmentId) : null;
       const subDept = subDepartmentId ? await Department.findById(subDepartmentId) : null;

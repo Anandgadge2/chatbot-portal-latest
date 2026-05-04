@@ -41,28 +41,35 @@ export async function uploadBufferToGCS(
   contentType: string,
   folder: string = 'media'
 ): Promise<string | null> {
-  try {
-    const destination = `${folder}/${randomUUID()}_${fileName}`;
-    const file = bucket.file(destination);
-    
-    // Ensure we use the correct content type for Office files
-    const finalContentType = getProperContentType(fileName, contentType);
+  let attempt = 0;
+  const maxAttempts = 3;
 
-    await file.save(buffer, {
-      contentType: finalContentType,
-      public: true,
-      metadata: {
-        cacheControl: 'public, max-age=31536000',
-      },
-    });
+  while (attempt < maxAttempts) {
+    try {
+      const destination = `${folder}/${randomUUID()}_${fileName}`;
+      const file = bucket.file(destination);
+      
+      const finalContentType = getProperContentType(fileName, contentType);
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
-    logger.info(`✅ GCS upload success: ${publicUrl}`);
-    return publicUrl;
-  } catch (error: any) {
-    logger.error('❌ GCS upload failed:', error.message);
-    return null;
+      await file.save(buffer, {
+        contentType: finalContentType,
+        public: true,
+        metadata: {
+          cacheControl: 'public, max-age=31536000',
+        },
+      });
+
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
+      logger.info(`✅ GCS upload success: ${publicUrl}`);
+      return publicUrl;
+    } catch (error: any) {
+      attempt++;
+      logger.error(`❌ GCS upload failed (Attempt ${attempt}/${maxAttempts}): ${error.message}`);
+      if (attempt >= maxAttempts) return null;
+      await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+    }
   }
+  return null;
 }
 
 /**
@@ -79,7 +86,7 @@ export async function uploadWhatsAppMediaToGCS(
   accessToken: string,
   fileName: string = 'media_file',
   folder: string = 'whatsapp_media'
-): Promise<string | null> {
+): Promise<{ url: string; mimeType: string; originalName: string } | null> {
   try {
     if (!mediaId || !accessToken) {
       logger.error('❌ Missing mediaId or accessToken for GCS upload');
@@ -119,7 +126,13 @@ export async function uploadWhatsAppMediaToGCS(
 
     const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${ext}`;
     
-    return await uploadBufferToGCS(buffer, finalFileName, mimeType, folder);
+    const cloudUrl = await uploadBufferToGCS(buffer, finalFileName, mimeType, folder);
+    
+    return cloudUrl ? {
+      url: cloudUrl,
+      mimeType,
+      originalName: fileName
+    } : null;
   } catch (error: any) {
     logger.error('❌ WhatsApp media to GCS failed:', error.message);
     return null;

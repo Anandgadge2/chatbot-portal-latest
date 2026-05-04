@@ -4041,23 +4041,38 @@ async function handleMediaUpload(
   try {
     const accessToken = (company as any)?.whatsappConfig?.accessToken;
     if (accessToken) {
-      const folder = (
+      // ✅ STRICT GCP STORAGE RULES: /grievances/{grievanceId}/evidence/{timestamp}_{filename}
+      let folder = (
         company?.name ||
         company?._id?.toString() ||
         "chatbot"
       ).replace(/\s+/g, "_");
-      const cloudUrl = await uploadWhatsAppMediaToGCS(
+
+      const isGrievanceFlow = session.data.flowId?.includes('grievance') || session.data.awaitingMedia?.saveToField === 'media';
+      
+      if (isGrievanceFlow) {
+        if (!session.data.grievanceId) {
+          const { getNextGrievanceId } = await import('../utils/idGenerator');
+          session.data.grievanceId = await getNextGrievanceId(company._id);
+        }
+        folder = `grievances/${session.data.grievanceId}/evidence`;
+      }
+
+      const timestamp = Date.now();
+      const uploadResult = await uploadWhatsAppMediaToGCS(
         mediaUrl,
         accessToken,
-        `wa_media_${Date.now()}`,
+        `${timestamp}_${mediaUrl}`,
         folder,
       );
       storeMedia(
         session.data,
         saveToField,
-        cloudUrl || mediaUrl,
+        uploadResult?.url || mediaUrl,
         messageType,
-        !!cloudUrl,
+        !!uploadResult,
+        uploadResult?.mimeType,
+        uploadResult?.originalName
       );
     } else {
       storeMedia(session.data, saveToField, mediaUrl, messageType, false);
@@ -4081,8 +4096,18 @@ function storeMedia(
   url: string,
   type: string,
   isGCS: boolean,
+  mimeType?: string,
+  originalName?: string
 ): void {
-  const mediaEntry = { url, type, uploadedAt: new Date(), isGCS };
+  const mediaEntry = { 
+    url, 
+    type: type.startsWith('image/') ? 'image' : type.startsWith('video/') ? 'video' : 'document', 
+    mimeType,
+    originalName,
+    uploadedByRole: 'citizen' as const,
+    uploadedAt: new Date(), 
+    isGCS 
+  };
 
   if (field === "media") {
     data.media = data.media || [];

@@ -52,7 +52,7 @@ export async function sendTemplateRequest(options: {
   logContext: Record<string, any>;
   retryCount?: number;
 }): Promise<any> {
-  const retryCount = Math.max(0, options.retryCount ?? 1);
+  const retryCount = Math.max(0, options.retryCount ?? 2);
   let attempt = 0;
 
   while (true) {
