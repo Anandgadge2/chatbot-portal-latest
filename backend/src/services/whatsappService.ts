@@ -1290,7 +1290,13 @@ export async function sendMediaSequentially(
   for (let i = 0; i < media.length; i++) {
     const item = media[i];
     try {
-      const detectedType = item.type || detectType(item.url);
+      const normalizedInputType = String((item as any).type || '').toLowerCase();
+      const detectedType: 'image' | 'video' | 'document' =
+        normalizedInputType === 'photo' ? 'image'
+        : normalizedInputType === 'file' ? 'document'
+        : (normalizedInputType === 'image' || normalizedInputType === 'video' || normalizedInputType === 'document')
+          ? (normalizedInputType as 'image' | 'video' | 'document')
+          : detectType(item.url);
       const templateName = templateMap[detectedType];
       
       logWhatsAppEvent('media_sequence_item_resolved', {

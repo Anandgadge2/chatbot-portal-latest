@@ -954,12 +954,18 @@ router.put('/:id/status', requirePermission(Permission.STATUS_CHANGE_GRIEVANCE, 
     // Handle new media attachments (proof/evidence)
     if (Array.isArray(newMedia) && newMedia.length > 0) {
       if (!grievance.media) grievance.media = [];
-      const formattedMedia = newMedia.map((m: any) => ({
-        url: m.url,
-        type: m.type || 'image',
-        uploadedAt: new Date(),
-        uploadedBy: currentUser._id
-      }));
+      const formattedMedia = newMedia.map((m: any) => {
+        const rawType = String(m?.type || '').toLowerCase();
+        const normalizedType = rawType === 'photo' ? 'image' : rawType === 'file' ? 'document' : rawType;
+        const mediaType = (['image', 'video', 'document'].includes(normalizedType) ? normalizedType : 'image') as 'image' | 'video' | 'document';
+
+        return {
+          url: m.url,
+          type: mediaType,
+          uploadedAt: new Date(),
+          uploadedBy: currentUser._id
+        };
+      });
       grievance.media.push(...formattedMedia);
     }
 
