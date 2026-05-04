@@ -970,6 +970,46 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                               {desc ||
                                 "Status update logged without additional remarks."}
                             </p>
+                            
+                            {/* Render media attachments in timeline if any */}
+                            {event.details?.media && event.details.media.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {event.details.media.map((url: string, mIdx: number) => {
+                                  const isImg = isImageMedia({ url });
+                                  const isVid = isVideoMedia({ url });
+                                  return (
+                                    <div 
+                                      key={mIdx} 
+                                      className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm hover:border-blue-400 transition-all cursor-pointer"
+                                      onClick={() => setFullScreenMedia({ 
+                                        url, 
+                                        type: isImg ? 'image' : isVid ? 'video' : 'document',
+                                        alt: `Attachment ${mIdx + 1}`
+                                      })}
+                                    >
+                                      {isImg ? (
+                                        <Image 
+                                          src={url} 
+                                          alt="Attachment" 
+                                          fill 
+                                          className="object-cover"
+                                          unoptimized
+                                        />
+                                      ) : isVid ? (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                                          <Video className="w-4 h-4 text-white" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <FileType className="w-4 h-4 text-slate-400" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
                             <div className="mt-2 flex items-center gap-1.5 opacity-60">
                               <User className="w-2.5 h-2.5 text-slate-400" />
                               <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest">

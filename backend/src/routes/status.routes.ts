@@ -287,7 +287,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     if (!grievance.timeline) grievance.timeline = [];
     grievance.timeline.push({
       action: 'STATUS_UPDATED',
-      details: { fromStatus: oldStatus, toStatus: status, remarks },
+      details: { fromStatus: oldStatus, toStatus: status, remarks, media: uploadedDocumentUrls },
       performedBy: currentUser._id,
       timestamp: new Date()
     });
