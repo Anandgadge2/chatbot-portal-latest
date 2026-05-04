@@ -12,7 +12,9 @@ export const errorHandler = (
     stack: err.stack,
     url: req.url,
     method: req.method,
-    ip: req.ip
+    ip: req.ip,
+    userPhone: req.user?.phone,
+    userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : undefined
   });
 
   // Mongoose validation error

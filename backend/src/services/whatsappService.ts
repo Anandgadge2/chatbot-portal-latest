@@ -1339,25 +1339,39 @@ export async function sendMediaSequentially(
       // Extract a safe filename for document types to ensure Meta/WhatsApp correctly identifies the format (extension)
       const getSafeFilename = (m: any): string => {
         if (m.filename && m.filename.includes('.')) return m.filename;
-        // Fallback: extract from URL
+        
+        // Advanced fallback: extract from URL
         try {
-          const urlObj = new URL(m.url);
-          const pathParts = urlObj.pathname.split('/');
+          const urlString = String(m.url || '');
+          const urlWithoutParams = urlString.split('?')[0];
+          const pathParts = urlWithoutParams.split('/');
           const lastPart = decodeURIComponent(pathParts[pathParts.length - 1]);
-          // GCS often uses uuid_filename.ext pattern
+          
+          // 1. Try to find the extension in the last part of the path
+          const extMatch = lastPart.match(/\.([a-z0-9]+)$/i);
+          const extension = extMatch ? extMatch[1].toLowerCase() : null;
+          
+          // 2. If it has a GCS UUID prefix (e.g., uuid_name.ext), try to get the original name
           if (lastPart.includes('_')) {
             const potentialName = lastPart.split('_').slice(1).join('_');
             if (potentialName.includes('.')) return potentialName;
           }
+          
+          // 3. If we found an extension but no clean name, return a generic name with correct extension
+          if (extension) {
+            return `document.${extension}`;
+          }
+
+          // 4. Return the last part as-is if it has a dot
           if (lastPart.includes('.')) return lastPart;
         } catch (e) {
-          // Fallback to basic split if URL parsing fails
+          // url parsing fallback
         }
         
         // Final fallbacks based on detected type
         if (detectedType === 'image') return 'image.jpg';
         if (detectedType === 'video') return 'video.mp4';
-        return 'document.pdf';
+        return 'attachment.pdf';
       };
 
       const payload: any = {

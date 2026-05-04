@@ -495,7 +495,27 @@ async function handleConsentCommand({
     { upsert: true }
   );
 
+  // 🔄 Portal Synchronization: If this phone number belongs to an internal User (Admin/Staff)
+  // Update their portal notification settings to match their WhatsApp action
+  try {
+    const User = (await import('../models/User')).default;
+    const normalizedPhone = from.trim();
+    
+    await User.updateMany(
+      { phone: normalizedPhone },
+      { 
+        $set: { 
+          'notificationSettings.whatsapp': !isStopCommand,
+          'notificationSettings.hasOverride': true 
+        } 
+      }
+    );
+  } catch (userSyncErr) {
+    console.error('❌ Failed to sync WhatsApp consent to User model:', userSyncErr);
+  }
+
   if (company && isStopCommand) {
+
     await sendWhatsAppMessage(
       company,
       from,

@@ -3,6 +3,7 @@ import { verifyToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
 import Company from '../models/Company';
 import { resolveUserAccess } from '../utils/accessControl';
+import { logger } from '../config/logger';
 
 // Extend Express Request to include user
 
@@ -83,6 +84,10 @@ export const authenticate = async (
       roleName: access.roleName,
     });
 
+    const userIdentifier = user.phone || user.email || 'unknown';
+    const logPrefix = access.isSuperAdmin ? '👑 [SuperAdmin]' : '👤 [User]';
+    logger.info(`${logPrefix} Auth: ${user.firstName} ${user.lastName} (${userIdentifier}) -> ${req.method} ${req.originalUrl}`);
+
     next();
   } catch (error: any) {
     if (error.name === 'JsonWebTokenError') {
@@ -132,6 +137,9 @@ export const optionalAuth = async (
           roleId: access.roleId,
           roleName: access.roleName,
         });
+
+        const userIdentifier = user.phone || user.email || 'unknown';
+        logger.info(`👤 [OptionalAuth] User: ${user.firstName} ${user.lastName} (${userIdentifier}) -> ${req.method} ${req.originalUrl}`);
       }
     }
 

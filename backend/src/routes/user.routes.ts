@@ -975,6 +975,34 @@ router.put('/:id', requirePermission(Permission.UPDATE_USER), async (req: Reques
 
     await userToUpdate.save();
     
+    // 🔄 Bot Synchronization: If WhatsApp alerts are explicitly enabled in the portal,
+    // clear the opt_out flag in the CitizenProfile so notifications can resume.
+    if (req.body.notificationSettings?.whatsapp === true) {
+      try {
+        const CitizenProfile = (await import('../models/CitizenProfile')).default;
+        const syncResult = await CitizenProfile.updateOne(
+          { companyId: userToUpdate.companyId, phone_number: userToUpdate.phone },
+          { $set: { opt_out: false, isSubscribed: true } }
+        );
+        if (syncResult.modifiedCount > 0) {
+          console.log(`✅ Synced portal WhatsApp toggle ON to CitizenProfile for ${userToUpdate.phone}`);
+        }
+      } catch (profileErr) {
+        console.error('⚠️ Failed to sync User WhatsApp toggle to CitizenProfile:', profileErr);
+      }
+    } else if (req.body.notificationSettings?.whatsapp === false) {
+      // If WhatsApp alerts are explicitly disabled in the portal, also mark as opt-out in bot
+      try {
+        const CitizenProfile = (await import('../models/CitizenProfile')).default;
+        await CitizenProfile.updateOne(
+          { companyId: userToUpdate.companyId, phone_number: userToUpdate.phone },
+          { $set: { opt_out: true, isSubscribed: false } }
+        );
+      } catch (profileErr) {
+        console.error('⚠️ Failed to sync User WhatsApp toggle (OFF) to CitizenProfile:', profileErr);
+      }
+    }
+    
     let user = await User.findById(req.params.id)
       .populate('companyId', 'name companyId')
       .populate('departmentIds', 'name departmentId')
