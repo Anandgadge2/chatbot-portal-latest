@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Grievance } from "@/lib/api/grievance";
-import { Appointment } from "@/lib/api/appointment";
+import { useState, useEffect, useCallback } from "react";
+import { grievanceAPI, Grievance } from "@/lib/api/grievance";
+import { appointmentAPI, Appointment } from "@/lib/api/appointment";
 import {
   X,
   MapPin,
@@ -15,6 +15,7 @@ import {
   Tag,
   Clock,
   FileType,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -49,26 +50,65 @@ interface CitizenDetailsModalProps {
 export default function CitizenDetailsModal({
   isOpen,
   onClose,
-  grievance,
-  appointment,
+  grievance: initialGrievance,
+  appointment: initialAppointment,
 }: CitizenDetailsModalProps) {
+  const [activeGrievance, setActiveGrievance] = useState<Grievance | null>(initialGrievance || null);
+  const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(initialAppointment || null);
+  const [loading, setLoading] = useState(false);
   const [fullScreenMedia, setFullScreenMedia] = useState<{
     url: string;
     alt?: string;
   } | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  if (!isOpen || (!grievance && !appointment)) return null;
+  const fetchDetails = useCallback(async () => {
+    if (initialGrievance?._id) {
+      try {
+        setLoading(true);
+        const res = await grievanceAPI.getById(initialGrievance._id);
+        if (res.success) {
+          setActiveGrievance(res.data.grievance);
+        }
+      } catch (error) {
+        console.error("Failed to fetch grievance details:", error);
+      } finally {
+        setLoading(false);
+      }
+    } else if (initialAppointment?._id) {
+      try {
+        setLoading(true);
+        const res = await appointmentAPI.getById(initialAppointment._id);
+        if (res.success) {
+          setActiveAppointment(res.data.appointment);
+        }
+      } catch (error) {
+        console.error("Failed to fetch appointment details:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [initialGrievance?._id, initialAppointment?._id]);
 
-  const data = (grievance || appointment) as any;
-  const type = grievance ? "Grievance" : "Appointment";
+  useEffect(() => {
+    if (isOpen) {
+      setActiveGrievance(initialGrievance || null);
+      setActiveAppointment(initialAppointment || null);
+      fetchDetails();
+    }
+  }, [isOpen, initialGrievance, initialAppointment, fetchDetails]);
+
+  if (!isOpen || (!activeGrievance && !activeAppointment)) return null;
+
+  const data = (activeGrievance || activeAppointment) as any;
+  const type = activeGrievance ? "Grievance" : "Appointment";
   const createdDate = new Date(data?.createdAt || "");
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
-  const id = grievance?.grievanceId || appointment?.appointmentId;
+  const id = activeGrievance?.grievanceId || activeAppointment?.appointmentId;
   
   // Parse coordinates from GeoJSON or address string (fallback)
   const parsedLatLng = (() => {
-    const loc = grievance?.location;
+    const loc = activeGrievance?.location;
     if (!loc) return null;
     
     // Check if coordinates exist and are not [0, 0]
@@ -170,7 +210,16 @@ export default function CitizenDetailsModal({
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto flex-1 p-5 space-y-5">
-          {/* Quick Info Cards */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+              <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+              <p className="text-slate-500 font-medium animate-pulse">
+                Fetching latest details...
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Quick Info Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
               <div className="flex items-center gap-2 mb-2">
@@ -189,7 +238,7 @@ export default function CitizenDetailsModal({
               </p>
             </div>
 
-            {grievance && (
+            {activeGrievance && (
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl p-4 border border-purple-100 group relative">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -201,14 +250,14 @@ export default function CitizenDetailsModal({
                 </div>
                 <p
                   className="text-base font-bold text-gray-900 break-words whitespace-normal"
-                  title={grievance.category || "General"}
+                  title={activeGrievance.category || "General"}
                 >
-                  {grievance.category || "General"}
+                  {activeGrievance.category || "General"}
                 </p>
               </div>
             )}
 
-            {appointment && (
+            {activeAppointment && (
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl p-4 border border-purple-100 group relative">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -219,7 +268,7 @@ export default function CitizenDetailsModal({
                   </span>
                 </div>
                 <p className="text-base font-bold text-gray-900">
-                  {formatDate(appointment.appointmentDate)}
+                  {formatDate(activeAppointment.appointmentDate)}
                 </p>
               </div>
             )}
@@ -319,14 +368,14 @@ export default function CitizenDetailsModal({
               </h3>
             </div>
             <div className="p-6 space-y-5">
-              {grievance && (
+              {activeGrievance && (
                 <>
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
                       Category
                     </p>
                     <span className="inline-block px-4 py-2 rounded-lg text-base font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                      {grievance.category || "General"}
+                      {activeGrievance.category || "General"}
                     </span>
                   </div>
                   <div>
@@ -335,14 +384,14 @@ export default function CitizenDetailsModal({
                     </p>
                     <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-100">
                       <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {grievance.description || "No description provided"}
+                        {activeGrievance.description || "No description provided"}
                       </p>
                     </div>
                   </div>
                 </>
               )}
 
-              {appointment && (
+              {activeAppointment && (
                 <>
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
@@ -350,7 +399,7 @@ export default function CitizenDetailsModal({
                     </p>
                     <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-100">
                       <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {appointment.purpose || "No purpose provided"}
+                        {activeAppointment.purpose || "No purpose provided"}
                       </p>
                     </div>
                   </div>
@@ -361,7 +410,7 @@ export default function CitizenDetailsModal({
                       </p>
                       <p className="text-base font-bold text-slate-800 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-600" />
-                        {formatDate(appointment.appointmentDate)}
+                        {formatDate(activeAppointment.appointmentDate)}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -369,7 +418,7 @@ export default function CitizenDetailsModal({
                         Time
                       </p>
                       <p className="text-base font-bold text-slate-800">
-                        {appointment.appointmentTime}
+                        {activeAppointment.appointmentTime}
                       </p>
                     </div>
                   </div>
@@ -398,7 +447,7 @@ export default function CitizenDetailsModal({
           </div>
 
           {/* Location Information */}
-          {grievance?.location && (grievance.location.address || grievance.location.coordinates) && (
+          {activeGrievance?.location && (activeGrievance.location.address || activeGrievance.location.coordinates) && (
             <div className="bg-gradient-to-br from-[#00AEEF] to-[#0096ce] border border-white/20 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
               {/* Background Decoration */}
               <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
@@ -414,7 +463,7 @@ export default function CitizenDetailsModal({
                     Geospatial context
                   </p>
                   <p className="text-sm font-bold text-white mb-4 tracking-tight leading-relaxed">
-                    {grievance.location.address || "Coordinate-only location provided by device"}
+                    {activeGrievance.location.address || "Coordinate-only location provided by device"}
                   </p>
                   
                   {parsedLatLng && (
@@ -448,28 +497,28 @@ export default function CitizenDetailsModal({
                   onClose={() => setIsMapOpen(false)}
                   lat={parsedLatLng.lat}
                   lng={parsedLatLng.lng}
-                  address={grievance.location.address}
-                  grievanceId={grievance.grievanceId}
+                  address={activeGrievance.location.address}
+                  grievanceId={activeGrievance.grievanceId}
                 />
               )}
             </div>
           )}
 
           {/* Media/Photos */}
-          {grievance?.media && grievance.media.length > 0 && (
+          {activeGrievance?.media && activeGrievance.media.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="bg-gradient-to-r from-slate-50 to-pink-50 px-5 py-4 border-b border-slate-100">
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-pink-600" />
                   Uploaded Media
                   <span className="ml-2 px-2 py-0.5 bg-pink-100 text-pink-600 rounded-full text-xs font-bold">
-                    {grievance.media.length}
+                    {activeGrievance.media.length}
                   </span>
                 </h3>
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {grievance.media.map((media: any, index: number) => {
+                  {activeGrievance.media.map((media: any, index: number) => {
                     const isImage = isImageMedia(media);
                     return (
                       <div
@@ -561,7 +610,7 @@ export default function CitizenDetailsModal({
           )}
 
           {/* Status History */}
-          {grievance?.statusHistory && grievance.statusHistory.length > 0 && (
+          {activeGrievance?.statusHistory && activeGrievance.statusHistory.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="bg-gradient-to-r from-slate-50 to-indigo-50 px-5 py-4 border-b border-slate-100">
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -571,7 +620,7 @@ export default function CitizenDetailsModal({
               </div>
               <div className="p-5">
                 <div className="space-y-3">
-                  {grievance.statusHistory.map(
+                  {activeGrievance.statusHistory.map(
                     (history: any, index: number) => (
                       <div
                         key={index}
@@ -621,22 +670,19 @@ export default function CitizenDetailsModal({
                       <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wide mb-1">
                         Department
                       </p>
-                      <p className="text-sm font-bold text-slate-800">
-                        {typeof data.departmentId === "object"
-                          ? (data.departmentId as any).name
-                          : data.departmentId}
+                      <p className="text-base font-bold text-slate-800">
+                        {data?.departmentId?.name || data?.category || "General"}
                       </p>
                     </div>
                   )}
+
                   {data?.assignedTo && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
                       <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wide mb-1">
                         Assigned To
                       </p>
-                      <p className="text-sm font-bold text-slate-800">
-                        {typeof data.assignedTo === "object"
-                          ? `${(data.assignedTo as any).firstName} ${(data.assignedTo as any).lastName}`
-                          : data.assignedTo}
+                      <p className="text-base font-bold text-slate-800">
+                        {data.assignedTo.firstName} {data.assignedTo.lastName}
                       </p>
                     </div>
                   )}
@@ -644,15 +690,17 @@ export default function CitizenDetailsModal({
               </div>
             </div>
           )}
+            </>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="p-5 border-t border-gray-200 flex justify-end bg-white flex-shrink-0">
+        {/* Action Footer */}
+        <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors"
+            className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white transition-all active:scale-95"
           >
-            Close
+            Close Details
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import Grievance from '../models/Grievance';
 import Department from '../models/Department';
@@ -290,6 +291,19 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
 
     const safeDescription = sanitizeGrievanceDetails(description);
 
+    // 🏥 Resolve real-time department names for accurate categorization
+    let resolvedCategory = category;
+    if (departmentId && mongoose.Types.ObjectId.isValid(departmentId)) {
+      const dept = await Department.findById(departmentId).select('name');
+      if (dept) resolvedCategory = dept.name;
+    }
+
+    let resolvedSubDeptName = 'N/A';
+    if (subDepartmentId && mongoose.Types.ObjectId.isValid(subDepartmentId)) {
+      const subDept = await Department.findById(subDepartmentId).select('name');
+      if (subDept) resolvedSubDeptName = subDept.name;
+    }
+
     // 🕒 Capture Company Default SLA at creation
     const company = await Company.findById(companyId);
     const slaHours = company?.slaSettings?.defaultSlaHours || 120;
@@ -304,7 +318,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
       citizenWhatsApp: citizenWhatsApp || citizenPhone,
       description: safeDescription,
       message: safeDescription,
-      category,
+      category: resolvedCategory || 'N/A',
       location,
       media: media || [],
       status: GrievanceStatus.PENDING,
@@ -797,27 +811,41 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
       }
     }
 
-    // 🛡️ Sign GCS URLs for media before sending to frontend
-    if (grievance.media && grievance.media.length > 0) {
-      const signedMedia = await Promise.all(
-        grievance.media.map(async (m: any) => ({
-          ...m.toObject ? m.toObject() : m,
+    // 🛡️ Sign GCS URLs for media and timeline before sending to frontend
+    const grievanceObj = grievance.toObject();
+
+    if (grievanceObj.media && grievanceObj.media.length > 0) {
+      grievanceObj.media = await Promise.all(
+        grievanceObj.media.map(async (m: any) => ({
+          ...m,
           url: await getSignedUrl(m.url)
         }))
       );
-      // We need to use toObject() because Mongoose documents are semi-immutable for direct property assignment
-      const grievanceObj = grievance.toObject();
-      grievanceObj.media = signedMedia;
-      
-      return res.json({
-        success: true,
-        data: { grievance: grievanceObj }
-      });
+    }
+
+    if (grievanceObj.timeline && grievanceObj.timeline.length > 0) {
+      grievanceObj.timeline = await Promise.all(
+        grievanceObj.timeline.map(async (event: any) => {
+          if (event.details?.media && Array.isArray(event.details.media)) {
+            const signedTimelineMedia = await Promise.all(
+              event.details.media.map(async (url: string) => await getSignedUrl(url))
+            );
+            return {
+              ...event,
+              details: {
+                ...event.details,
+                media: signedTimelineMedia
+              }
+            };
+          }
+          return event;
+        })
+      );
     }
 
     res.json({
       success: true,
-      data: { grievance }
+      data: { grievance: grievanceObj }
     });
   } catch (err: any) {
     logger.error('❌ testEmailConfiguration failed:', {

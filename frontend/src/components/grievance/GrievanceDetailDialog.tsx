@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -128,6 +127,37 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
     type: "image" | "video" | "document";
   } | null>(null);
 
+  const [localGrievance, setLocalGrievance] = useState<Grievance | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Use the freshest data available
+  const activeGrievance = localGrievance || grievance;
+
+  // Fetch fresh details with signed URLs on open
+  const fetchGrievanceDetails = useCallback(async () => {
+    if (!grievance?._id) return;
+    try {
+      setLoading(true);
+      const { grievanceAPI } = await import("@/lib/api/grievance");
+      const res = await grievanceAPI.getById(grievance._id);
+      if (res.success) {
+        setLocalGrievance(res.data.grievance);
+      }
+    } catch (error) {
+      console.error("Failed to fetch grievance details:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [grievance?._id]);
+
+  useEffect(() => {
+    if (isOpen && grievance?._id) {
+      fetchGrievanceDetails();
+    } else if (!isOpen) {
+      setLocalGrievance(null);
+    }
+  }, [isOpen, grievance?._id, fetchGrievanceDetails]);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isEditingSla, setIsEditingSla] = useState(false);
@@ -136,10 +166,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
   // Sync newSlaHours when grievance changes
   useEffect(() => {
-    if (grievance?.slaHours !== undefined) {
-      setNewSlaHours(grievance.slaHours);
+    if (activeGrievance?.slaHours !== undefined) {
+      setNewSlaHours(activeGrievance.slaHours);
     }
-  }, [grievance?.slaHours, grievance?._id]);
+  }, [activeGrievance?.slaHours, activeGrievance?._id]);
 
   const isOverdue = useMemo(() => {
     if (!grievance?.createdAt || ["RESOLVED", "REJECTED", "CLOSED"].includes(grievance.status)) return false;
@@ -169,10 +199,21 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
     }
   };
 
-  if (!isOpen || !grievance) return null;
+  if (!isOpen || !activeGrievance) return null;
+
+  if (loading && !activeGrievance) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Loading Fresh Evidence...</p>
+        </div>
+      </div>
+    );
+  }
   const grievanceLatLng = getLatLongFromCoordinates(
-    grievance.location?.coordinates,
-    grievance.location?.address
+    activeGrievance.location?.coordinates,
+    activeGrievance.location?.address
   );
 
   const getStatusConfig = (status: string) => {
@@ -235,13 +276,13 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
     }
   };
 
-  const statusConfig = getStatusConfig(grievance.status);
-  const createdDate = grievance.createdAt ? new Date(grievance.createdAt) : null;
+  const statusConfig = getStatusConfig(activeGrievance.status);
+  const createdDate = activeGrievance.createdAt ? new Date(activeGrievance.createdAt) : null;
   const timeAgo = (createdDate && !isNaN(createdDate.getTime())) 
     ? formatDistanceToNow(createdDate, { addSuffix: true }) 
     : "Recently";
   
-  const latestTransferContext = [...(grievance.timeline || [])]
+  const latestTransferContext = [...(activeGrievance.timeline || [])]
     .reverse()
     .find((event: any) => {
       const note = String(event?.details?.note || "").trim();
@@ -269,13 +310,13 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
 
   // Get assigned user info
   const assignedTo =
-    grievance.assignedTo && typeof grievance.assignedTo === "object"
-      ? `${(grievance.assignedTo as any).firstName} ${(grievance.assignedTo as any).lastName}`
+    activeGrievance.assignedTo && typeof activeGrievance.assignedTo === "object"
+      ? `${(activeGrievance.assignedTo as any).firstName} ${(activeGrievance.assignedTo as any).lastName}`
       : null;
 
   // Split media into Citizen vs Officer
-  const citizenMedia = (grievance.media || []).filter((m) => !m.uploadedBy);
-  const officerMedia = (grievance.media || []).filter((m) => m.uploadedBy);
+  const citizenMedia = (activeGrievance.media || []).filter((m) => !m.uploadedBy);
+  const officerMedia = (activeGrievance.media || []).filter((m) => m.uploadedBy);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500/10 backdrop-blur-[2px] p-2 sm:p-4">
@@ -293,7 +334,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-tight shrink-0">
-                  #{grievance.grievanceId}
+                  #{activeGrievance.grievanceId}
                 </h2>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span
@@ -337,7 +378,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               id: "media",
               label: "Media Assets",
               icon: <ImageIcon className="w-3 h-3 sm:w-3.5 h-3.5" />,
-              count: grievance.media?.length,
+              count: activeGrievance.media?.length,
             },
             ...(canUpdateStatus
               ? [
@@ -382,7 +423,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           {activeTab === "overview" && (
             <div className="p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Resolution Summary (Pinned if exists) */}
-              {grievance.resolution && (
+              {activeGrievance.resolution && (
                 <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-5 shadow-lg shadow-emerald-500/10 border border-emerald-400/20 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
                     <CheckCircle2 className="w-20 h-20 text-white" />
@@ -393,7 +434,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       Summary
                     </h3>
                     <p className="text-sm font-medium text-white leading-relaxed whitespace-pre-wrap break-words">
-                      {grievance.resolution}
+                      {activeGrievance.resolution}
                     </p>
                   </div>
                 </div>
@@ -450,7 +491,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Full Name
                       </span>
                       <span className="text-sm font-bold text-slate-900">
-                        {grievance.citizenName}
+                        {activeGrievance.citizenName}
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -459,10 +500,10 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-900">
-                          {formatTo10Digits(grievance.citizenPhone)}
+                          {formatTo10Digits(activeGrievance.citizenPhone)}
                         </span>
                         <a
-                          href={`tel:${grievance.citizenPhone}`}
+                          href={`tel:${activeGrievance.citizenPhone}`}
                           className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                         >
                           <Phone className="w-3 h-3" />
@@ -488,17 +529,17 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                         Assigned Department
                       </span>
                       <span className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        {typeof grievance.departmentId === "object" &&
-                        grievance.departmentId
-                          ? (grievance.departmentId as any).name
+                        {typeof activeGrievance.departmentId === "object" &&
+                        activeGrievance.departmentId
+                          ? (activeGrievance.departmentId as any).name
                           : "General / Non-Categorized"}
-                        {grievance.subDepartmentId && (
+                        {activeGrievance.subDepartmentId && (
                           <span className="text-slate-300 mx-1">/</span>
                         )}
-                        {typeof grievance.subDepartmentId === "object" &&
-                          grievance.subDepartmentId && (
+                        {typeof activeGrievance.subDepartmentId === "object" &&
+                          activeGrievance.subDepartmentId && (
                             <span className="text-indigo-600">
-                              {(grievance.subDepartmentId as any).name}
+                              {(activeGrievance.subDepartmentId as any).name}
                             </span>
                           )}
                       </span>
@@ -530,12 +571,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                       ) : (
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-900">
-                            {grievance?.slaHours ?? 120} Hours
+                            {activeGrievance?.slaHours ?? 120} Hours
                           </span>
                           {isCompanyAdminOrHigher(user) && (
                             <button
                               onClick={() => {
-                                setNewSlaHours(grievance?.slaHours ?? 120);
+                                setNewSlaHours(activeGrievance?.slaHours ?? 120);
                                 setIsEditingSla(true);
                               }}
                               className="text-[14px] text-indigo-600 font-black uppercase tracking-widest hover:underline"
@@ -577,17 +618,17 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner overflow-visible">
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words font-medium">
-                      {(grievance as any).grievanceSummary ||
-                        grievance.description ||
+                      {(activeGrievance as any).grievanceSummary ||
+                        activeGrievance.description ||
                         "The reporter provided no written description for this incident."}
                     </p>
                   </div>
                 </div>
 
                 {/* Location Block (Enhanced) */}
-                {grievance.location &&
-                  (grievance.location.address ||
-                    grievance.location.coordinates) && (
+                {activeGrievance.location &&
+                  (activeGrievance.location.address ||
+                    activeGrievance.location.coordinates) && (
                     <div className="flex flex-col gap-4 p-5 bg-[#00AEEF] rounded-2xl border border-[#0096ce] shadow-xl relative overflow-hidden group">
                       {/* Background Decoration */}
                       <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
@@ -603,7 +644,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             Geospatial context
                           </p>
                           <p className="text-[15px] font-black text-white mb-3 tracking-tight leading-snug">
-                            {grievance.location.address ||
+                            {activeGrievance.location.address ||
                               "Coordinate-only location provided by device"}
                           </p>
                           
@@ -638,8 +679,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                           onClose={() => setIsMapOpen(false)}
                           lat={grievanceLatLng.lat}
                           lng={grievanceLatLng.lng}
-                          address={grievance.location.address}
-                          grievanceId={grievance.grievanceId}
+                          address={activeGrievance.location.address}
+                          grievanceId={activeGrievance.grievanceId}
                         />
                       )}
                     </div>
@@ -683,13 +724,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 }
                                 className="block w-full h-full relative"
                               >
-                                <Image
-                                  src={media.url}
-                                  alt={`Evidence ${index + 1}`}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                  unoptimized
-                                />
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={media.url}
+                                    alt={`Evidence ${index + 1}`}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                </>
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                   <span className="bg-white/90 backdrop-blur-sm text-[14px] font-black text-slate-900 px-2 py-1 rounded-lg uppercase tracking-tight shadow-lg">
                                     Enlarge
@@ -774,13 +816,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                 }
                                 className="block w-full h-full relative"
                               >
-                                <Image
-                                  src={media.url}
-                                  alt={`Officer Doc ${index + 1}`}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                  unoptimized
-                                />
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={media.url}
+                                    alt={`Officer Doc ${index + 1}`}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                </>
                                 <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
                                   <p className="text-[7px] text-white font-black uppercase tracking-widest line-clamp-1">
                                     By {oName}
@@ -829,7 +872,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                   </div>
                 )}
 
-                {(!grievance.media || grievance.media.length === 0) && (
+                {(!activeGrievance.media || activeGrievance.media.length === 0) && (
                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                     <ImageIcon className="w-10 h-10 text-slate-300 mb-3" />
                     <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest">
@@ -869,7 +912,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                 </div>
 
                 {/* Iterative Timeline Log */}
-                {(grievance.timeline || [])
+                {(activeGrievance.timeline || [])
                   .filter((e) => e.action !== "CREATED")
                   .map((event, idx) => {
                     let c = {
@@ -988,13 +1031,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                                       })}
                                     >
                                       {isImg ? (
-                                        <Image 
-                                          src={url} 
-                                          alt="Attachment" 
-                                          fill 
-                                          className="object-cover"
-                                          unoptimized
-                                        />
+                                        <>
+                                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                                          <img 
+                                            src={url} 
+                                            alt="Attachment" 
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </>
                                       ) : isVid ? (
                                         <div className="w-full h-full flex items-center justify-center bg-slate-900">
                                           <Video className="w-4 h-4 text-white" />
@@ -1028,10 +1072,11 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
           {activeTab === "actions" && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 h-full">
               <StatusUpdateForm
-                itemId={grievance._id}
+                itemId={activeGrievance._id}
                 itemType="grievance"
-                currentStatus={grievance.status}
+                currentStatus={activeGrievance.status}
                 onSuccess={() => {
+                  fetchGrievanceDetails();
                   if (onSuccess) onSuccess();
                   setActiveTab("timeline");
                 }}
@@ -1061,7 +1106,7 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-[14px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10"
+              className="px-4 py-2 bg-black/30 hover:bg-black/40 rounded-xl text-white text-[14px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10"
             >
               Download Source
             </a>
@@ -1088,13 +1133,12 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
               
               if (fullScreenMedia.type === "image") {
                 return (
-                  <div className="relative w-full h-full max-w-5xl max-h-screen">
-                    <Image
+                  <div className="relative w-full h-full max-w-5xl max-h-[85vh] flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={encodedUrl}
                       alt={fullScreenMedia.alt || "Proof"}
-                      fill
-                      className="object-contain"
-                      unoptimized
+                      className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     />
                   </div>
                 );

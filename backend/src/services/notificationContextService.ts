@@ -70,7 +70,7 @@ export class NotificationContextService {
       citizen_name: grievance.citizenName || 'Citizen',
       citizen_phone: grievance.citizenPhone || 'N/A',
       status: this.formatStatus(grievance.status, lang),
-      department: options.department?.name || options.department || grievance.departmentId?.name || 'N/A',
+      department: options.department?.name || options.department || grievance.departmentId?.name || grievance.category || 'N/A',
       office: options.subDept?.name || options.subDept || grievance.subDepartmentId?.name || 'N/A',
       description: this.sanitizeText(grievance.description || '', 400),
       created_at: createdAt,
