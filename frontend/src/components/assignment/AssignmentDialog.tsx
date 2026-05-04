@@ -542,7 +542,7 @@ export default function AssignmentDialog({
       const message = error?.response?.data?.message || error?.message || 'Failed to assign';
       if (String(message).toLowerCase().includes('access denied')) {
         toast.error(
-          'Access Denied: This grievance may have been moved. Refreshing list...',
+          'Action Denied: You may no longer have permission for this item or it was reassigned. Refreshing list...',
           { id: toastId, duration: 4000 }
         );
         onClose();

@@ -174,13 +174,24 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       if (currentUser.departmentId && !canOverrideFrozenGrievance) {
         const grievanceDepartmentId = (grievance.departmentId as any)?._id?.toString() || grievance.departmentId?.toString();
         const grievanceSubDepartmentId = (grievance.subDepartmentId as any)?._id?.toString() || grievance.subDepartmentId?.toString();
-        const currentUserDepartmentId = currentUser.departmentId?.toString();
+        
+        // 👮 Check if explicitly assigned to this user (Assignment overrides department scope)
+        const isAssignedToMe = grievance.assignedTo?.toString() === currentUser._id.toString();
+        const isAdditionalAssignee = grievance.additionalAssigneeIds?.some(id => id.toString() === currentUser._id.toString());
 
-        if (
-          grievanceDepartmentId !== currentUserDepartmentId &&
-          grievanceSubDepartmentId !== currentUserDepartmentId
-        ) {
-          return res.status(403).json({ success: false, message: 'Access denied to this department' });
+        if (!isAssignedToMe && !isAdditionalAssignee) {
+          // If not assigned, check if user is in the correct department scope
+          const userDeptIds = currentUser.departmentIds?.map(id => id.toString()) || [];
+          const primaryDeptId = currentUser.departmentId?.toString();
+          if (primaryDeptId && !userDeptIds.includes(primaryDeptId)) userDeptIds.push(primaryDeptId);
+
+          const isInDepartmentScope = 
+            (grievanceDepartmentId && userDeptIds.includes(grievanceDepartmentId)) || 
+            (grievanceSubDepartmentId && userDeptIds.includes(grievanceSubDepartmentId));
+
+          if (!isInDepartmentScope) {
+            return res.status(403).json({ success: false, message: 'Access denied to this department' });
+          }
         }
       }
     }
@@ -381,8 +392,21 @@ router.put('/appointment/:id', requirePermission(Permission.STATUS_CHANGE_APPOIN
       if (appointment.companyId._id.toString() !== currentUser.companyId?.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied to this company' });
       }
+      
       if (currentUser.departmentId) {
-        if (appointment.departmentId?._id.toString() !== currentUser.departmentId?.toString()) {
+        const isAssignedToMe = appointment.assignedTo?.toString() === currentUser._id.toString();
+        const userDeptIds = currentUser.departmentIds?.map(id => id.toString()) || [];
+        const primaryDeptId = currentUser.departmentId?.toString();
+        if (primaryDeptId && !userDeptIds.includes(primaryDeptId)) userDeptIds.push(primaryDeptId);
+
+        const appointmentDeptId = (appointment.departmentId as any)?._id?.toString() || appointment.departmentId?.toString();
+        const appointmentSubDeptId = (appointment.subDepartmentId as any)?._id?.toString() || appointment.subDepartmentId?.toString();
+
+        const isInDepartmentScope = 
+          (appointmentDeptId && userDeptIds.includes(appointmentDeptId)) || 
+          (appointmentSubDeptId && userDeptIds.includes(appointmentSubDeptId));
+
+        if (!isAssignedToMe && !isInDepartmentScope) {
           return res.status(403).json({ success: false, message: 'Access denied to this department' });
         }
       }

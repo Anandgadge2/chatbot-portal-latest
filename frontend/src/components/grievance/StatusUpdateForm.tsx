@@ -472,7 +472,7 @@ export default function StatusUpdateForm({
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to update';
       if (msg.toLowerCase().includes('access denied')) {
-        toast.error("Access Denied: This item may have been moved or your permissions changed. Refreshing list...", { duration: 4000 });
+        toast.error("Action Denied: You may no longer have permission for this item or it was reassigned. Refreshing list...", { duration: 4000 });
         onSuccess();
       } else {
         toast.error(msg);
