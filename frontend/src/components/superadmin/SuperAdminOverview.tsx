@@ -676,7 +676,7 @@ function SuperAdminOverviewContent() {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 xl:w-10 xl:h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-                  <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-indigo-400" />
+                  <Shield className="w-4.5 h-4.5 xl:w-5 xl:h-5 text-white" />
                 </div>
                 <div>
                   <h1 className="text-lg sm:text-2xl font-black text-white tracking-tighter leading-none uppercase truncate max-w-[150px] sm:max-w-none">
@@ -801,11 +801,7 @@ function SuperAdminOverviewContent() {
         >
           <TabsContent value="overview" className="space-y-6 outline-none">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div className="mb-2 sm:mb-0">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">
-                  System Intelligence
-                </h2>
-              </div>
+              
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {!showLogs && (
                   <Button 
@@ -816,19 +812,7 @@ function SuperAdminOverviewContent() {
                     Audit Logs
                   </Button>
                 )}
-                <div className="bg-white border border-slate-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-3 flex-1 sm:flex-none justify-center sm:justify-start">
-                  <div className="text-[11px] sm:text-[15px] font-black text-slate-400 uppercase leading-none">
-                    Security
-                    <span className="hidden sm:inline"><br />Status</span>
-                  </div>
-                  <div className="h-5 sm:h-6 w-px bg-slate-100"></div>
-                  <div className="flex items-center gap-1 sm:gap-1.5">
-                    <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-indigo-600" />
-                    <span className="text-[12px] sm:text-[14px] font-black text-slate-800 uppercase tracking-wider">
-                      Protected
-                    </span>
-                  </div>
-                </div>
+                
               </div>
             </div>
 

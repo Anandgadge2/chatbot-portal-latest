@@ -27,12 +27,8 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { StatsSkeleton, TableSkeleton } from "@/components/ui/GeneralSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
-import TerminalLogs from "@/components/dashboard/TerminalLogs";
-import RoleManagement from "@/components/roles/RoleManagement";
-import ModuleManagement from "@/components/superadmin/ModuleManagement";
 import DashboardStats from "@/components/superadmin/DashboardStats";
 import CompanyTabContent from "@/components/superadmin/CompanyTabContent";
-import DepartmentTabContent from "@/components/superadmin/DepartmentTabContent";
 import UserTabContent from "@/components/superadmin/UserTabContent";
 import { NotificationPopover } from "@/components/dashboard/NotificationPopover";
 import {
@@ -52,16 +48,16 @@ import {
 } from "lucide-react";
 
 // Helper function to get company display text
-const getCompanyDisplay = (
-  companyId: string | { _id: string; name: string; companyId: string },
-): string => {
-  if (typeof companyId === "object" && companyId !== null) {
-    return `${companyId.name} (${companyId.companyId})`;
-  }
-  return companyId;
-};
+const getCompanyDisplay = (id: any): string => 
+  (typeof id === "object" && id?.name) ? `${id.name} (${id.companyId})` : id;
 
-const VALID_SUPERADMIN_TABS = ["overview", "companies", "departments", "users", "roles", "features", "terminal"];
+const DASHBOARD_TABS = [
+  { val: "overview", label: "Overview", icon: BarChart2 },
+  { val: "companies", label: "Companies", icon: Building },
+  { val: "users", label: "Users", icon: Users },
+];
+
+const VALID_SUPERADMIN_TABS = DASHBOARD_TABS.map(t => t.val);
 
 function SuperAdminDashboardContent() {
   const { user, loading, logout } = useAuth();
@@ -87,7 +83,6 @@ function SuperAdminDashboardContent() {
   }, [activeTab]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState({
     companies: 0,
@@ -98,21 +93,13 @@ function SuperAdminDashboardContent() {
     systemStatus: "operational",
   });
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
-    null,
-  );
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [userRoleFilter, setUserRoleFilter] = useState<string>("");
   const [userSearchTerm, setUserSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
   const [userCompanyFilter, setUserCompanyFilter] = useState<string>("");
-  const [deptSearchTerm, setDeptSearchTerm] = useState<string>("");
-  const [deptDebouncedSearchTerm, setDeptDebouncedSearchTerm] =
-    useState<string>("");
-  const [deptCompanyFilter, setDeptCompanyFilter] = useState<string>("");
   const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   const [companySearchTerm, setCompanySearchTerm] = useState<string>("");
   const [companyDebouncedSearchTerm, setCompanyDebouncedSearchTerm] =
@@ -120,19 +107,11 @@ function SuperAdminDashboardContent() {
   const [companyStatusFilter, setCompanyStatusFilter] = useState<string>("");
   const [companyTypeFilter, setCompanyTypeFilter] = useState<string>("");
 
-  // Pagination State
   const [companyPage, setCompanyPage] = useState(1);
   const [companyPagination, setCompanyPagination] = useState({
     total: 0,
     pages: 1,
     limit: 10,
-  });
-
-  const [departmentPage, setDepartmentPage] = useState(1);
-  const [departmentPagination, setDepartmentPagination] = useState({
-    total: 0,
-    pages: 1,
-    limit: 25,
   });
 
   const [userPage, setUserPage] = useState(1);
@@ -156,7 +135,6 @@ function SuperAdminDashboardContent() {
       const url = compId ? `/roles?companyId=${compId}` : "/roles";
       const rolesRes = await apiClient.get(url);
       if (rolesRes.success) {
-        // Handle various response structures for resilience
         const roles = Array.isArray(rolesRes.data)
           ? rolesRes.data
           : rolesRes.data?.roles || rolesRes.roles || [];
@@ -167,16 +145,11 @@ function SuperAdminDashboardContent() {
     }
   }, []);
 
-  const fetchAllInitialData = useCallback(async () => {
-    // Initial fetch for companies dropdown and stats
+  const fetchStats = useCallback(async () => {
     try {
-      const [statsRes, companiesRes] = await Promise.all([
-        apiClient.get("/dashboard/superadmin"),
-        companyAPI.getAll({ limit: 100 }), 
-      ]);
-
-      if (statsRes.success) {
-        const { stats: s } = statsRes.data;
+      const response = await apiClient.get("/dashboard/superadmin");
+      if (response.success && response.data.stats) {
+        const { stats: s } = response.data;
         setStats({
           companies: s.companies,
           users: s.users,
@@ -186,17 +159,22 @@ function SuperAdminDashboardContent() {
           systemStatus: "operational",
         });
       }
+    } catch (e) {
+      console.error("Error fetching stats", e);
+    }
+  }, []);
 
+  const fetchAllInitialData = useCallback(async () => {
+    try {
+      const companiesRes = await companyAPI.getAll({ limit: 100 });
       if (companiesRes.success) {
         setAllCompanies(companiesRes.data.companies);
       }
-      
-      // Also fetch initial global roles
-      await fetchGlobalRoles();
+      await Promise.all([fetchStats(), fetchGlobalRoles()]);
     } catch (e) {
       console.error("Error fetching initial data", e);
     }
-  }, [fetchGlobalRoles]);
+  }, [fetchStats, fetchGlobalRoles]);
 
   useEffect(() => {
     if (mounted && user && isSuperAdmin(user)) {
@@ -237,10 +215,9 @@ function SuperAdminDashboardContent() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
-    } else if (!loading && user && !isSuperAdmin(user)) {
-      router.push("/dashboard");
+    if (!loading) {
+      if (!user) router.push("/");
+      else if (!isSuperAdmin(user)) router.push("/dashboard");
     }
   }, [user, loading, router]);
 
@@ -281,34 +258,6 @@ function SuperAdminDashboardContent() {
     ],
   );
 
-  const fetchDepartments = useCallback(
-    async (page = departmentPage) => {
-      try {
-        const response = await departmentAPI.getAll({
-          page,
-          limit: departmentPagination.limit,
-          search: deptDebouncedSearchTerm,
-          companyId: deptCompanyFilter,
-        });
-        if (response.success) {
-          setDepartments(response.data.departments);
-          setDepartmentPagination((prev) => ({
-            ...prev,
-            total: response.data.pagination.total,
-            pages: response.data.pagination.pages,
-          }));
-        }
-      } catch (error: any) {
-        toast.error("Failed to fetch departments");
-      }
-    },
-    [
-      departmentPage,
-      departmentPagination.limit,
-      deptDebouncedSearchTerm,
-      deptCompanyFilter,
-    ],
-  );
 
   const fetchUsers = useCallback(
     async (page = userPage) => {
@@ -341,24 +290,6 @@ function SuperAdminDashboardContent() {
     ],
   );
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const response = await apiClient.get("/dashboard/superadmin");
-      if (response.success && response.data.stats) {
-        const { stats } = response.data;
-        setStats({
-          companies: stats.companies,
-          users: stats.users,
-          departments: stats.departments,
-          activeCompanies: stats.activeCompanies,
-          activeUsers: stats.activeUsers,
-          systemStatus: "operational",
-        });
-      }
-    } catch (e) {
-      console.error("Critical error in fetchStats", e);
-    }
-  }, []);
 
   const handleDeleteCompany = (company: Company) => {
     setConfirmDialog({
@@ -387,37 +318,7 @@ function SuperAdminDashboardContent() {
     });
   };
 
-  const handleDeleteDepartment = (department: Department) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Delete Department",
-      message: `Are you sure you want to delete "${department.name}"? This action cannot be undone and will delete all associated users, grievances, and appointments.`,
-      onConfirm: async () => {
-        try {
-          const response = await departmentAPI.delete(department._id);
-          if (response.success) {
-            toast.success("Department deleted successfully");
-            fetchDepartments();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
-          } else {
-            toast.error("Failed to delete department");
-          }
-        } catch (error: any) {
-          toast.error(
-            error?.response?.data?.message ||
-              error?.message ||
-              "Failed to delete department",
-          );
-        }
-      },
-      variant: "danger",
-    });
-  };
 
-  const handleEditDepartment = (department: Department) => {
-    setEditingDepartment(department);
-    setShowDepartmentDialog(true);
-  };
 
   const handleEditCompany = (company: Company) => {
     setEditingCompany(company);
@@ -446,22 +347,6 @@ function SuperAdminDashboardContent() {
     }
   };
 
-  const toggleDepartmentStatus = async (dept: Department) => {
-    try {
-      const response = await departmentAPI.update(dept._id, {
-        isActive: !dept.isActive,
-      });
-      if (response.success) {
-        toast.success(
-          `Department ${!dept.isActive ? "activated" : "deactivated"} successfully`,
-        );
-        fetchDepartments();
-        fetchStats();
-      }
-    } catch (error: any) {
-      toast.error("Failed to update department status");
-    }
-  };
 
   const toggleUserStatus = async (u: User) => {
     try {
@@ -528,25 +413,7 @@ function SuperAdminDashboardContent() {
     companyTypeFilter,
   ]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeptDebouncedSearchTerm(deptSearchTerm);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [deptSearchTerm]);
 
-  useEffect(() => {
-    if (mounted && user) {
-      fetchDepartments(departmentPage);
-    }
-  }, [
-    mounted,
-    user,
-    departmentPage,
-    deptDebouncedSearchTerm,
-    deptCompanyFilter,
-    fetchDepartments,
-  ]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -624,15 +491,7 @@ function SuperAdminDashboardContent() {
                 className="h-full hidden md:block"
               >
                 <TabsList className="bg-transparent border-0 h-16 gap-1 p-0">
-                  {[
-                    { val: "overview", label: "Overview", icon: BarChart2 },
-                    { val: "companies", label: "Companies", icon: Building },
-                    { val: "departments", label: "Departments", icon: Settings },
-                    { val: "users", label: "Users", icon: Users },
-                    { val: "roles", label: "Roles", icon: Shield },
-                    { val: "features", label: "Features", icon: Box },
-                    { val: "terminal", label: "System Logs", icon: Terminal },
-                  ].map((t) => (
+                  {DASHBOARD_TABS.map((t) => (
                     <TabsTrigger
                       key={t.val}
                       value={t.val}
@@ -657,9 +516,7 @@ function SuperAdminDashboardContent() {
                 <Button
                   onClick={() => {
                     fetchAllInitialData();
-                    fetchStats();
                     fetchCompanies();
-                    fetchDepartments();
                     fetchUsers();
                   }}
                   disabled={loading || companiesLoading}
@@ -671,13 +528,6 @@ function SuperAdminDashboardContent() {
                   <RefreshCw className={`w-3.5 h-3.5 sm:w-4 h-4 ${(loading || companiesLoading) ? "animate-spin" : ""}`} />
                 </Button>
 
-                <NotificationPopover
-                  notifications={[]}
-                  unreadCount={0}
-                  onMarkAsRead={() => {}}
-                  onMarkAllAsRead={() => {}}
-                  onNotificationClick={() => {}}
-                />
 
                 <Button
                   onClick={logout}
@@ -708,15 +558,7 @@ function SuperAdminDashboardContent() {
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 w-full bg-slate-900 border-b border-slate-800 z-50 animate-in slide-in-from-top-4 duration-300">
             <div className="p-4 space-y-2">
-              {[
-                { val: "overview", label: "Overview", icon: BarChart2 },
-                { val: "companies", label: "Companies", icon: Building },
-                { val: "departments", label: "Departments", icon: Settings },
-                { val: "users", label: "Users", icon: Users },
-                { val: "roles", label: "Roles", icon: Shield },
-                { val: "features", label: "Features", icon: Box },
-                { val: "terminal", label: "System Logs", icon: Terminal },
-              ].map((t) => (
+              {DASHBOARD_TABS.map((t) => (
                 <button
                   key={t.val}
                   onClick={() => {
@@ -754,14 +596,7 @@ function SuperAdminDashboardContent() {
           className="space-y-4"
         >
           <TabsContent value="overview" className="space-y-6 outline-none">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
-                  System Intelligence
-                </h2>
-              </div>
-             
-            </div>
+            
 
             {loading && stats === null ? (
               <StatsSkeleton />
@@ -818,30 +653,7 @@ function SuperAdminDashboardContent() {
                   </CardContent>
                 </Card>
 
-                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white text-left">
-                  <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
-                    <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-emerald-600" />
-                      System Health
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4 text-left">
-                      <span className="text-xs font-bold text-slate-500 uppercase">API Status</span>
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[14px] font-bold">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                        Healthy
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
-                      <div className="bg-indigo-600 h-1.5 rounded-full w-[98%] shadow-[0_0_8px_rgba(79,70,229,0.3)]" />
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-[14px] font-bold text-slate-400 uppercase">Uptime</span>
-                      <span className="text-[14px] font-bold text-slate-900 uppercase">99.9%</span>
-                    </div>
-                  </CardContent>
-                </Card>
+               
               </div>
             </div>
           </TabsContent>
@@ -876,34 +688,6 @@ function SuperAdminDashboardContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="departments" className="space-y-4 outline-none">
-            {loading ? (
-              <TableSkeleton rows={10} cols={5} />
-            ) : (
-              <DepartmentTabContent
-                departments={departments}
-                deptSearchTerm={deptSearchTerm}
-                setDeptSearchTerm={setDeptSearchTerm}
-                deptCompanyFilter={deptCompanyFilter}
-                setDeptCompanyFilter={setDeptCompanyFilter}
-                allCompanies={allCompanies}
-                departmentPage={departmentPage}
-                setDepartmentPage={setDepartmentPage}
-                departmentPagination={departmentPagination}
-                setDepartmentLimit={(limit: number) => setDepartmentPagination(p => ({ ...p, limit }))}
-                setEditingDepartment={setEditingDepartment}
-                setShowDepartmentDialog={setShowDepartmentDialog}
-                handleEditDepartment={handleEditDepartment}
-                handleDeleteDepartment={handleDeleteDepartment}
-                toggleDepartmentStatus={toggleDepartmentStatus}
-                getCompanyDisplay={getCompanyDisplay}
-                router={router}
-                onRefresh={() => { fetchDepartments(); fetchStats(); }}
-                userLevel={1}
-              />
-            )}
-          </TabsContent>
-
           <TabsContent value="users" className="space-y-4 outline-none">
             {loading ? (
               <TableSkeleton rows={10} cols={5} />
@@ -933,67 +717,6 @@ function SuperAdminDashboardContent() {
               />
             )}
           </TabsContent>
-
-          <TabsContent value="roles" className="space-y-4 outline-none">
-            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-white text-left">
-              <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-xl font-black text-slate-800 tracking-tight uppercase">
-                      Role Governance
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 font-medium">
-                      Manage access control across the network
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[14px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                      Select<br />Entity
-                    </span>
-                    <select
-                      className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 shadow-sm min-w-[200px]"
-                      value={selectedRoleCompanyId}
-                      onChange={(e) => setSelectedRoleCompanyId(e.target.value)}
-                    >
-                      <option value="">Select Company...</option>
-                      {allCompanies.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {selectedRoleCompanyId ? (
-                  <RoleManagement companyId={selectedRoleCompanyId} />
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center">
-                      <Shield className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-slate-400 uppercase tracking-tight">
-                        No Entity Selected
-                      </h3>
-                      <p className="text-slate-400 text-sm max-w-[280px] font-medium">
-                        Please select a company from the dropdown above to manage its roles and permissions.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="features" className="space-y-6 outline-none">
-            <ModuleManagement />
-          </TabsContent>
-
-          <TabsContent value="terminal" className="space-y-4 outline-none">
-            <TerminalLogs />
-          </TabsContent>
         </Tabs>
 
         <CreateCompanyDialog
@@ -1007,23 +730,6 @@ function SuperAdminDashboardContent() {
             setEditingCompany(null);
           }}
           editingCompany={editingCompany}
-        />
-        <CreateDepartmentDialog
-          isOpen={showDepartmentDialog}
-          onClose={() => {
-            setShowDepartmentDialog(false);
-            setEditingDepartment(null);
-          }}
-          onDepartmentCreated={() => {
-            fetchDepartments();
-            setEditingDepartment(null);
-          }}
-          editingDepartment={editingDepartment}
-          onEditUser={(u) => {
-            setEditingUser(u);
-            setShowUserDialog(true);
-            setShowDepartmentDialog(false);
-          }}
         />
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}

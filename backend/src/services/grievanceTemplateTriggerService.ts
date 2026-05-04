@@ -173,15 +173,24 @@ export async function triggerGrievanceEvent(options: {
           options.eventKey.toLowerCase()
         );
 
-        const sendResult = await sendWhatsAppTemplate(company, recipient.phone, templateName, personalizedValues, language, undefined, options.buttonParam, {
-          recipientType: 'ADMIN',
-          citizenPhone: options.citizenPhone || options.grievance?.citizenPhone
-        });
+        // 5. Send Template (Text)
+        const sendResult = await sendWhatsAppTemplate(
+          company, 
+          recipient.phone, 
+          templateName, 
+          personalizedValues, 
+          language, 
+          undefined, 
+          options.buttonParam, 
+          {
+            recipientType: 'ADMIN',
+            citizenPhone: options.citizenPhone || options.grievance?.citizenPhone
+          }
+        );
 
-        // 5. Send Media if any
+        // 6. Send All Media using approved media templates
         if (options.media && options.media.length > 0) {
-          // Use the REAL recipient name for the caption
-          await sendMediaSequentially(company, recipient.phone, options.media!, recipient.name);
+          await sendMediaSequentially(company, recipient.phone, options.media, recipient.name);
         }
 
         return sendResult;
@@ -338,9 +347,7 @@ export async function triggerCitizenStatusTemplate(options: {
       context
     );
 
-    logger.info(`🚀 [Citizen Template] Using "${templateName}" for event: ${eventKey}. Recipient: ${options.citizenName} (${options.citizenPhone})`);
-
-    // 3. Send the Template
+    // 3. Send the Status Template (Text-only)
     await triggerCitizenTemplate({
       template: templateName,
       companyId: options.companyId,
@@ -350,7 +357,7 @@ export async function triggerCitizenStatusTemplate(options: {
       requireNotificationConsent: options.requireNotificationConsent
     });
 
-    // 4. Handle Media Proof (Sequential)
+    // 4. Send all Proof of Work using approved media templates
     if (options.media && options.media.length > 0) {
       const company = await getCompanyWithConfig(options.companyId);
       await sendMediaSequentially(
