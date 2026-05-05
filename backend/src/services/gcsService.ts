@@ -194,20 +194,27 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
 
     let filePath = urlOrPath;
     if (isGcsUrl) {
-      // It's already a GCS URL, we can return it as is (as a public URL)
-      // or re-construct it to be sure it's correct.
-      const urlWithoutParams = urlOrPath.split('?')[0];
-      const parts = urlWithoutParams.split(`${bucket.name}/`);
-      
-      if (parts.length > 1) {
-        filePath = decodeURIComponent(parts[1]);
-      } else {
-        const storageParts = urlWithoutParams.split('storage.googleapis.com/');
-        if (storageParts.length > 1) {
-          const pathWithBucket = decodeURIComponent(storageParts[1]);
-          const pathParts = pathWithBucket.split('/');
-          pathParts.shift(); // Remove bucket name
-          filePath = pathParts.join('/');
+      // 1. Handle gs:// protocol
+      if (urlOrPath.startsWith('gs://')) {
+        const pathParts = urlOrPath.replace('gs://', '').split('/');
+        pathParts.shift(); // Remove bucket name
+        filePath = pathParts.join('/');
+      } 
+      // 2. Handle storage.googleapis.com URL
+      else {
+        const urlWithoutParams = urlOrPath.split('?')[0];
+        const parts = urlWithoutParams.split(`${bucket.name}/`);
+        
+        if (parts.length > 1) {
+          filePath = decodeURIComponent(parts[1]);
+        } else {
+          const storageParts = urlWithoutParams.split('storage.googleapis.com/');
+          if (storageParts.length > 1) {
+            const pathWithBucket = decodeURIComponent(storageParts[1]);
+            const pathParts = pathWithBucket.split('/');
+            pathParts.shift(); // Remove bucket name
+            filePath = pathParts.join('/');
+          }
         }
       }
     }

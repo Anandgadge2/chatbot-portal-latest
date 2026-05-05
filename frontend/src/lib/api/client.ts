@@ -13,7 +13,7 @@ class APIClient {
       baseURL: API_URL,
       timeout: API_TIMEOUT_MS,
       headers: {
-        'Content-Type': 'application/json',
+        // Let Axios handle Content-Type automatically (especially for FormData)
       },
     });
 

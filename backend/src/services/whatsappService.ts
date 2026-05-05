@@ -1227,7 +1227,8 @@ export async function sendMediaSequentially(
   company: any,
   to: string,
   media: Array<{ url: string; type?: 'image' | 'video' | 'document'; filename?: string }>,
-  caption: string = 'Reference ID'
+  caption: string = 'Reference ID',
+  options?: { requireConsent?: boolean; allowUnsubscribed?: boolean }
 ): Promise<any[]> {
   if (!media || !media.length) return [];
 
@@ -1268,6 +1269,8 @@ export async function sendMediaSequentially(
         throw new Error(`No media template mapped for type ${detectedType}`);
       }
 
+      console.log(`📂 [Media Send] Sending ${detectedType} using template "${templateName}" to ${to} | URL: ${item.url?.substring(0, 50)}...`);
+
       const companyId = company?._id;
       if (!companyId) throw new Error('Company ID missing for media template send.');
       
@@ -1298,7 +1301,12 @@ export async function sendMediaSequentially(
       const definition = TEMPLATE_DEFINITIONS[templateName];
       const headerTypeForPayload = definition?.header?.type?.toLowerCase() || detectedType;
 
-      await enforceMessagingPolicy(company, normalizedTo, 'template', templateName);
+      try {
+        await enforceMessagingPolicy(company, normalizedTo, 'template', templateName, options);
+      } catch (policyErr: any) {
+        console.warn(`⚠️ [Media Send] Policy check failed for ${to}: ${policyErr.message}. If this is a status update, ensure allowUnsubscribed is true.`);
+        throw policyErr;
+      }
       await enforceRateLimit(company, normalizedTo);
 
       const { url, headers } = getWhatsAppConfig(company);

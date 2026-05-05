@@ -19,6 +19,8 @@ export class TemplateResolverService {
     'GRIEVANCE_STATUS_RESOLVED': 'grievance_status_resolved_citizen_v2',
     'GRIEVANCE_STATUS_REJECTED': 'grievance_status_rejected_citizen_v2',
     'GRIEVANCE_STATUS_IN_PROGRESS': 'grievance_status_inprogress_citizen_v2',
+    'GRIEVANCE_STATUS_PENDING': 'grievance_status_inprogress_citizen_v2',
+    'GRIEVANCE_STATUS_ASSIGNED': 'grievance_status_inprogress_citizen_v2',
     'GRIEVANCE_STATUS_UPDATE': 'grievance_assigned_admin_v2'
   };
 

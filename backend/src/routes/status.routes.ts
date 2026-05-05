@@ -288,6 +288,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       }
       // Explicitly mark as modified for Mixed/Array types
       grievance.markModified('media');
+      console.log(`📦 [Status Update] Prepared ${uploadedMediaForNotifications.length} media items for WhatsApp notification.`);
     }
 
     // Add to status history

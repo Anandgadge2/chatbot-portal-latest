@@ -297,7 +297,8 @@ export async function triggerCitizenTemplate(options: {
   const safePayload = options.data || options.values || [];
 
   return sendWhatsAppTemplate(company, normalizedPhone, options.template, safePayload, language, options.mediaUrl, undefined, {
-    recipientType: 'CITIZEN'
+    recipientType: 'CITIZEN',
+    allowUnsubscribed: !options.requireNotificationConsent
   });
 }
 
@@ -351,17 +352,23 @@ export async function triggerCitizenStatusTemplate(options: {
     );
 
     // 3. Send the Status Template (Text-only)
-    await triggerCitizenTemplate({
-      template: templateName,
-      companyId: options.companyId,
-      citizenPhone: options.citizenPhone,
-      language,
-      values,
-      requireNotificationConsent: options.requireNotificationConsent
-    });
+    try {
+      console.log(`📡 [Status Update] Sending template "${templateName}" to ${options.citizenPhone} for grievance ${options.grievanceId}`);
+      await triggerCitizenTemplate({
+        template: templateName,
+        companyId: options.companyId,
+        citizenPhone: options.citizenPhone,
+        language,
+        values,
+        requireNotificationConsent: options.requireNotificationConsent
+      });
+      console.log(`✅ [Status Update] Text template "${templateName}" sent successfully to ${options.citizenPhone}`);
+    } catch (templateErr: any) {
+      logger.error(`⚠️ [Citizen Notification] Status text template failed: ${templateErr.message}. Proceeding to media...`);
+    }
 
-    // ⏳ Safety delay (1500ms) to ensure Status Template arrives BEFORE Proof of Work in WhatsApp UI
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // ⏳ Safety delay (500ms) to ensure Status Template arrives BEFORE Proof of Work in WhatsApp UI
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // 4. Send all Proof of Work using approved media templates
     if (options.media && options.media.length > 0) {
@@ -370,7 +377,8 @@ export async function triggerCitizenStatusTemplate(options: {
         company,
         options.citizenPhone,
         options.media,
-        options.citizenName || 'Citizen'
+        options.citizenName || 'Citizen',
+        { allowUnsubscribed: true }
       ).catch(err => logger.error(`❌ [Citizen Media] Sequential send failed: ${err.message}`));
     }
   } catch (error: any) {
