@@ -232,12 +232,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     }
 
     const uploadedDocumentUrls: string[] = [];
-    const statusesAllowingProofUpload = [
-      GrievanceStatus.RESOLVED,
-      GrievanceStatus.IN_PROGRESS,
-      GrievanceStatus.REJECTED
-    ];
-    if (statusesAllowingProofUpload.includes(status as GrievanceStatus) && uploadedFiles.length > 0) {
+    const uploadedMediaForNotifications: Array<{ url: string; type: 'image' | 'video' | 'document'; filename?: string }> = [];
+    if (uploadedFiles.length > 0) {
       if (!Array.isArray(grievance.media)) grievance.media = [] as any;
       const uploadResults = await Promise.all(
         uploadedFiles.map(async (file) => {
@@ -273,6 +269,11 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
         if (!result) continue;
         uploadedDocumentUrls.push(result.cloudUrl);
         grievance.media.push(result.mediaEntry);
+        uploadedMediaForNotifications.push({
+          url: result.cloudUrl,
+          type: result.mediaEntry.type,
+          filename: result.mediaEntry.originalName
+        });
       }
     }
 
@@ -294,7 +295,12 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     if (!grievance.timeline) grievance.timeline = [];
     grievance.timeline.push({
       action: 'STATUS_UPDATED',
-      details: { fromStatus: oldStatus, toStatus: status, remarks, media: uploadedDocumentUrls },
+      details: {
+        fromStatus: oldStatus,
+        toStatus: status,
+        remarks,
+        media: uploadedMediaForNotifications
+      },
       performedBy: currentUser._id,
       timestamp: new Date()
     });
@@ -314,7 +320,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
 
         const notificationTasks: Promise<any>[] = [];
 
-        if (oldStatus !== status) {
+        if (oldStatus !== status || uploadedDocumentUrls.length > 0) {
           notificationTasks.push(notifyHierarchyOnStatusChange({
             type: 'grievance',
             action: (status === GrievanceStatus.RESOLVED ? 'resolved' : 'status_update') as any,
@@ -354,12 +360,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
             remarks: remarks || undefined,
             resolvedByName: adminName || 'Administrator',
             formattedResolvedDate: formatTemplateDate(),
-            media: uploadedDocumentUrls.map((url) => {
-              const normalized = String(url || '').toLowerCase();
-              const type = normalized.match(/\.(jpg|jpeg|png|webp|heic|bmp|svg)(\?.*)?$/) ? 'image' : 
-                           normalized.match(/\.(mp4|mov|avi|3gp|m4v|webm|mkv)(\?.*)?$/) ? 'video' : 'document';
-              return { url, type: type as 'image' | 'video' | 'document' };
-            })
+            media: uploadedMediaForNotifications
           }));
         }
 

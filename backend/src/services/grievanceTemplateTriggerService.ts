@@ -188,6 +188,9 @@ export async function triggerGrievanceEvent(options: {
           }
         );
 
+        // ⏳ Safety delay (1500ms) to ensure Text Template arrives BEFORE Media Templates in WhatsApp UI
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // 6. Send All Media using approved media templates
         if (options.media && options.media.length > 0) {
           await sendMediaSequentially(company, recipient.phone, options.media, recipient.name);
@@ -356,6 +359,9 @@ export async function triggerCitizenStatusTemplate(options: {
       values,
       requireNotificationConsent: options.requireNotificationConsent
     });
+
+    // ⏳ Safety delay (1500ms) to ensure Status Template arrives BEFORE Proof of Work in WhatsApp UI
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 4. Send all Proof of Work using approved media templates
     if (options.media && options.media.length > 0) {

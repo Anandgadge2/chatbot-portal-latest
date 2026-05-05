@@ -319,8 +319,14 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
       : null;
 
   // Split media into Citizen vs Officer
-  const citizenMedia = (activeGrievance.media || []).filter((m) => !m.uploadedBy);
-  const officerMedia = (activeGrievance.media || []).filter((m) => m.uploadedBy);
+  const citizenMedia = (activeGrievance.media || []).filter((m: any) => {
+    if (m?.uploadedByRole) return m.uploadedByRole === "citizen";
+    return !m?.uploadedBy;
+  });
+  const officerMedia = (activeGrievance.media || []).filter((m: any) => {
+    if (m?.uploadedByRole) return m.uploadedByRole === "admin";
+    return !!m?.uploadedBy;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500/10 backdrop-blur-[2px] p-2 sm:p-4">
@@ -1037,7 +1043,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                             {/* Render media attachments in timeline if any */}
                             {event.details?.media && event.details.media.length > 0 && (
                               <div className="mt-3 flex flex-wrap gap-2">
-                                {event.details.media.map((url: string, mIdx: number) => {
+                                {event.details.media.map((mediaItem: any, mIdx: number) => {
+                                  const url = typeof mediaItem === "string" ? mediaItem : mediaItem?.url;
                                   const isImg = isImageMedia({ url });
                                   const isVid = isVideoMedia({ url });
                                   const isValid = url?.startsWith("http") || url?.startsWith("blob:");

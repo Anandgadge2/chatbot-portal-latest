@@ -828,7 +828,18 @@ router.get('/:id', requirePermission(Permission.READ_GRIEVANCE), async (req: Req
         grievanceObj.timeline.map(async (event: any) => {
           if (event.details?.media && Array.isArray(event.details.media)) {
             const signedTimelineMedia = await Promise.all(
-              event.details.media.map(async (url: string) => await getSignedUrl(url))
+              event.details.media.map(async (mediaItem: any) => {
+                if (typeof mediaItem === 'string') {
+                  return await getSignedUrl(mediaItem);
+                }
+                if (mediaItem && typeof mediaItem === 'object' && mediaItem.url) {
+                  return {
+                    ...mediaItem,
+                    url: await getSignedUrl(mediaItem.url)
+                  };
+                }
+                return mediaItem;
+              })
             );
             return {
               ...event,
