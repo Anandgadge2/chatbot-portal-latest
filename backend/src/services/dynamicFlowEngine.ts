@@ -4046,11 +4046,13 @@ async function handleMediaUpload(
     const accessToken = whatsappConfig?.accessToken;
 
     if (!accessToken) {
-      logger.error(`❌ CRITICAL: Cannot process media upload. WhatsApp accessToken missing for company ${company?.name || 'unknown'}. Check CompanyWhatsAppConfig.`, {
+      logger.error(`❌ CRITICAL CONFIG FAILURE: Cannot process media upload for company "${company?.name || 'Unknown'}" (${company?._id}). Missing WhatsApp Access Token in CompanyWhatsAppConfig.`, {
         companyId: company?._id,
-        hasConfig: !!whatsappConfig
+        hasConfig: !!whatsappConfig,
+        field: saveToField
       });
-      // Fallback to raw ID (legacy behavior, but now with a big error log)
+      
+      // We still store the raw ID as a absolute last resort fallback, but we mark it clearly as non-GCS
       storeMedia(session.data, saveToField, mediaUrl, messageType, false);
     } else {
       // ✅ STRICT GCP STORAGE RULES: /grievances/{grievanceId}/evidence/{timestamp}_{filename}
@@ -4132,7 +4134,7 @@ function storeMedia(
     originalName,
     uploadedByRole: 'citizen' as const,
     uploadedAt: new Date(), 
-    isGCS 
+    isGCS: !!isGCS 
   };
 
   if (field === "media") {

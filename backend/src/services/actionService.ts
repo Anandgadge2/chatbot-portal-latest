@@ -173,7 +173,10 @@ export class ActionService {
       const validMediaTypes = ['image', 'document', 'video'];
       const mediaFromArray: any[] = (session.data.media || []).filter(
         (m: any) => m && m.url && validMediaTypes.includes(m.type)
-      );
+      ).map((m: any) => ({
+        ...m,
+        isGCS: m.isGCS === true // Explicitly preserve the flag
+      }));
 
       const extraAttachmentFields = ['attachmentUrl', 'attachment', 'fileUrl', 'documentUrl', 'mediaUrl'];
       const extraMedia: any[] = [];

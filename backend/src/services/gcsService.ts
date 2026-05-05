@@ -105,6 +105,7 @@ export async function uploadWhatsAppMediaToGCS(
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     
+    logger.debug(`🔍 WhatsApp Media API Response:`, mediaResponse.data);
     const downloadUrl = mediaResponse.data.url;
     const mimeType = mediaResponse.data.mime_type || 'application/octet-stream';
     
@@ -181,7 +182,7 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
     if (!urlOrPath) return '';
     
     // Only attempt to sign if it's a GCS URL or a raw path
-    const isGcsUrl = urlOrPath.includes('storage.googleapis.com') || urlOrPath.includes(bucket.name);
+    const isGcsUrl = urlOrPath.includes('storage.googleapis.com') || (bucket.name && urlOrPath.includes(bucket.name));
     const isRawPath = !urlOrPath.startsWith('http') && (urlOrPath.includes('/') || urlOrPath.includes('.')); // Raw paths should have folders or extensions
 
     if (!isGcsUrl && !isRawPath) {
