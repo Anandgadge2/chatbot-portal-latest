@@ -4,6 +4,8 @@ import Grievance from '../models/Grievance';
 import Appointment from '../models/Appointment';
 import Lead from '../models/Lead';
 import User from '../models/User';
+import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
+import { uploadWhatsAppMediaToGCS } from './gcsService';
 import { 
   notifyDepartmentAdminOnCreation, 
   notifyUserOnAssignment, 
@@ -193,7 +195,49 @@ export class ActionService {
         }
       }
 
-      const sanitizedMedia = [...mediaFromArray, ...extraMedia];
+      const mediaBeforeGCS = [...mediaFromArray, ...extraMedia];
+      const sanitizedMedia: any[] = [];
+      
+      // ✅ GCS MIGRATION LOOP: Process raw WhatsApp IDs before saving
+      const waConfig = await CompanyWhatsAppConfig.findOne({ companyId: company._id, isActive: true }).lean();
+      const accessToken = (waConfig as any)?.accessToken;
+
+      for (const m of mediaBeforeGCS) {
+        // If it's a raw numeric ID and not already GCS, try uploading
+        if (/^\d+$/.test(m.url) && !m.isGCS && accessToken) {
+          logger.info(`📸 Found raw WhatsApp ID: ${m.url}. Attempting background GCS upload during creation...`);
+          try {
+            const timestamp = Date.now();
+            const folder = `grievances/${session.data.grievanceId || 'G-' + timestamp}/evidence`;
+            const uploadResult = await uploadWhatsAppMediaToGCS(
+              m.url,
+              accessToken,
+              `${timestamp}_${m.url}`,
+              folder
+            );
+            
+            if (uploadResult) {
+              sanitizedMedia.push({
+                ...m,
+                url: uploadResult.url,
+                isGCS: true,
+                mimeType: uploadResult.mimeType,
+                originalName: uploadResult.originalName,
+                uploadedByRole: m.uploadedByRole || 'citizen'
+              });
+              continue;
+            }
+          } catch (err) {
+            logger.error(`❌ Background GCS upload failed for ${m.url}:`, err);
+          }
+        }
+        
+        // Fallback or already GCS: keep as is
+        sanitizedMedia.push({
+          ...m,
+          uploadedByRole: m.uploadedByRole || 'citizen'
+        });
+      }
       const resolvedDescription = ActionService.resolveGrievanceDescription(session.data);
       const hasExplicitDescription = resolvedDescription.length > 0;
       const fallbackDescription = `Citizen reported a grievance via WhatsApp (${new Date().toISOString()})`;

@@ -1045,7 +1045,8 @@ const GrievanceDetailDialog: React.FC<GrievanceDetailDialogProps> = ({
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {event.details.media.map((mediaItem: any, mIdx: number) => {
                                   const url = typeof mediaItem === "string" ? mediaItem : mediaItem?.url;
-                                  const isImg = isImageMedia({ url });
+                                  if (!url) return null;
+                                  const isImg = isImageMedia(typeof mediaItem === "object" ? mediaItem : { url });
                                   const isVid = isVideoMedia({ url });
                                   const isValid = url?.startsWith("http") || url?.startsWith("blob:");
                                   return (

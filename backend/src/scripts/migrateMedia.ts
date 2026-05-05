@@ -90,6 +90,7 @@ async function migrate() {
       }
 
       if (updated) {
+        grievance.markModified('media');
         await grievance.save();
         console.log(`   💾 Grievance ${grievance.grievanceId} updated.`);
       }

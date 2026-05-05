@@ -173,35 +173,35 @@ export async function uploadWhatsAppMediaToGCS(
 }
 
 /**
- * Generates a signed URL for a file in GCS
+ * Generates a public URL or signed URL for a file in GCS.
+ * Since the user requested to use public URLs provided by GCP, we will prioritize
+ * returning the public storage.googleapis.com URL.
+ * 
  * @param urlOrPath The public URL or raw path in the bucket
- * @param expiresMinutes How long the URL should be valid (default 60 mins)
+ * @param expiresMinutes How long the URL should be valid (default 60 mins) - ignored if returning public URL
  */
 export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 60): Promise<string> {
   try {
     if (!urlOrPath) return '';
     
-    // Only attempt to sign if it's a GCS URL or a raw path
+    // Only attempt to process if it's a GCS URL or a raw path
     const isGcsUrl = urlOrPath.includes('storage.googleapis.com') || (bucket.name && urlOrPath.includes(bucket.name));
-    const isRawPath = !urlOrPath.startsWith('http') && (urlOrPath.includes('/') || urlOrPath.includes('.')); // Raw paths should have folders or extensions
+    const isRawPath = !urlOrPath.startsWith('http') && (urlOrPath.includes('/') || urlOrPath.includes('.'));
 
     if (!isGcsUrl && !isRawPath) {
-      // It's likely a legacy Cloudinary URL, a WhatsApp media ID (raw digits), or something else.
-      // We return as is, but if it's just digits, the frontend might try to load it relatively.
-      // logger.debug(`ℹ️ Skipping signing for non-GCS URL/path: ${urlOrPath}`);
       return urlOrPath;
     }
 
     let filePath = urlOrPath;
     if (isGcsUrl) {
-      // Extract path from public URL: https://storage.googleapis.com/bucket/path/to/file
+      // It's already a GCS URL, we can return it as is (as a public URL)
+      // or re-construct it to be sure it's correct.
       const urlWithoutParams = urlOrPath.split('?')[0];
       const parts = urlWithoutParams.split(`${bucket.name}/`);
       
       if (parts.length > 1) {
         filePath = decodeURIComponent(parts[1]);
       } else {
-        // Fallback for storage.googleapis.com/bucket-name/path
         const storageParts = urlWithoutParams.split('storage.googleapis.com/');
         if (storageParts.length > 1) {
           const pathWithBucket = decodeURIComponent(storageParts[1]);
@@ -212,20 +212,14 @@ export async function getSignedUrl(urlOrPath: string, expiresMinutes: number = 6
       }
     }
 
-    // Final safety check: if filePath is still a URL or looks like a WhatsApp ID, don't sign it
-    if (filePath.startsWith('http') || (!filePath.includes('/') && !filePath.includes('.'))) {
-       return urlOrPath;
-    }
-
-    const [signedUrl] = await bucket.file(filePath).getSignedUrl({
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + expiresMinutes * 60 * 1000,
-    });
-
-    return signedUrl;
+    // Construct the public URL instead of a signed URL
+    // This ensures visibility if the bucket/objects are public and avoids signing overhead/errors.
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
+    
+    // logger.debug(`🔗 Generated public GCS URL: ${publicUrl}`);
+    return publicUrl;
   } catch (error: any) {
-    logger.error(`❌ Failed to sign GCS URL for ${urlOrPath}: ${error.message}`);
-    return urlOrPath; // Fallback to original if signing fails
+    logger.error(`❌ Failed to generate public GCS URL for ${urlOrPath}: ${error.message}`);
+    return urlOrPath;
   }
 }

@@ -268,13 +268,25 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       for (const result of uploadResults) {
         if (!result) continue;
         uploadedDocumentUrls.push(result.cloudUrl);
-        grievance.media.push(result.mediaEntry);
+        
+        // Ensure result.mediaEntry has all necessary fields
+        const mediaEntry = {
+          ...result.mediaEntry,
+          uploadedByRole: 'admin',
+          uploadedBy: currentUser._id,
+          uploadedAt: new Date(),
+          isGCS: true
+        };
+        
+        grievance.media.push(mediaEntry);
         uploadedMediaForNotifications.push({
           url: result.cloudUrl,
           type: result.mediaEntry.type,
           filename: result.mediaEntry.originalName
         });
       }
+      // Explicitly mark as modified for Mixed/Array types
+      grievance.markModified('media');
     }
 
     // Add to status history
@@ -305,7 +317,9 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
       timestamp: new Date()
     });
 
-    await grievance.save();
+    grievance.markModified('timeline');
+grievance.markModified('media');
+await grievance.save();
 
     // 🚀 BACKGROUND NOTIFICATIONS
     (async () => {
@@ -393,6 +407,26 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
           ...m,
           url: await getSignedUrl(m.url)
         }))
+      );
+    }
+
+    if (grievanceObj.timeline && grievanceObj.timeline.length > 0) {
+      grievanceObj.timeline = await Promise.all(
+        grievanceObj.timeline.map(async (event: any) => {
+          if (event.details?.media && Array.isArray(event.details.media)) {
+            const signedTimelineMedia = await Promise.all(
+              event.details.media.map(async (mediaItem: any) => {
+                if (typeof mediaItem === 'string') return await getSignedUrl(mediaItem);
+                if (mediaItem && typeof mediaItem === 'object' && mediaItem.url) {
+                  return { ...mediaItem, url: await getSignedUrl(mediaItem.url) };
+                }
+                return mediaItem;
+              })
+            );
+            return { ...event, details: { ...event.details, media: signedTimelineMedia } };
+          }
+          return event;
+        })
       );
     }
 
