@@ -25,12 +25,17 @@ const COLLECTORATE_JHARSUGUDA_COMPANY_ID = '69ad4c6eb1ad8e405e6c0858';
 const uploadBufferToGCSWrapper = async (
   file: Express.Multer.File,
   companyId: string,
+  grievanceId?: string
 ): Promise<string | null> => {
+  const folder = grievanceId 
+    ? `grievances/${grievanceId}/evidence` 
+    : `status_documents/${companyId}`;
+    
   return await uploadBufferToGCS(
     file.buffer,
     file.originalname,
     file.mimetype,
-    `status_documents/${companyId}`
+    folder
   );
 };
 
@@ -239,6 +244,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
           const cloudUrl = await uploadBufferToGCSWrapper(
             file,
             String(grievance.companyId._id || grievance.companyId),
+            grievance.grievanceId
           );
           if (!cloudUrl) return null;
           return {
@@ -256,7 +262,8 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
               originalName: file.originalname,
               uploadedByRole: 'admin',
               uploadedAt: new Date(),
-              uploadedBy: currentUser._id
+              uploadedBy: currentUser._id,
+              isGCS: true
             } as any
           };
         })
