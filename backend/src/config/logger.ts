@@ -19,22 +19,20 @@ const transports: winston.transport[] = [
   })
 ];
 
-// Only add file transports if not in production/Vercel
-if (!isProduction) {
-  transports.push(
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5
-    }),
-    new winston.transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5
-    })
-  );
-}
+// Always add file transports to ensure persistent logs even in production
+transports.push(
+  new winston.transports.File({
+    filename: 'logs/error.log',
+    level: 'error',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5
+  }),
+  new winston.transports.File({
+    filename: 'logs/combined.log',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5
+  })
+);
 
 // Create logger instance
 export const logger = winston.createLogger({

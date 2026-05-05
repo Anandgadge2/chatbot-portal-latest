@@ -199,12 +199,15 @@ export class ActionService {
       const sanitizedMedia: any[] = [];
       
       // ✅ GCS MIGRATION LOOP: Process raw WhatsApp IDs before saving
-      const waConfig = await CompanyWhatsAppConfig.findOne({ companyId: company._id, isActive: true }).lean();
+      const waConfig = await CompanyWhatsAppConfig.findOne({ companyId: company?._id, isActive: true }).lean();
       const accessToken = (waConfig as any)?.accessToken;
 
+      logger.info(`🔍 [MediaMigration] Company: ${company?._id}, HasConfig: ${!!waConfig}, HasToken: ${!!accessToken}, MediaCount: ${mediaBeforeGCS.length}`);
+
       for (const m of mediaBeforeGCS) {
+        logger.debug(`   - Checking media: ${m.url} (isGCS: ${m.isGCS})`);
         // If it's a raw numeric ID and not already GCS, try uploading
-        if (/^\d+$/.test(m.url) && !m.isGCS && accessToken) {
+        if (/^\d+$/.test(String(m.url)) && !m.isGCS && accessToken) {
           logger.info(`📸 Found raw WhatsApp ID: ${m.url}. Attempting background GCS upload during creation...`);
           try {
             const timestamp = Date.now();

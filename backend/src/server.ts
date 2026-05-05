@@ -17,6 +17,9 @@ import { configureGCS } from './config/gcs';
 import { validateRequiredEnv } from './config/env';
 import User from './models/User';
 
+console.log('🚀 [SERVER_STARTUP] Version 5.0 - Media Migration Active');
+logger.info('🚀 [SERVER_STARTUP] Version 5.0 - Media Migration Active');
+
 // Import routes
 import authRoutes from './routes/auth.routes';
 import healthRoutes from './routes/health.routes';
