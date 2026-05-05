@@ -2,10 +2,24 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import { logger } from './logger';
 
-const storage = new Storage({
+const storageOptions: any = {
   projectId: process.env.GCP_PROJECT_ID,
-  keyFilename: path.resolve(process.cwd(), process.env.GCP_KEY_FILE_PATH || 'gcs-service-account.json'),
-});
+};
+
+// Support for environment-variable-based credentials (required for Vercel)
+if (process.env.GCP_SERVICE_ACCOUNT_JSON) {
+  try {
+    storageOptions.credentials = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_JSON);
+    logger.info('🔑 Using GCS credentials from environment variable');
+  } catch (err: any) {
+    logger.error('❌ Failed to parse GCP_SERVICE_ACCOUNT_JSON:', err.message);
+  }
+} else {
+  storageOptions.keyFilename = path.resolve(process.cwd(), process.env.GCP_KEY_FILE_PATH || 'gcs-service-account.json');
+  logger.info(`📂 Using GCS credentials from file: ${storageOptions.keyFilename}`);
+}
+
+const storage = new Storage(storageOptions);
 
 export const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'chatbot-media-storage-490106');
 
