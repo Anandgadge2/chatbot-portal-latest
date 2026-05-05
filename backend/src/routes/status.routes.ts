@@ -96,6 +96,7 @@ router.put('/grievance/:id', requirePermission(Permission.STATUS_CHANGE_GRIEVANC
     const currentUser = req.user!;
     const { status, remarks } = req.body;
     const uploadedFiles = (req.files as Express.Multer.File[]) || [];
+    console.log('[STATUS_LOG] Grievance:', req.params.id, 'Files:', uploadedFiles.length);
 
     if (!status) {
       return res.status(400).json({

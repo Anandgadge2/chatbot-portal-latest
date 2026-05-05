@@ -441,13 +441,12 @@ export default function StatusUpdateForm({
         const formData = new FormData();
         formData.append('status', selectedStatus);
         if (remarks) formData.append('remarks', remarks);
-        if (['RESOLVED', 'IN_PROGRESS', 'REJECTED'].includes(selectedStatus) && documents.length > 0) {
+        if (documents.length > 0) {
           documents.forEach((file) => formData.append('documents', file));
         }
         response = await apiClient.put(
           `/status/${itemType}/${itemId}`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
+          formData
         );
       } else {
         response = await apiClient.put(
@@ -590,7 +589,7 @@ export default function StatusUpdateForm({
           )}
         </div>
 
-        {itemType === 'grievance' && ['RESOLVED', 'IN_PROGRESS', 'REJECTED'].includes(selectedStatus) && (
+        {itemType === 'grievance' && (
           <DocumentUploadZone
             documents={documents}
             onChange={setDocuments}
