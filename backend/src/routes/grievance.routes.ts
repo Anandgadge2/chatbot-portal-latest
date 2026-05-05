@@ -652,70 +652,59 @@ router.put('/:id/revert', requirePermission(Permission.REVERT_GRIEVANCE), async 
 
     await grievance.save();
 
-    const targetDeptIdForNotification = previousSubDepartmentId || previousDepartmentId;
-    if (targetDeptIdForNotification) {
-      const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
-      await notifyDepartmentAdmins({
-        companyId: grievance.companyId,
-        departmentId: targetDeptIdForNotification,
-        eventType: 'GRIEVANCE_REVERTED',
-        title: 'Grievance Reverted',
-        message: `Grievance ${grievance.grievanceId} was reverted for reassignment by ${currentUser.getFullName()}.`,
-        grievanceId: grievance.grievanceId,
-        grievanceObjectId: grievance._id,
-        meta: { remarks: remarks.trim() },
-      });
-    }
+    // 🚀 Background Notifications: Move slow WhatsApp/In-App triggers to a background process
+    // This prevents the frontend from timing out while waiting for multiple Meta API calls.
+    (async () => {
+      try {
+        const targetDeptIdForNotification = previousSubDepartmentId || previousDepartmentId;
+        if (targetDeptIdForNotification) {
+          const { notifyDepartmentAdmins } = await import('../services/inAppNotificationService');
+          await notifyDepartmentAdmins({
+            companyId: grievance.companyId,
+            departmentId: targetDeptIdForNotification,
+            eventType: 'GRIEVANCE_REVERTED',
+            title: 'Grievance Reverted',
+            message: `Grievance ${grievance.grievanceId} was reverted for reassignment by ${currentUser.getFullName()}.`,
+            grievanceId: grievance.grievanceId,
+            grievanceObjectId: grievance._id,
+            meta: { remarks: remarks.trim() },
+          });
+        }
 
-    const revertRecipients = await getAdminRecipients(grievance.companyId);
-    // Fetch names for Revert notification
-    const [prevDept, prevSubDept] = await Promise.all([
-      Department.findById(previousDepartmentId).select('name'),
-      previousSubDepartmentId ? Department.findById(previousSubDepartmentId).select('name') : Promise.resolve(null)
-    ]);
+        const revertRecipients = await getAdminRecipients(grievance.companyId);
+        // Fetch names for Revert notification
+        const [prevDept, prevSubDept] = await Promise.all([
+          Department.findById(previousDepartmentId).select('name'),
+          previousSubDepartmentId ? Department.findById(previousSubDepartmentId).select('name') : Promise.resolve(null)
+        ]);
 
-    await triggerAdminAssignmentNotification({
-      event: 'GRIEVANCE_REVERTED',
-      companyId: grievance.companyId,
-      grievanceId: grievance.grievanceId,
-      citizenName: grievance.citizenName,
-      category: prevDept?.name || previousDepartmentName,
-      subDepartmentName: prevSubDept?.name || 'N/A',
-      description: grievance.description,
-      recipientPhones: revertRecipients,
-      language: grievance.language,
-      revertedByName: currentUser.getFullName(),
-      remarks: remarks.trim(),
-      submittedOn: grievance.createdAt,
-      buttonParam: 'https://sahaj.pugarch.in/',
-      originalDepartmentName: prevDept?.name || previousDepartmentName,
-      originalOfficeName: prevSubDept?.name || 'N/A',
-      media: (grievance.media || []).map((file: any) => ({
-        url: file.url,
-        type: file.type,
-        caption: file.caption,
-        filename: file.filename
-      }))
-    }).catch((err: Error) => logger.error('Failed to trigger grievance_reverted_company_v2 template', err));
-
-    // Legacy notification removed in favor of Meta-verified templates triggered above via triggerAdminAssignmentNotification
-    /*
-    const { notifyCompanyAdminsOnRevert } = await import('../services/notificationService');
-    await notifyCompanyAdminsOnRevert({
-      type: 'grievance',
-      action: 'reverted_admin',
-      grievanceId: grievance.grievanceId,
-      citizenName: grievance.citizenName,
-      citizenPhone: grievance.citizenPhone,
-      citizenWhatsApp: grievance.citizenWhatsApp,
-      language: grievance.language,
-      departmentId: previousDepartmentId as any,
-      subDepartmentId: previousSubDepartmentId as any,
-      companyId: grievance.companyId,
-      remarks: remarks.trim(),
-      timeline: grievance.timeline
-    }).catch((err: Error) => logger.error('❌ Failed to notify company admins on revert:', err));
-    */
+        await triggerAdminAssignmentNotification({
+          event: 'GRIEVANCE_REVERTED',
+          companyId: grievance.companyId,
+          grievanceId: grievance.grievanceId,
+          citizenName: grievance.citizenName,
+          category: prevDept?.name || previousDepartmentName,
+          subDepartmentName: prevSubDept?.name || 'N/A',
+          description: grievance.description,
+          recipientPhones: revertRecipients,
+          language: grievance.language,
+          revertedByName: currentUser.getFullName(),
+          remarks: remarks.trim(),
+          submittedOn: grievance.createdAt,
+          buttonParam: 'https://sahaj.pugarch.in/',
+          originalDepartmentName: prevDept?.name || previousDepartmentName,
+          originalOfficeName: prevSubDept?.name || 'N/A',
+          media: (grievance.media || []).map((file: any) => ({
+            url: file.url,
+            type: file.type,
+            caption: file.caption,
+            filename: file.filename
+          }))
+        });
+      } catch (bgErr: any) {
+        logger.error(`❌ [Background Notification] Revert flow failed: ${bgErr.message}`);
+      }
+    })();
 
     await logUserAction(req, AuditAction.UPDATE, 'Grievance', grievance._id.toString(), {
       action: 'revert_to_company_admin',
