@@ -129,7 +129,7 @@ const corsOptions = {
       },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma']
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -210,15 +210,25 @@ const ensureDb = async (_req: Request, _res: Response, next: (err?: any) => void
 app.use('/api', ensureDb);
 
 // Health check (basic)
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   const dbStatus = getDatabaseStatus();
+  const { getUsersCollectionCount } = await import('./utils/databaseSafety');
+  const usersCollectionCount = dbStatus.connected ? await getUsersCollectionCount() : 0;
+  const maintenanceMode = !dbStatus.connected || usersCollectionCount === 0;
 
   res.json({
-    status: 'OK',
+    status: maintenanceMode ? 'MAINTENANCE' : 'OK',
+    maintenance: maintenanceMode,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV,
-    database: dbStatus
+    database: {
+      ...dbStatus,
+      usersCollectionCount
+    },
+    message: maintenanceMode 
+      ? 'System is currently under maintenance or experiencing critical issues.' 
+      : 'All systems operational'
   });
 });
 

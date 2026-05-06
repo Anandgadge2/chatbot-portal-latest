@@ -203,9 +203,21 @@ export const installDatabaseSafetyGuards = (connection: Connection): void => {
 };
 
 export const getUsersCollectionCount = async (): Promise<number> => {
-  if (mongoose.connection.readyState !== 1) {
+  try {
+    // If mongoose isn't connected, we can't count
+    if (mongoose.connection.readyState !== 1) {
+      return 0;
+    }
+
+    // Try counting using the User model if it's already registered
+    if (mongoose.models.User) {
+      return await mongoose.models.User.countDocuments({});
+    }
+
+    // Fallback to native collection count
+    return await mongoose.connection.collection('users').countDocuments({});
+  } catch (error) {
+    console.error('Error counting users for health check:', error);
     return 0;
   }
-
-  return mongoose.connection.collection('users').countDocuments({});
 };

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/lib/query/cache";
+import HealthGuard from "@/components/HealthGuard";
 
 export const metadata: Metadata = {
   title: {
@@ -22,21 +23,23 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <QueryProvider>
-          <AuthProvider>
-            {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 1000,
-                success: {
+          <HealthGuard>
+            <AuthProvider>
+              {children}
+              <Toaster
+                position="top-right"
+                toastOptions={{
                   duration: 1000,
-                },
-                error: {
-                  duration: 5000,
-                },
-              }}
-            />
-          </AuthProvider>
+                  success: {
+                    duration: 1000,
+                  },
+                  error: {
+                    duration: 5000,
+                  },
+                }}
+              />
+            </AuthProvider>
+          </HealthGuard>
         </QueryProvider>
       </body>
     </html>
