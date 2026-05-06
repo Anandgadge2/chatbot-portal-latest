@@ -61,6 +61,7 @@ export default function DepartmentUsersDialog({
     try {
       const response = await userAPI.getAll({
         departmentId: departmentId,
+        companyId: companyId || undefined,
         limit: 100,
       });
       if (response.success) {
@@ -72,7 +73,7 @@ export default function DepartmentUsersDialog({
     } finally {
       setLoading(false);
     }
-  }, [departmentId]);
+  }, [departmentId, companyId]);
 
   const fetchAllCompanyUsers = useCallback(async () => {
     if (!companyId) return;
