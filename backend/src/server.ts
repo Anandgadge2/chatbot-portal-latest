@@ -46,6 +46,7 @@ import moduleRoutes from './routes/module.routes';
 import whatsappTemplateRoutes from './routes/whatsappTemplate.routes';
 import notificationRoutes from './routes/notification.routes';
 import { startWhatsAppTemplateSyncCron } from './services/whatsappTemplateSyncCron';
+import { databaseSafetyContextMiddleware } from './utils/databaseSafety';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -61,6 +62,9 @@ let startupInitializationError: Error | null = null;
 
 // Trust proxy (required when behind Vercel/nginx; fixes express-rate-limit X-Forwarded-For validation)
 app.set('trust proxy', 1);
+
+// Attach request context before all routes so destructive DB-operation logs include request metadata
+app.use(databaseSafetyContextMiddleware);
 
 // Custom logging middleware to see ALL traffic
 app.use((req, res, next) => {
@@ -294,6 +298,10 @@ const init = async () => {
   const userCount = await User.countDocuments();
   if (userCount === 0) {
     logger.error('CRITICAL: users collection is empty at startup');
+
+    if ((process.env.NODE_ENV === 'production' || process.env.VERCEL) && process.env.ALLOW_EMPTY_USERS_ON_STARTUP !== 'true') {
+      throw new Error('Refusing to start against an empty users collection in production. Verify MONGODB_URI or set ALLOW_EMPTY_USERS_ON_STARTUP=true only for a fresh intentional install.');
+    }
   }
 
   // 🚫 PRODUCTION SAFETY: Do NOT run syncIndexes on every serverless request.
