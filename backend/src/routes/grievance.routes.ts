@@ -16,7 +16,7 @@ import CitizenProfile from '../models/CitizenProfile';
 import Company from '../models/Company';
 import CompanyWhatsAppConfig from '../models/CompanyWhatsAppConfig';
 import { 
-  triggerAdminTemplate,
+  triggerGrievanceEvent,
   triggerAdminAssignmentNotification,
   triggerGrievanceNotifications,
   formatTemplateDate,
@@ -405,6 +405,7 @@ router.post('/', enforceWhatsAppGrievanceCompliance, async (req: Request, res: R
     const notificationPayload = {
       type: 'grievance' as const,
       action: 'created' as const,
+      grievance: grievance,
       grievanceId: grievance.grievanceId,
       citizenName: grievance.citizenName,
       citizenPhone: grievance.citizenPhone,
@@ -1726,22 +1727,18 @@ router.post('/:id/reminder', requirePermission(Permission.UPDATE_GRIEVANCE), asy
           const normalizedTo = normalizePhoneNumber(phone);
           const recipientName = (normalizedTo && nameByPhone.get(normalizedTo)) || 'Administrator';
 
-          await triggerAdminTemplate({
-            event: 'grievance_reminder_admin_v2',
+          await triggerGrievanceEvent({
+            eventKey: 'GRIEVANCE_REMINDER',
             companyId: grievance.companyId,
             language: grievance.language,
+            grievance: grievance,
             recipientPhones: [phone],
             citizenPhone: grievance.citizenPhone,
-            data: {
-              admin_name: recipientName,
-              grievance_id: grievance.grievanceId,
-              citizen_name: grievance.citizenName || 'N/A',
-              department_name: departmentName,
-              office_name: officeName,
-              grievance_details: grievance.description || 'N/A',
-              submitted_on: formatTemplateDate(new Date(grievance.createdAt)),
-              reminder_remarks: trimmedRemarks
-            }
+            admin: { fullName: recipientName },
+            remarks: trimmedRemarks,
+            department: { name: departmentName },
+            subDept: { name: officeName },
+            submittedOn: grievance.createdAt
           });
 
           // ✅ Send Media for each recipient with their personalized name

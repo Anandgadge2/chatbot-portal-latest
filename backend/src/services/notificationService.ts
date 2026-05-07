@@ -1455,6 +1455,8 @@ export async function notifyDepartmentAdminOnCreation(
                     grievance: data.grievance || {
                       grievanceId: data.grievanceId,
                     },
+                    department: fullData.departmentName,
+                    subDept: fullData.subDepartmentName,
                     recipientPhones: [user.phone],
                     admin: user,
                     citizenPhone: data.citizenPhone,
